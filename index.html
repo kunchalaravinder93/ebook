@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Billionaire Before Graduation - Publication Layout</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
+        
+        body {
+            background-color: #1a1a1a;
+            color: #111;
+            margin: 0;
+            padding: 20px;
+            font-family: 'EB Garamond', serif;
+        }
+
+        /* Standard 6x9 inch book ratio for Amazon KDP */
+        .page {
+            background: white;
+            width: 800px;
+            height: 1100px; /* Standard A4/Letter approximation */
+            margin: 40px auto;
+            padding: 80px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            page-break-after: always;
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 40px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .manga-box {
+            width: 100%;
+            height: 450px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .manga-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        h1, h2, h3 { font-family: 'Crimson Pro', serif; }
+        p { font-size: 18px; text-align: justify; margin-bottom: 1.2em; text-indent: 2em; }
+        p:first-of-type { text-indent: 0; }
+        
+        .chapter-heading { text-align: center; margin-bottom: 3rem; text-transform: uppercase; letter-spacing: 2px; }
+        
+        /* Loading animation */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .page { margin: 0; box-shadow: none; border: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PAGE 1: TITLE PAGE -->
+    <div class="page flex items-center justify-center text-center">
+        <div>
+            <h1 class="text-5xl font-bold mb-4">THE BILLIONAIRE BEFORE GRADUATION</h1>
+            <h2 class="text-2xl italic text-gray-600 mb-20">A Novel of Timing, Discipline, and Leverage</h2>
+            <p class="text-xl font-semibold mt-40">A Narrative of the Second Chance</p>
+        </div>
+        <div class="page-number">1</div>
+    </div>
+
+    <!-- PAGE 2: PREFACE -->
+    <div class="page">
+        <h2 class="chapter-heading">Preface</h2>
+        <p>There is a specific kind of pain that does not come from failure. It comes from being early enough to understand… but late enough to miss.</p>
+        <p>This story is not about luck. It is not about genius. It is not about revenge. It is about timing. About the quiet difference between those who react and those who position.</p>
+        <p>At forty-two, he learned a truth that most people discover too late: Markets do not reward belief. They reward discipline. They reward preparation. They reward those who act before applause begins.</p>
+        <div class="page-number">2</div>
+    </div>
+
+    <!-- PAGE 3: PREFACE CONT. + IMAGE -->
+    <div class="page">
+        <p>He had watched fortunes form from the sidelines. He had seen Bitcoin dismissed before it multiplied. He had ignored early signals of artificial intelligence. He had scrolled past semiconductor surges and cloud revolutions. He had chosen comfort over conditioning. Emotion over structure.</p>
+        <div id="img-1" class="manga-box" data-prompt="Manga style, wide shot, a 42-year-old man in a dark office looking at glowing stock charts with a look of deep regret, heavy ink shadows, cinematic.">
+            <div class="loader"></div>
+        </div>
+        <p>Validation over value. He lost money. He lost love. He lost confidence. But what hurt most was not losing—It was knowing he could have seen it coming.</p>
+        <div class="page-number">3</div>
+    </div>
+
+    <!-- PAGE 4: ACT I COLLAPSE -->
+    <div class="page">
+        <h2 class="chapter-heading">PART I — MEMORY IS LEVERAGE</h2>
+        <h3 class="text-xl font-bold mb-4 text-center">Chapter 1: The Machines That Did Not Care</h3>
+        <p>The machines did not blink. They did not hesitate. They did not adjust themselves to human regret. They beeped. Measured. Indifferent.</p>
+        <p>He lay in the hospital bed staring at a ceiling that looked like it had absorbed decades of unfinished lives. Fluorescent light hummed faintly above him. His body felt heavier than it should have at forty-two.</p>
+        <p>Forty-two wasn’t old. But it was old enough to know when you had misplayed your hand.</p>
+        <div class="page-number">4</div>
+    </div>
+
+    <!-- PAGE 5: HOSPITAL SCENE -->
+    <div class="page">
+        <p>A nurse adjusted the IV line near his wrist. “You should try to rest,” she said gently. Rest. He almost laughed. He had rested through opportunities. Rested through warnings. Rested through cycles.</p>
+        <div id="img-2" class="manga-box" data-prompt="Manga panel, perspective from a hospital bed looking at a blurry nurse and medical equipment, lonely and cold atmosphere, hatching lines.">
+            <div class="loader"></div>
+        </div>
+        <p>Now the only thing working with precision was the heart monitor. Beep. Beep. Beep. His startup had collapsed six months earlier. Not dramatically. Not in headlines.</p>
+        <div class="page-number">5</div>
+    </div>
+
+    <!-- PAGE 6: THE BETRAYAL -->
+    <div class="page">
+        <p>He had believed belief was enough. He had believed markets rewarded optimism. They rewarded positioning. And he had been late. Always late.</p>
+        <p>Bitcoin at $400. He remembered reading about it and dismissing it. “Magic internet money.” His fiancée’s last words replayed in his mind. “I need stability.” She didn’t yell. Didn’t accuse. Just left. With his closest friend.</p>
+        <p>The betrayal hadn’t destroyed him immediately. It destabilized him quietly. Markets do not pause for heartbreak. They punish distraction.</p>
+        <div class="page-number">6</div>
+    </div>
+
+    <!-- PAGE 7: THE AWAKENING -->
+    <div class="page">
+        <h3 class="text-xl font-bold mb-4 text-center">Chapter 2: The Sound of Rotation</h3>
+        <p>The air felt different. Warmer. Less sterile. He heard something else—a metallic clicking rhythm. Not a heart monitor. A ceiling fan. He opened his eyes.</p>
+        <div id="img-3" class="manga-box" data-prompt="Manga style, a young man sitting up in a college dorm bed, sunlight hitting his face, eyes wide with realization, looking at his younger hands, high contrast.">
+            <div class="loader"></div>
+        </div>
+        <p>The ceiling was beige, cracked near the corner. The fan rotated unevenly above him. His chest tightened. He sat up too quickly—no weakness, no IV, no stiffness. He looked at his hands. Smooth.</p>
+        <div class="page-number">7</div>
+    </div>
+
+    <!-- PAGE 8: RECOGNITION -->
+    <div class="page">
+        <p>No faint veins raised from age. He stood and moved toward the mirror near the cupboard. Twenty years old. His breath became shallow. “No,” he whispered.</p>
+        <p>He checked the calendar. April. Final year of college. He grabbed the old smartphone on his desk. The screen lagged slightly as it loaded. Bitcoin: $1,200. His knees nearly buckled. He sat back on the bed.</p>
+        <p>Still twenty. Still April. Still $1,200. This was not a dream. This was information restored. Memory intact.</p>
+        <div class="page-number">8</div>
+    </div>
+
+    <!-- PAGE 9: THE SYSTEM -->
+    <div class="page">
+        <p>He remembered the exact psychological curve of the cycle: April — disbelief. June — curiosity. September — media attention. November — mania. December — peak. January — blood.</p>
+        <div id="img-4" class="manga-box" data-prompt="Manga style, close up of a fountain pen writing 'LEVERAGE MEMORY' in a new notebook, sharp focus on the ink and handwriting, determined vibe.">
+            <div class="loader"></div>
+        </div>
+        <p>He stood again, steady this time. “If this is real,” he said softly, “then I cannot waste one hour.” He pulled out a notebook. He wrote in clean block letters: LEVERAGE MEMORY. Under it: NO EMOTIONAL DECISIONS. Then: PRIORITY: CAPITAL.</p>
+        <div class="page-number">9</div>
+    </div>
+
+    <!-- PAGE 10: REALLOCATION -->
+    <div class="page">
+        <h2 class="chapter-heading">ACT II — AWAKENING</h2>
+        <h3 class="text-xl font-bold mb-4 text-center">Chapter 3: Reallocation</h3>
+        <p>She knocked on his door that evening. “Coffee?” she smiled. In his first life, that smile disarmed him. Now it became data. Her phone vibrated. She turned it face down too quickly.</p>
+        <p>A name flashed—his closest friend. He felt the familiar sting, but this time it did not spiral. It settled. For a week he watched patterns—delayed replies, excuses, subtle distance.</p>
+        <div class="page-number">10</div>
+    </div>
+
+    <!-- PAGE 11: THE BREAKUP -->
+    <div class="page">
+        <p>One afternoon in the campus courtyard, he asked calmly, “Are you into him?” She laughed nervously. “What? No.” He held eye contact. “Look at me and answer.” Silence. Her eyes shifted. That was enough.</p>
+        <p>“If you are unsure about me,” he said quietly, “I won’t stand in the middle.” She tried to reach for his hand. He stepped back. “I wish you well.” He walked away. Not angry. Not broken. Focused.</p>
+        <div id="img-5" class="manga-box" data-prompt="Manga style, a young man walking away from a beautiful girl in a campus courtyard, he is not looking back, cinematic shadow following him, birds flying in background.">
+            <div class="loader"></div>
+        </div>
+        <div class="page-number">11</div>
+    </div>
+
+    <!-- PAGE 12: THE LEDGER -->
+    <div class="page">
+        <h3 class="text-xl font-bold mb-4 text-center">Chapter 5: The Second Ledger</h3>
+        <p>The first thing he did after waking into his second life: He created a system. A thick notebook labeled: SECOND LEDGER. Inside, he created sections for Bitcoin cycles, stock surges, and crash windows.</p>
+        <p>He didn’t write vaguely. He wrote exact months, exact quarters, exact psychological signals. Then he flipped to a new page: ACADEMICS. He would no longer be average.</p>
+        <div class="page-number">12</div>
+    </div>
+
+    <!-- PAGE 13: THE LAND SALE -->
+    <div class="page">
+        <h3 class="text-xl font-bold mb-4 text-center">Financial Plan</h3>
+        <p>He needed capital. His father owned a small piece of land—emotional, not strategic. He carefully convinced him. Explained the future of digital currency. Showed conviction. Promised to return it tenfold.</p>
+        <div id="img-6" class="manga-box" data-prompt="Manga panel, a father and son sitting across a wooden table, the son pointing at a chart on a piece of paper, serious conversation, light from a desk lamp.">
+            <div class="loader"></div>
+        </div>
+        <p>After intense conversations, his father reluctantly agreed. They sold the property. He invested everything into Bitcoin in April.</p>
+        <div class="page-number">13</div>
+    </div>
+
+    <!-- PAGE 14: DISCIPLINE -->
+    <div class="page">
+        <h2 class="chapter-heading">PART II — FOUNDATION AND ASCENT</h2>
+        <p>He stopped spending. No dinners. No gifts. No Uber rides. She noticed. “You’ve changed.” “I’m budgeting.” “For what?” “For discipline.”</p>
+        <p>He trained every morning at 5 AM. First run: 1.8 km. Nearly vomited. Returned next day. Bitcoin: $1,200. Investment made. 833.33 BTC acquired. He checked price once daily. No obsession.</p>
+        <div class="page-number">14</div>
+    </div>
+
+    <!-- PAGE 15: ACADEMIC DOMINATION -->
+    <div class="page">
+        <h3 class="text-xl font-bold mb-4 text-center">Chapter 11: Rank One</h3>
+        <p>He studied exam papers with memory advantage. Focused on high-weight topics. Gym progress was steady. Running 3 km nonstop. Bitcoin: $2,200.</p>
+        <div id="img-7" class="manga-box" data-prompt="Manga style, a notice board with a list of names, 'RANK 1' highlighted next to the protagonist's name, students in background looking shocked.">
+            <div class="loader"></div>
+        </div>
+        <p>Results posted. He ranked #1 in his department. Professors stunned. Friends confused. She looked at him differently. He didn’t look back.</p>
+        <div class="page-number">15</div>
+    </div>
+
+    <!-- PAGE 16: THE MANIA -->
+    <div class="page">
+        <h3 class="text-xl font-bold mb-4 text-center">Chapter 15: Mania</h3>
+        <p>October came. Bitcoin: $6,000. Media tone shifting. Friends excited. She approached him privately. “You’ve changed.” “Yes.” “You look… different.” “I am.”</p>
+        <p>She touched his arm. He stepped back gently. “Take care.” For the first time, she realized she had lost access.</p>
+        <div class="page-number">16</div>
+    </div>
+
+    <!-- PAGE 17: THE EXIT -->
+    <div class="page">
+        <p>The mania began. $8,000. $10,000. $12,000. $15,000. He began selling in tranches—calculated, emotionless. Exit complete near $17,000. Total: $14.1 million.</p>
+        <div id="img-8" class="manga-box" data-prompt="Manga style, protagonist looking at his phone screen showing a massive balance, his face is calm and sharp, reflection of numbers in his eyes.">
+            <div class="loader"></div>
+        </div>
+        <p>He was already liquid. He opened his SECOND LEDGER notebook. Turned to the next page: NEXT CYCLE — AI DOMINANCE. He smiled. “This time,” he whispered, “I control both money and myself.”</p>
+        <div class="page-number">17</div>
+    </div>
+
+    <!-- PAGE 18: EPILOGUE -->
+    <div class="page flex items-center justify-center text-center">
+        <div>
+            <h2 class="chapter-heading">Epilogue</h2>
+            <p class="italic">The next woman will not be a rebound, a validation source, or a trophy. She will be self-made, disciplined, observant, emotionally intelligent—attracted to strength, not money.</p>
+            <p>Someone who meets him at equal energy. This is where the story matures. This is where legacy begins.</p>
+            <h3 class="mt-20 font-bold uppercase tracking-widest">The End</h3>
+        </div>
+        <div class="page-number">18</div>
+    </div>
+
+    <script>
+        const apiKey = ""; // Set by environment
+
+        async function fetchImage(containerId, prompt) {
+            const container = document.getElementById(containerId);
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        instances: [{ prompt: prompt }],
+                        parameters: { sampleCount: 1 }
+                    })
+                });
+                const data = await response.json();
+                if (data.predictions && data.predictions[0]) {
+                    const imgUrl = `data:image/png;base64,${data.predictions[0].bytesBase64Encoded}`;
+                    container.innerHTML = `<img src="${imgUrl}" class="manga-img" alt="Illustration">`;
+                }
+            } catch (err) {
+                container.innerHTML = `<div class="p-4 text-xs italic text-gray-400">Illustration: ${prompt.split(',')[0]}</div>`;
+            }
+        }
+
+        window.onload = () => {
+            const boxes = document.querySelectorAll('.manga-box');
+            boxes.forEach(box => {
+                fetchImage(box.id, box.getAttribute('data-prompt'));
+            });
+        };
+    </script>
+</body>
+</html>
+
