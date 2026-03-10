@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DevOps Pipeline Simulator</title>
+    <title>DevOps Pipeline Simulator PRO</title>
     <style>
         :root {
             --bg: #0d1117;
@@ -17,7 +17,7 @@
             --yellow: #d29922;
             --red: #f85149;
             --term-bg: #010409;
-            --jira-bg: #fff; /* Jira style */
+            --jira-bg: #fff;
             --grid-cols: 4;
         }
 
@@ -48,27 +48,35 @@
         .cell {
             background: var(--cell-bg); border: 1px solid var(--border); border-radius: 4px;
             position: relative; display: flex; align-items: center; justify-content: center;
-            text-align: center; font-size: 0.5rem; font-weight: normal; box-sizing: border-box;
-            color: #8b949e; /* Default gray for code files */
-            font-family: "Courier New", monospace;
+            text-align: center; font-size: 0.5rem; box-sizing: border-box;
+            color: #8b949e; font-family: "Courier New", monospace;
         }
 
-        /* Essential Gates */
         .cell.start, .cell.end, .cell.checkpoint { border-width: 2px; font-weight: bold; color: var(--text); font-family: sans-serif;}
         .cell.start { border-color: var(--blue); color: var(--blue); }
         .cell.end { border-color: var(--purple); color: var(--purple); }
         .cell.checkpoint { border-color: var(--yellow); color: var(--yellow); }
         .cell.checkpoint.cleared { border-color: var(--green-glow); color: var(--green-glow); }
-
-        /* Anti-Patterns (Bugs) */
         .cell.bug { border-color: var(--red); color: var(--red); background: rgba(248, 81, 73, 0.1); border-width: 2px;}
+
+        /* AI Linter Hint Animation */
+        @keyframes pulseHint {
+            0% { box-shadow: 0 0 0 0 rgba(188, 140, 255, 0.7); border-color: var(--purple); }
+            70% { box-shadow: 0 0 0 12px rgba(188, 140, 255, 0); border-color: var(--purple); }
+            100% { box-shadow: 0 0 0 0 rgba(188, 140, 255, 0); border-color: var(--border); }
+        }
+        @keyframes pulseError {
+            0% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.7); border-color: var(--red); }
+            70% { box-shadow: 0 0 0 12px rgba(248, 81, 73, 0); border-color: var(--red); }
+            100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0); border-color: var(--border); }
+        }
+        .cell.hint-good { animation: pulseHint 1.5s infinite; z-index: 4; }
+        .cell.hint-bad { animation: pulseError 1s infinite; z-index: 4; }
 
         .cell span { z-index: 3; pointer-events: none; background: rgba(13, 17, 23, 0.9); padding: 2px 4px; border-radius: 2px; line-height: 1.1; }
 
-        /* Path Styling */
         .dot { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: var(--green); border-radius: 50%; transform: translate(-50%, -50%); z-index: 2; opacity: 0.7;}
         .cell.current .dot { width: 16px; height: 16px; background: var(--green-glow); box-shadow: 0 0 15px var(--green-glow); opacity: 1;}
-        /* Make code files look "integrated" when crossed */
         .cell.visited:not(.checkpoint):not(.start):not(.end):not(.bug) { color: var(--green-glow); border-color: rgba(63, 185, 80, 0.3); }
 
         .line { position: absolute; background: var(--green); z-index: 1; opacity: 0.7;}
@@ -78,7 +86,7 @@
         .line-up { left: calc(50% - 3px); bottom: 50%; height: calc(100% + 8px); width: 6px; }
 
         .terminal {
-            width: 320px; height: 100px; background: var(--term-bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; box-sizing: border-box;
+            width: 320px; height: 95px; background: var(--term-bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; box-sizing: border-box;
             font-family: "Courier New", monospace; font-size: 0.65rem; color: #8b949e; overflow-y: auto; text-align: left;
             display: flex; flex-direction: column; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
         }
@@ -87,16 +95,16 @@
         .log-success { color: var(--green-glow); font-weight: bold; }
         .log-err { color: var(--red); font-weight: bold; }
         .log-warn { color: var(--yellow); }
-        .log-code { color: #d2a8ff; } /* realistic code log color */
+        .log-ai { color: var(--purple); font-style: italic; }
 
-        .controls { display: flex; gap: 10px; margin-top: 15px; width: 320px; }
-        button.btn { flex: 1; background: transparent; color: var(--text); border: 1px solid var(--border); padding: 10px 0; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
+        .controls { display: flex; gap: 8px; margin-top: 10px; width: 320px; }
+        button.btn { flex: 1; background: transparent; color: var(--text); border: 1px solid var(--border); padding: 10px 0; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
         button.btn:hover { background: #30363d; }
+        button.btn.primary { background: rgba(188, 140, 255, 0.15); border-color: var(--purple); color: #e1d1ff; }
+        button.btn.primary:hover { background: rgba(188, 140, 255, 0.3); }
 
-        /* Modals (Jira & Report) */
+        /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(1, 4, 9, 0.9); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(3px); }
-        
-        /* Jira Ticket Style Briefing */
         .jira-ticket { background: var(--jira-bg); color: #172b4d; border-radius: 3px; padding: 20px; max-width: 400px; width: 100%; box-shadow: 0 10px 20px rgba(0,0,0,0.5); font-family: -apple-system, sans-serif; user-select: text;}
         .jira-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dfe1e6; padding-bottom: 10px; margin-bottom: 15px;}
         .jira-key { font-weight: bold; color: #5e6c84; font-size: 0.9rem;}
@@ -104,13 +112,9 @@
         .jira-ticket h2 { margin: 0 0 15px 0; font-size: 1.3rem; color: #172b4d;}
         .jira-ticket h3 { font-size: 0.85rem; color: #5e6c84; text-transform: uppercase; margin: 15px 0 5px 0;}
         .jira-ticket p, .jira-ticket li { font-size: 0.9rem; line-height: 1.5; margin: 0 0 10px 0;}
-        .jira-ticket ul { padding-left: 20px; margin: 0;}
-        .jira-ticket strong { color: #000; }
         button.btn-jira { background: #0052cc; color: #fff; border: none; padding: 10px 20px; border-radius: 3px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px;}
-        button.btn-jira:hover { background: #0747a6; }
-
-        /* Dark Report Style */
-        .report-content { background: var(--cell-bg); border: 1px solid var(--border); border-radius: 8px; padding: 25px; max-width: 450px; width: 100%; max-height: 85vh; overflow-y: auto; user-select: text;}
+        
+        .report-content { background: var(--cell-bg); border: 1px solid var(--border); border-radius: 8px; padding: 25px; max-width: 450px; width: 100%; max-height: 85vh; overflow-y: auto;}
         .report-content h2 { color: var(--green-glow); margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
         .report-content h3 { color: var(--blue); font-size: 1rem; margin-bottom: 5px; }
         .report-content p, .report-content li { font-size: 0.85rem; line-height: 1.6; }
@@ -127,257 +131,186 @@
         </div>
     </div>
 
-    <div class="progress-container">
-        <div id="progress" class="progress-bar"></div>
-    </div>
-
-    <div class="grid-container" id="grid-container">
-        <div id="grid" class="grid"></div>
-    </div>
-
+    <div class="progress-container"><div id="progress" class="progress-bar"></div></div>
+    <div class="grid-container" id="grid-container"><div id="grid" class="grid"></div></div>
     <div class="terminal" id="terminal"></div>
 
     <div class="controls">
         <button class="btn" onclick="startLevelBriefing()">Restart Mission</button>
+        <button class="btn primary" onclick="runLinter()">🤖 AI Linter</button>
     </div>
 
-    <div class="modal-overlay" id="briefing-modal">
-        <div class="jira-ticket" id="jira-content"></div>
-    </div>
-
-    <div class="modal-overlay" id="report-modal">
-        <div class="report-content" id="report-body"></div>
-    </div>
+    <div class="modal-overlay" id="briefing-modal"><div class="jira-ticket" id="jira-content"></div></div>
+    <div class="modal-overlay" id="report-modal"><div class="report-content" id="report-body"></div></div>
 
     <script>
-        // Specific Generic Labels to fill empty squares
-        const genericCodeFiles = [
-            "auth.js", "user.controller.go", "settings.yaml", "index.html", "styles.css",
-            "db.config.php", "api_router.py", "webpack.config.js", "readme.md", "data.json",
-            "server.java", "routes.ts", "utils.rb", "app.manifest", "deploy.sh"
-        ];
+        const genericCodeFiles = [ "auth.js", "user.go", "config.yml", "index.html", "db.php", "api.py", "readme.md" ];
 
-        // --- LEVEL CONFIGURATIONS ---
+        // --- LEVEL CONFIGURATIONS WITH EXACT MATHEMATICAL SOLUTIONS ---
         const levels = [
             {
-                cols: 4, rows: 4,
+                cols: 4, rows: 4, bugCount: 1,
                 concept: "Continuous Deployment",
-                endPos: {x: 3, y: 2},
-                checkpoints: ["3,0", "0,1", "1,2", "3,3"],
+                endPos: {x: 3, y: 3},
+                checkpoints: ["2,0", "1,1", "0,3", "3,2"],
                 names: ["[1] SAST", "[2] Unit Tests", "[3] Docker Build", "[4] Vuln Scan"],
+                // This path avoids the bug at 1,2 perfectly and hits all other 15 squares.
+                solution: ["0,0", "1,0", "2,0", "3,0", "3,1", "2,1", "1,1", "0,1", "0,2", "0,3", "1,3", "2,3", "2,2", "3,2", "3,3"],
                 data: {
                     "0,0": { label: "git push", type: "start" },
-                    "1,1": { label: "Merge<br>Conflict", type: "bug" }, // Obstacle
-                    "3,0": { label: "[1] SAST", type: "checkpoint" },
-                    "0,1": { label: "[2] Test", type: "checkpoint" },
-                    "1,2": { label: "[3] Build", type: "checkpoint" },
-                    "3,3": { label: "[4] Scan", type: "checkpoint" },
-                    "3,2": { label: "Deploy", type: "end" }
+                    "1,2": { label: "Log4j<br>Vuln", type: "bug" }, // The obstacle
+                    "2,0": { label: "[1] SAST", type: "checkpoint" },
+                    "1,1": { label: "[2] Test", type: "checkpoint" },
+                    "0,3": { label: "[3] Build", type: "checkpoint" },
+                    "3,2": { label: "[4] Scan", type: "checkpoint" },
+                    "3,3": { label: "Deploy", type: "end" }
                 },
-                // Realistic tool logs based on cell ID
                 logs: {
-                    "3,0": "[INFO] running sonarqube-scanner... 0 Security Hotspots found.",
-                    "0,1": "[PASS] 112 unit tests executed successfully in 1.2s.",
-                    "1,2": "[DOCKER] step 3/5: COPY . /app ... step 4/5: RUN npm install...",
-                    "3,3": "[WARN] 2 Low-severity CVEs found in old base image. Acceptable for now.",
-                    "1,1": "[FATAL] Automatic merge failed; fix conflicts and then commit the result.",
-                    "default": "> Code component integrated into build artifact."
+                    "2,0": "[INFO] sonarqube-scanner... 0 Security Hotspots found.",
+                    "1,1": "[PASS] 112 unit tests executed successfully in 1.2s.",
+                    "0,3": "[DOCKER] step 3/5: COPY . /app ...",
+                    "3,2": "[SCAN] Trivy analysis: Passed.",
+                    "1,2": "[FATAL] Log4j RCE vulnerability detected! Pipeline Halted.",
+                    "default": "> Code component validated."
                 },
                 briefing: {
-                    key: "PROJ-101",
-                    title: "Implement CD for Frontend",
-                    desc: "Automate the deployment pipeline so merges to main go straight to prod. Security Gates must be enforced.",
+                    key: "PROJ-101", title: "Automated CD & Security",
+                    desc: "Automate the deployment pipeline. Security Gates must be enforced in order.",
                     reqs: [
-                        "Enforce <strong>100% Code Integration</strong> (fill all service/config squares). Orphaned code cannot be deployed.",
-                        "Pass Gates 1 thru 4 in strict order.",
-                        "Avoid known <strong>Merge Conflicts</strong> (red tiles)."
+                        "Integrate all <strong>15 safe code modules</strong>.",
+                        "Pass Gates 1 thru 4 in order.",
+                        "Path around the known <strong>Log4j Vulnerability</strong> (red tile)."
                     ]
                 },
                 report: {
                     title: "Deployment Successful",
-                    desc: "You established a Continuous Deployment (CD) pipeline. Every integrated file was bundled, scanned, and deployed automatically.",
-                    bullets: [
-                        "<strong>Ludonarrative alignment:</strong> You filled the grid because in a real build process, you must bundle 100% of the required source files and configurations into the final artifact (Docker image/ZIP) before deploying."
-                    ]
+                    desc: "You established a Continuous Deployment pipeline while successfully filtering out vulnerable code from the build context."
                 }
             },
             {
-                cols: 5, rows: 5,
+                cols: 5, rows: 5, bugCount: 1,
                 concept: "Blue/Green Deployment",
-                endPos: {x: 4, y: 4}, 
-                checkpoints: ["4,0", "0,2", "4,3", "0,4"],
+                endPos: {x: 1, y: 2}, 
+                checkpoints: ["4,0", "0,4", "3,1", "2,3"],
                 names: ["[1] Build Image", "[2] Deploy Green", "[3] E2E Tests", "[4] Switch Router"],
+                // Beautiful inward spiral that perfectly dodges the bug at 2,2!
+                solution: ["0,0", "1,0", "2,0", "3,0", "4,0", "4,1", "4,2", "4,3", "4,4", "3,4", "2,4", "1,4", "0,4", "0,3", "0,2", "0,1", "1,1", "2,1", "3,1", "3,2", "3,3", "2,3", "1,3", "1,2"],
                 data: {
                     "0,0": { label: "Merge<br>Main", type: "start" },
-                    "2,1": { label: "Hardcoded<br>AWS Key", type: "bug" }, // Risky obstacle
+                    "2,2": { label: "Deprecated<br>API", type: "bug" }, // Dead center obstacle
                     "4,0": { label: "[1] Build<br>Image", type: "checkpoint" },
-                    "0,2": { label: "[2] Deploy<br>Green", type: "checkpoint" },
-                    "4,2": { label: "Deprecated<br>API", type: "bug" }, // Obstacle on obvious path
-                    "4,3": { label: "[3] E2E<br>Tests", type: "checkpoint" },
-                    "0,4": { label: "[4] Switch<br>Router", type: "checkpoint" },
-                    "4,4": { label: "Live<br>Traffic", type: "end" }
+                    "0,4": { label: "[2] Deploy<br>Green", type: "checkpoint" },
+                    "3,1": { label: "[3] E2E<br>Tests", type: "checkpoint" },
+                    "2,3": { label: "[4] Switch<br>Router", type: "checkpoint" },
+                    "1,2": { label: "Live<br>Traffic", type: "end" }
                 },
                 logs: {
-                    "4,0": "[DOCKER] pushing image backend:v2.1 to private registry...",
-                    "0,2": "[K8s] creating isolated green-environment namespace... scaling pods...",
-                    "4,3": "[INFO] running cypress integration tests against Green URL... 100% Pass.",
-                    "0,4": "[NGINX] reloading configuration... load balancer now pointing to Green namespace.",
-                    "2,1": "[SECURITY ERROR] trivy-scan found HIGH severity secret leakage. Pipeline halted.",
-                    "4,2": "[COMPILE ERROR] use of deprecated API v1.beta (removed in v2). Build failed.",
-                    "default": "> Integrating backend module or database migration."
+                    "4,0": "[DOCKER] pushing image backend:v2.1 to registry...",
+                    "0,4": "[K8s] creating isolated green-environment...",
+                    "3,1": "[TEST] running cypress tests... 100% Pass.",
+                    "2,3": "[NGINX] reloading config... traffic routed to Green.",
+                    "2,2": "[COMPILE ERROR] use of deprecated API v1.beta. Build failed.",
+                    "default": "> Integrating service module."
                 },
                 briefing: {
-                    key: "PROJ-202",
-                    title: "Zero-Downtime API Upgrade",
-                    desc: "Upgrade the core API to v2. Users must not experience downtime during the rollout.",
+                    key: "PROJ-202", title: "Zero-Downtime Rollout",
+                    desc: "Upgrade the core API to v2 using an inward spiral architecture.",
                     reqs: [
-                        "Integrate all backend services (fill the grid).",
-                        "Spin up the new version alongside old (Deploy Green).",
-                        "Verify Green with End-to-End tests.",
-                        "Flipping the router only AFTER verification.",
-                        "Avoid known anti-patterns like <strong>Hardcoded Secrets</strong>."
+                        "Integrate all <strong>24 safe services</strong>.",
+                        "Spin up Green, run tests, THEN switch router.",
+                        "Do not compile the <strong>Deprecated API</strong> tile."
                     ]
                 },
                 report: {
                     title: "Blue/Green Rollout Complete",
-                    desc: "The old environment (Blue) stayed live while you prepared and tested the new environment (Green). The cutover was instant.",
-                    bullets: [
-                        "<strong>Zero Downtime:</strong> Users never saw a 503 error because Nginx was only reloaded after Green was 100% verified.",
-                        "<strong>Instant Rollback:</strong> If something broke, you could have just pointed Nginx back to Blue instantly."
-                    ]
+                    desc: "The old environment stayed live while you spiraled inwards, prepared the new environment, and executed an instant cutover."
                 }
             }
         ];
 
-        let currentLevel = 0;
-        
-        const gridEl = document.getElementById('grid');
-        const terminalEl = document.getElementById('terminal');
-        const progressEl = document.getElementById('progress');
-        const modals = { briefing: document.getElementById('briefing-modal'), report: document.getElementById('report-modal') };
-        
-        let path = [];
-        let visited = new Set();
-        let cells = {};
-        let isGameOver = false;
-        let isDragging = false;
-        let clearedCheckpoints = [];
-        let levelData;
-
-        // --- Game Setup ---
+        let currentLevel = 0, path = [], visited = new Set(), cells = {}, isGameOver = false, isDragging = false, clearedCheckpoints = [], levelData;
+        const gridEl = document.getElementById('grid'), terminalEl = document.getElementById('terminal'), progressEl = document.getElementById('progress'), modals = { briefing: document.getElementById('briefing-modal'), report: document.getElementById('report-modal') };
 
         function startLevelBriefing() {
             levelData = levels[currentLevel];
-            isGameOver = true; // Disable interaction during briefing
-
-            // Update UI headers
+            isGameOver = true;
             document.getElementById('badge-level').innerText = `Lvl ${currentLevel + 1}`;
             document.getElementById('badge-concept').innerText = levelData.concept;
             document.documentElement.style.setProperty('--grid-cols', levelData.cols);
 
-            // Populate Jira Ticket
-            let reqsHtml = "";
-            levelData.briefing.reqs.forEach(r => reqsHtml += `<li>${r}</li>`);
-
+            let reqsHtml = ""; levelData.briefing.reqs.forEach(r => reqsHtml += `<li>${r}</li>`);
             document.getElementById('jira-content').innerHTML = `
-                <div class="jira-header">
-                    <span class="jira-key">${levelData.briefing.key}</span>
-                    <span class="jira-status">To Do</span>
-                </div>
-                <h2>${levelData.briefing.title}</h2>
-                <p>${levelData.briefing.desc}</p>
-                <h3>Requirements</h3>
-                <ul>${reqsHtml}</ul>
-                <button class="btn-jira" onclick="initLevel()">Accept Assignment & Start Pipeline</button>
+                <div class="jira-header"><span class="jira-key">${levelData.briefing.key}</span><span class="jira-status">To Do</span></div>
+                <h2>${levelData.briefing.title}</h2><p>${levelData.briefing.desc}</p>
+                <h3>Requirements</h3><ul>${reqsHtml}</ul>
+                <button class="btn-jira" onclick="initLevel()">Start Pipeline</button>
             `;
-            
-            closeAllModals();
-            modals.briefing.style.display = 'flex';
+            closeAllModals(); modals.briefing.style.display = 'flex';
         }
 
         function initLevel() {
-            levelData = levels[currentLevel]; // Ensure levelData is set
-            closeAllModals();
-            gridEl.innerHTML = ''; terminalEl.innerHTML = '';
-            cells = {}; path = []; visited.clear(); clearedCheckpoints = [];
-            isGameOver = false; 
-            
-            const cellSize = levelData.cols === 5 ? '56px' : '70px';
-            let fileLabelIndex = 0;
+            levelData = levels[currentLevel]; closeAllModals();
+            gridEl.innerHTML = ''; terminalEl.innerHTML = ''; cells = {}; path = []; visited.clear(); clearedCheckpoints = []; isGameOver = false; 
+            const cellSize = levelData.cols === 5 ? '56px' : '70px'; let fileIndex = 0;
 
             for (let y = 0; y < levelData.rows; y++) {
                 for (let x = 0; x < levelData.cols; x++) {
-                    const pos = `${x},${y}`;
-                    const cell = document.createElement('div');
-                    cell.className = 'cell';
-                    cell.style.width = cellSize; cell.style.height = cellSize;
-                    cell.id = `cell-${x}-${y}`;
-                    
+                    const pos = `${x},${y}`; const cell = document.createElement('div');
+                    cell.className = 'cell'; cell.style.width = cellSize; cell.style.height = cellSize; cell.id = `cell-${x}-${y}`;
                     if (levelData.data[pos]) {
-                        const cellMeta = levelData.data[pos];
-                        cell.classList.add(cellMeta.type);
-                        cell.innerHTML = `<span>${cellMeta.label}</span>`;
+                        cell.classList.add(levelData.data[pos].type); cell.innerHTML = `<span>${levelData.data[pos].label}</span>`;
                     } else {
-                        // Dynamically label "empty" tiles as integrated code files
-                        const label = genericCodeFiles[fileLabelIndex % genericCodeFiles.length];
-                        cell.innerHTML = `<span>${label}</span>`;
-                        fileLabelIndex++;
+                        cell.innerHTML = `<span>${genericCodeFiles[fileIndex++ % genericCodeFiles.length]}</span>`;
                     }
-                    gridEl.appendChild(cell);
-                    cells[pos] = cell;
+                    gridEl.appendChild(cell); cells[pos] = cell;
                 }
             }
+            logMsg(`[SYS] Initializing... Requires 100% safe code coverage.`, "log-sys");
+            updateProgress(); makeMove(0, 0, true);
+        }
+
+        // --- NEW AI LINTER / HINT SYSTEM ---
+        function runLinter() {
+            if (isGameOver) return;
+            Object.values(cells).forEach(c => { c.classList.remove('hint-good'); c.classList.remove('hint-bad'); });
             
-            logMsg(`[SIM] Starting Pipeline: ${levelData.briefing.key}...`, "log-sys");
-            logMsg(`Requirement: Integrate all local code modules.`, "log-sys");
-            updateProgress();
-            makeMove(0, 0, true);
+            // Check if current path matches solution exactly
+            let onTrack = true;
+            for(let i=0; i<path.length; i++) {
+                if(`${path[i].x},${path[i].y}` !== levelData.solution[i]) { onTrack = false; break; }
+            }
+            
+            if(onTrack) {
+                if(path.length < levelData.solution.length) {
+                    const nextPos = levelData.solution[path.length];
+                    cells[nextPos].classList.add('hint-good');
+                    logMsg(`🤖 [AI Copilot] Route suggested to maintain 100% coverage.`, "log-ai");
+                }
+            } else {
+                const currentPos = `${path[path.length-1].x},${path[path.length-1].y}`;
+                cells[currentPos].classList.add('hint-bad');
+                logMsg(`🤖 [AI Copilot] Linter Warning: Pipeline drift detected. You will miss code files. Drag backwards to undo.`, "log-err");
+            }
         }
 
-        // --- Haptic/Logs/Progress ---
-
-        function triggerHaptic(type) {
-            if (!navigator.vibrate) return;
-            const pat = { tick: 10, success: [30, 50, 30], error: [50, 50, 50, 50] };
-            if (pat[type]) navigator.vibrate(pat[type]);
-        }
-
+        function triggerHaptic(type) { if (navigator.vibrate) navigator.vibrate({tick:10, success:[30,50,30], error:[50,50,50,50]}[type]); }
         function logMsg(msg, className = "") {
-            const line = document.createElement('div');
-            line.className = `log-line ${className}`;
-            line.innerText = msg.startsWith('>') ? msg : `> ${msg}`;
-            terminalEl.appendChild(line);
-            terminalEl.scrollTop = terminalEl.scrollHeight;
-        }
-
-        function getRealisticLog(pos) {
-            // Priority 1: Specific logs for a gate or bug
-            if(levelData.logs[pos]) return { msg: levelData.logs[pos], type: "" };
-            
-            const cellType = levelData.data[pos] ? levelData.data[pos].type : 'standard';
-            if (cellType === 'start') return { msg: "Commit detected. Initiating automated workflow...", type: "log-success"};
-            
-            // Priority 2: generic code file integration logs
-            const fileName = cells[pos].querySelector('span').innerText;
-            return { msg: `Code Integrity Check: Linter passed for ${fileName}. Integrated.`, type: "log-code"};
+            const line = document.createElement('div'); line.className = `log-line ${className}`;
+            line.innerText = msg.startsWith('>') || msg.startsWith('🤖') ? msg : `> ${msg}`;
+            terminalEl.appendChild(line); terminalEl.scrollTop = terminalEl.scrollHeight;
         }
 
         function updateProgress() {
-            const totalNodes = levelData.cols * levelData.rows;
-            const pct = (path.length / totalNodes) * 100;
+            const requiredNodes = (levelData.cols * levelData.rows) - levelData.bugCount;
+            const pct = (path.length / requiredNodes) * 100;
             progressEl.style.width = `${pct}%`;
-            
             if (isGameOver) return;
-            const colors = ["var(--blue)", "var(--yellow)", "var(--green-glow)"];
-            progressEl.style.backgroundColor = colors[pct < 40 ? 0 : (pct < 80 ? 1 : 2)];
+            progressEl.style.backgroundColor = ["var(--blue)", "var(--yellow)", "var(--green-glow)"][pct < 40 ? 0 : (pct < 80 ? 1 : 2)];
         }
-
-        // --- Input Engine (Math-based, smooth) ---
 
         gridEl.addEventListener('mousedown', (e) => { if(!isGameOver) { isDragging = true; processInput(e); }});
         window.addEventListener('mousemove', (e) => { if(isDragging && !isGameOver) { e.preventDefault(); processInput(e); } }, {passive: false});
         window.addEventListener('mouseup', () => isDragging = false);
-
         gridEl.addEventListener('touchstart', (e) => { if(!isGameOver) { isDragging = true; processInput(e); }}, {passive: false});
         gridEl.addEventListener('touchmove', (e) => { if(isDragging && !isGameOver) { e.preventDefault(); processInput(e); } }, {passive: false});
         window.addEventListener('touchend', () => isDragging = false);
@@ -387,163 +320,95 @@
             if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
             const rect = gridEl.getBoundingClientRect();
             if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return;
-            const x = Math.floor((clientX - rect.left) / (rect.width / levelData.cols));
-            const y = Math.floor((clientY - rect.top) / (rect.height / levelData.rows));
+            const x = Math.floor((clientX - rect.left) / (rect.width / levelData.cols)), y = Math.floor((clientY - rect.top) / (rect.height / levelData.rows));
             if (x >= 0 && x < levelData.cols && y >= 0 && y < levelData.rows) tryMoveTo(x, y);
         }
 
         function tryMoveTo(x, y) {
             if (path.length === 0) return;
-            const current = path[path.length - 1];
+            const current = path[path.length - 1], pos = `${x},${y}`;
             if (current.x === x && current.y === y) return;
-            const pos = `${x},${y}`;
-
-            if (path.length > 1) {
-                const prev = path[path.length - 2];
-                if (prev.x === x && prev.y === y) { undoMove(); return; }
-            }
-
+            if (path.length > 1) { const prev = path[path.length - 2]; if (prev.x === x && prev.y === y) { undoMove(); return; } }
             if ((Math.abs(x - current.x) === 1 && y === current.y) || (x === current.x && Math.abs(y - current.y) === 1)) {
-                // Important educational change: We now handle bug tiles here. We allow moving onto them to fail.
                 if (!visited.has(pos)) makeMove(x, y);
             }
         }
 
         function makeMove(x, y, isFirst = false) {
-            const pos = `${x},${y}`;
-            const currentCell = cells[pos];
-            
-            path.push({x, y}); visited.add(pos);
-            currentCell.classList.add('visited'); // For styling generic files as green
+            Object.values(cells).forEach(c => { c.classList.remove('hint-good'); c.classList.remove('hint-bad'); }); // clear hints
+            const pos = `${x},${y}`; const currentCell = cells[pos];
+            path.push({x, y}); visited.add(pos); currentCell.classList.add('visited');
 
             if (!isFirst) {
-                const prev = path[path.length - 1]; // Wait, path already has current at end.
-                const prevCoord = path[path.length - 2];
-                const prevCell = cells[`${prevCoord.x},${prevCoord.y}`];
-                
-                const line = document.createElement('div');
-                line.className = 'line';
-                if (x > prevCoord.x) line.classList.add('line-right');
-                else if (x < prevCoord.x) line.classList.add('line-left');
-                else if (y > prevCoord.y) line.classList.add('line-down');
-                else if (y < prevCoord.y) line.classList.add('line-up');
-                prevCell.appendChild(line);
-                triggerHaptic('tick');
+                const prevCoord = path[path.length - 2], prevCell = cells[`${prevCoord.x},${prevCoord.y}`];
+                const line = document.createElement('div'); line.className = 'line';
+                if (x > prevCoord.x) line.classList.add('line-right'); else if (x < prevCoord.x) line.classList.add('line-left');
+                else if (y > prevCoord.y) line.classList.add('line-down'); else if (y < prevCoord.y) line.classList.add('line-up');
+                prevCell.appendChild(line); triggerHaptic('tick');
             }
 
-            const dot = document.createElement('div');
-            dot.className = 'dot';
-            currentCell.appendChild(dot);
-
-            // Fetch realistic log
-            const logData = getRealisticLog(pos);
-            logMsg(logData.msg, logData.type);
-
-            // Check if we hit an obstacle (Bug/Anti-Pattern)
+            const dot = document.createElement('div'); dot.className = 'dot'; currentCell.appendChild(dot);
+            
             const cellMeta = levelData.data[pos];
+            const logStr = (levelData.logs[pos]) ? levelData.logs[pos] : (cellMeta && cellMeta.type === 'start' ? "Commit detected. Initiating..." : "Code integrity check passed.");
+            logMsg(logStr, levelData.logs[pos] ? "" : "log-code");
+
             if (cellMeta && cellMeta.type === 'bug') {
-                logMsg(`🛑 PIPELINE CRASHED: ${cellMeta.label.replace('<br>',' ')} detected.`, "log-err");
-                progressEl.style.backgroundColor = "var(--red)";
-                isGameOver = true; isDragging = false;
-                triggerHaptic('error');
-                return; // halt processing
+                logMsg(`🛑 PIPELINE CRASHED.`, "log-err");
+                progressEl.style.backgroundColor = "var(--red)"; isGameOver = true; isDragging = false; triggerHaptic('error'); return;
             }
 
-            // Standard Gate handling
             if (cellMeta && cellMeta.type === 'checkpoint') {
-                clearedCheckpoints.push(pos);
-                currentCell.classList.add('cleared');
-                triggerHaptic('success');
-                const cpIndex = levelData.checkpoints.indexOf(pos);
-                logMsg(`>> Security Gate cleared: ${levelData.names[cpIndex]}`, "log-warn");
+                clearedCheckpoints.push(pos); currentCell.classList.add('cleared'); triggerHaptic('success');
+                logMsg(`>> Security Gate cleared: ${levelData.names[levelData.checkpoints.indexOf(pos)]}`, "log-warn");
             }
 
             updateCurrentHighlight(); updateProgress(); checkWinCondition(x, y);
         }
 
         function undoMove() {
-            const last = path.pop();
-            const pos = `${last.x},${last.y}`;
-            visited.delete(pos);
-            cells[pos].classList.remove('visited');
-            const dot = cells[pos].querySelector('.dot');
-            if(dot) dot.remove();
-
-            if (levelData.data[pos] && levelData.data[pos].type === 'checkpoint') {
-                cells[pos].classList.remove('cleared');
-                clearedCheckpoints.pop();
-            }
-
-            const prevCoord = path[path.length - 1];
-            const prevCell = cells[`${prevCoord.x},${prevCoord.y}`];
-            const lines = prevCell.querySelectorAll('.line');
-            if (lines.length > 0) lines[lines.length - 1].remove();
-
+            Object.values(cells).forEach(c => { c.classList.remove('hint-good'); c.classList.remove('hint-bad'); });
+            const last = path.pop(), pos = `${last.x},${last.y}`; visited.delete(pos); cells[pos].classList.remove('visited');
+            const dot = cells[pos].querySelector('.dot'); if(dot) dot.remove();
+            if (levelData.data[pos] && levelData.data[pos].type === 'checkpoint') { cells[pos].classList.remove('cleared'); clearedCheckpoints.pop(); }
+            const prevCell = cells[`${path[path.length - 1].x},${path[path.length - 1].y}`];
+            const lines = prevCell.querySelectorAll('.line'); if (lines.length > 0) lines[lines.length - 1].remove();
             triggerHaptic('tick'); updateCurrentHighlight(); updateProgress();
         }
 
         function updateCurrentHighlight() {
             Object.values(cells).forEach(c => c.classList.remove('current'));
-            if (path.length > 0) {
-                const current = path[path.length - 1];
-                cells[`${current.x},${current.y}`].classList.add('current');
-            }
+            if (path.length > 0) cells[`${path[path.length - 1].x},${path[path.length - 1].y}`].classList.add('current');
         }
 
         function checkWinCondition(x, y) {
             if (x === levelData.endPos.x && y === levelData.endPos.y) { 
                 isGameOver = true; isDragging = false;
-                
-                // 1. Grid Coverage Check ( Ludonarrative: Artifact Integrity)
-                if (path.length !== (levelData.cols * levelData.rows)) {
+                const requiredNodes = (levelData.cols * levelData.rows) - levelData.bugCount;
+                if (path.length !== requiredNodes) {
                     progressEl.style.backgroundColor = "var(--red)";
-                    logMsg("FATAL: Orphaned source code detected in workspace.", "log-err");
-                    logMsg("Build failed. Artifact integrity check incomplete.", "log-err");
-                    triggerHaptic('error');
-                    return;
+                    logMsg("FATAL: Orphaned source code detected.", "log-err"); triggerHaptic('error'); return;
                 }
-
-                // 2. Gate Order Check
                 if (JSON.stringify(clearedCheckpoints) === JSON.stringify(levelData.checkpoints)) {
                     progressEl.style.backgroundColor = "var(--green-glow)";
-                    logMsg("Build validated. Security profile accepted.", "log-success");
-                    logMsg("DEPLOYMENT SUCCESSFUL. Traffic routed.", "log-success");
-                    triggerHaptic('success');
-                    showReport();
+                    logMsg("DEPLOYMENT SUCCESSFUL.", "log-success"); triggerHaptic('success'); showReport();
                 } else {
                     progressEl.style.backgroundColor = "var(--red)";
-                    logMsg("FATAL: Security Gates Bypassed or executed out of order.", "log-err");
-                    logMsg("Deployment Aborted to prevent breach.", "log-err");
-                    triggerHaptic('error');
+                    logMsg("FATAL: Security Gates Bypassed.", "log-err"); triggerHaptic('error');
                 }
             }
         }
 
-        // --- Modal Management ---
-
         function showReport() {
-            const isLast = currentLevel === levels.length - 1;
-            const btnHtml = isLast 
-                ? `<button class="btn-rpt" onclick="closeAllModals()">Simulator Complete</button>`
-                : `<button class="btn-rpt" onclick="nextLevel()">Start Level ${currentLevel + 2}</button>`;
-
-            let listHtml = "";
-            levelData.report.bullets.forEach(b => listHtml += `<li>${b}</li>`);
-
             document.getElementById('report-body').innerHTML = `
-                <h2>✅ Post-Action Report</h2>
-                <h3>${levelData.report.title}</h3>
-                <p>${levelData.report.desc}</p>
-                <ul>${listHtml}</ul>
-                ${btnHtml}
+                <h2>✅ Post-Action Report</h2><h3>${levelData.report.title}</h3><p>${levelData.report.desc}</p>
+                ${currentLevel === levels.length - 1 ? `<button class="btn-rpt" onclick="closeAllModals()">Simulator Complete</button>` : `<button class="btn-rpt" onclick="nextLevel()">Start Level ${currentLevel + 2}</button>`}
             `;
             setTimeout(() => { modals.report.style.display = 'flex'; }, 800);
         }
-
         function nextLevel() { currentLevel++; startLevelBriefing(); }
         function closeAllModals() { modals.briefing.style.display = 'none'; modals.report.style.display = 'none'; }
-
-        // Start Simulator
+        
         startLevelBriefing();
     </script>
 </body>
