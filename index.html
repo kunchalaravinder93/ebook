@@ -2,373 +2,368 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevOps Dash: The Green Line</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DevOps Pipeline Puzzle</title>
     <style>
         :root {
-            --bg-color: #0d1117;
-            --grid-color: #161b22;
-            --text-color: #c9d1d9;
-            --player-color: #2ea043; /* GitHub Green */
-            --path-color: #3fb950;
-            --checkpoint-color: #8957e5; /* GitHub Purple */
-            --goal-color: #f85149; /* GitHub Red */
-            --failed-color: #da3633;
+            --bg: #0d1117;
+            --cell-bg: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --green: #2ea043;
+            --green-glow: #3fb950;
+            --blue: #58a6ff;
+            --purple: #bc8cff;
+            --yellow: #d29922;
+            --red: #f85149;
         }
 
         body {
-            font-family: 'Courier New', Courier, monospace;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             overflow: hidden;
+            touch-action: none; /* Prevents scroll on mobile swipe */
         }
 
-        h1 {
-            color: var(--path-color);
-            margin-bottom: 0.5rem;
-        }
+        h1 { color: var(--text); margin-bottom: 5px; font-size: 1.8rem;}
+        p.subtitle { color: #8b949e; margin-top: 0; font-size: 0.9rem; text-align: center; max-width: 320px; }
 
-        #subtitle {
-            font-size: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        #game-container {
+        .banner {
+            background: var(--cell-bg);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+            min-width: 280px;
+            height: 24px;
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: center;
         }
+        .banner.fail { border-color: var(--red); color: var(--red); }
+        .banner.success { border-color: var(--green); color: var(--green-glow); }
 
-        #grid {
-            display: grid;
-            grid-template-columns: repeat(4, 100px);
-            grid-template-rows: repeat(4, 100px);
-            gap: 10px;
-            background-color: var(--grid-color);
+        .grid-container {
+            background: #21262d;
             padding: 10px;
             border-radius: 8px;
-            border: 2px solid #30363d;
-            position: relative;
+            border: 1px solid var(--border);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
         }
 
         .cell {
-            background-color: var(--bg-color);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 0.8rem;
-            text-align: center;
-            text-transform: uppercase;
-            color: #8b949e;
+            width: 70px;
+            height: 70px;
+            background: var(--cell-bg);
+            border: 2px solid var(--border);
+            border-radius: 6px;
             position: relative;
-        }
-
-        .checkpoint {
-            border: 2px solid var(--checkpoint-color);
-            color: var(--checkpoint-color);
-        }
-
-        .start {
-            border: 2px solid var(--player-color);
-            color: var(--player-color);
-        }
-
-        .goal {
-            border: 2px solid var(--goal-color);
-            color: var(--goal-color);
-        }
-
-        .visited {
-            background-color: rgba(63, 185, 80, 0.15); /* Faint Green */
-        }
-
-        #player {
-            width: 80px;
-            height: 80px;
-            background-color: var(--player-color);
-            border-radius: 50%;
-            position: absolute;
-            top: 10px; /* Start position A1 */
-            left: 10px;
-            transition: all 0.1s ease-in-out;
-            z-index: 10;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            color: #fff;
-            box-shadow: 0 0 10px var(--path-color);
-        }
-
-        #status {
-            margin-top: 2rem;
-            font-size: 1.2rem;
             text-align: center;
-            width: 400px;
-            height: 50px;
+            font-size: 0.65rem;
+            font-weight: bold;
+            user-select: none;
+            box-sizing: border-box;
         }
 
-        #reset-btn {
-            margin-top: 1rem;
-            padding: 10px 20px;
-            background-color: var(--grid-color);
-            color: var(--text-color);
-            border: 2px solid #30363d;
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: inherit;
+        @media(max-width: 400px) {
+            .cell { width: 60px; height: 60px; font-size: 0.6rem; }
+            h1 { font-size: 1.5rem; }
         }
 
-        #reset-btn:hover {
-            background-color: #21262d;
-        }
-
-        /* SVG Overlay for drawing the continuous line */
-        #path-svg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+        .cell.start { border-color: var(--blue); color: var(--blue); }
+        .cell.end { border-color: var(--purple); color: var(--purple); }
+        .cell.checkpoint { border-color: var(--yellow); color: var(--yellow); }
+        
+        /* Label background to ensure readability over lines */
+        .cell span {
+            z-index: 3;
             pointer-events: none;
-            z-index: 5;
+            background: rgba(22, 27, 34, 0.85);
+            padding: 2px 4px;
+            border-radius: 4px;
+            line-height: 1.1;
         }
 
-        #path-line {
-            fill: none;
-            stroke: var(--path-color);
-            stroke-width: 6;
-            stroke-linecap: round;
-            stroke-linejoin: round;
+        /* Path visual elements */
+        .dot {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 12px; height: 12px;
+            background: var(--green);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+        .cell.current .dot {
+            width: 18px; height: 18px;
+            background: var(--green-glow);
+            box-shadow: 0 0 10px var(--green-glow);
         }
 
+        /* Continuous line connections */
+        .line-right, .line-left, .line-up, .line-down {
+            position: absolute;
+            background: var(--green);
+            z-index: 1;
+        }
+        .line-right { top: calc(50% - 3px); left: 50%; width: calc(100% + 10px); height: 6px; }
+        .line-left { top: calc(50% - 3px); right: 50%; width: calc(100% + 10px); height: 6px; }
+        .line-down { left: calc(50% - 3px); top: 50%; height: calc(100% + 10px); width: 6px; }
+        .line-up { left: calc(50% - 3px); bottom: 50%; height: calc(100% + 10px); width: 6px; }
+
+        button.reset {
+            margin-top: 25px;
+            background: var(--cell-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        button.reset:hover { background: #30363d; }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <h1>DEVOPS DASH: The Green Line</h1>
-        <div id="subtitle">Connect the pipeline. Miss no square. Hit checkpoints in order.</div>
+    <h1>DevOps Pipeline</h1>
+    <p class="subtitle">Draw a continuous line through every square. Hit checkpoints 1 to 4 in order.</p>
 
-        <div id="grid">
-            <div class="cell start" id="cell-0-0">SOURCE<br>CODE</div>
-            <div class="cell checkpoint" id="cell-1-0">[1] UNIT TEST</div>
-            <div class="cell" id="cell-2-0">LOGS</div>
-            <div class="cell" id="cell-3-0">CLEAN UP</div>
+    <div id="message" class="banner">Awaiting Pipeline...</div>
 
-            <div class="cell" id="cell-0-1">LINT</div>
-            <div class="cell" id="cell-1-1">BUILD LOGS</div>
-            <div class="cell checkpoint" id="cell-2-1">[2] SECURITY</div>
-            <div class="cell checkpoint" id="cell-3-1">[3] DOCKER BUILD</div>
-
-            <div class="cell" id="cell-0-2">ARTIFACTS</div>
-            <div class="cell" id="cell-1-2">SECRETS</div>
-            <div class="cell" id="cell-2-2">IMAGE<br>PUSH</div>
-            <div class="cell" id="cell-3-2">NETWORK<br>SCAN</div>
-
-            <div class="cell" id="cell-0-3">CACHE</div>
-            <div class="cell checkpoint" id="cell-1-3">[4] STAGING</div>
-            <div class="cell" id="cell-2-3">COMPLIANCE</div>
-            <div class="cell goal" id="cell-3-3">GOAL<br>PROD</div>
-
-            <div id="player">Commit</div>
-            <svg id="path-svg"><polyline id="path-line" points=""/></svg>
-        </div>
-
-        <div id="status">Use Arrow Keys to move.</div>
-        <button id="reset-btn">Reset Pipeline</button>
+    <div class="grid-container">
+        <div id="grid" class="grid"></div>
     </div>
 
+    <button class="reset" onclick="initGame()">Reset Pipeline</button>
+
     <script>
-        // --- GAME STATE ---
-        const gridSize = 4;
-        const totalSquares = gridSize * gridSize;
-        const cellSize = 110; // 100px size + 10px gap
+        const gridEl = document.getElementById('grid');
+        const messageEl = document.getElementById('message');
+        const cols = 4, rows = 4;
         
-        let playerPos = { row: 0, col: 0 };
-        let path = [{ row: 0, col: 0 }]; // Start with A1 (Code)
-        let visited = new Set(['cell-0-0']);
-        let nextCheckpoint = 1;
+        let path = [];
+        let visited = new Set();
+        let cells = {};
         let isGameOver = false;
 
-        // Checkpoints to hit in order: [row, col]
-        const checkpoints = [
-            { row: 1, col: 0 }, // [1] UNIT TEST
-            { row: 2, col: 1 }, // [2] SECURITY
-            { row: 3, col: 1 }, // [3] DOCKER BUILD
-            { row: 1, col: 3 }  // [4] STAGING
-        ];
+        // Note: Production is at 3,2 to make the graph-theory puzzle logically solvable.
+        const cellData = {
+            "0,0": { label: "Source<br>Code", type: "start" },
+            "3,0": { label: "[1] Unit<br>Test", type: "checkpoint" },
+            "0,1": { label: "[2] Sec<br>Scan", type: "checkpoint" },
+            "1,2": { label: "[3] Docker<br>Build", type: "checkpoint" },
+            "3,3": { label: "[4] Staging", type: "checkpoint" },
+            "3,2": { label: "Production", type: "end" }
+        };
 
-        const goalPos = { row: 3, col: 3 }; // PROD (End)
+        const requiredCheckpoints = ["3,0", "0,1", "1,2", "3,3"];
 
-        // --- DOM ELEMENTS ---
-        const player = document.getElementById('player');
-        const grid = document.getElementById('grid');
-        const status = document.getElementById('status');
-        const resetBtn = document.getElementById('reset-btn');
-        const pathLine = document.getElementById('path-line');
-
-        // --- FUNCTIONS ---
-
-        function updatePlayerDOM() {
-            player.style.top = `${playerPos.row * cellSize + 10}px`;
-            player.style.left = `${playerPos.col * cellSize + 10}px`;
-            
-            // Mark the cell as visited in the UI
-            document.getElementById(`cell-${playerPos.row}-${playerPos.col}`).classList.add('visited');
-            
-            updatePathLine();
-        }
-
-        // Draws the continuous line on the SVG overlay
-        function updatePathLine() {
-            let pointsString = path.map(pos => 
-                `${pos.col * cellSize + 60},${pos.row * cellSize + 60}`
-            ).join(' ');
-            pathLine.setAttribute('points', pointsString);
-        }
-
-        function handleMove(rowDiff, colDiff) {
-            if (isGameOver) return;
-
-            const newRow = playerPos.row + rowDiff;
-            const newCol = playerPos.col + colDiff;
-
-            // 1. BOUNDS CHECK: Is the move inside the 4x4 grid?
-            if (newRow < 0 || newRow >= gridSize || newCol < 0 || newCol >= gridSize) {
-                status.textContent = "Pipeline Error: Attempting to move out of infrastructure bounds.";
-                return;
-            }
-
-            // 2. BACKTRACK CHECK: Did they try to move to the exact previous square?
-            const cellId = `cell-${newRow}-${newCol}`;
-            if (visited.has(cellId)) {
-                // Check if they are backtracking to their previous step
-                if (path.length > 1 && newRow === path[path.length-2].row && newCol === path[path.length-2].col) {
-                    // This is valid backtracking
-                    path.pop();
-                    const lastVisitedCellId = `cell-${playerPos.row}-${playerPos.col}`;
-                    document.getElementById(lastVisitedCellId).classList.remove('visited');
-                    visited.delete(lastVisitedCellId);
-
-                    // Did we backtrack over a checkpoint we already hit?
-                    const checkpointId = `cell-${playerPos.row}-${playerPos.col}`;
-                    const cpCell = document.getElementById(checkpointId);
-                    if (cpCell.classList.contains('checkpoint') && nextCheckpoint > 1) {
-                         // Reset the checkpoint counter
-                         nextCheckpoint--;
-                         status.textContent = `Backtracked. Awaiting Checkpoint [${nextCheckpoint}]...`;
-                    }
-                } else {
-                    // Invalid move: crossed their own line
-                    endGame("Pipeline Failed: Crossed existing path. Non-continuous DAGs are not supported.");
-                    return;
-                }
-            } else {
-                // Moving to a new square
-                visited.add(cellId);
-                path.push({ row: newRow, col: newCol });
-            }
-
-            playerPos.row = newRow;
-            playerPos.col = newCol;
-            updatePlayerDOM();
-
-            // 3. CHECKPOINT & GOAL LOGIC
-            const currentCell = document.getElementById(`cell-${newRow}-${newCol}`);
-
-            // A. Did we hit a checkpoint?
-            if (currentCell.classList.contains('checkpoint')) {
-                // Did we hit it IN ORDER?
-                if (checkpoints[nextCheckpoint - 1].row === newRow && checkpoints[nextCheckpoint - 1].col === newCol) {
-                    status.innerHTML = `<span style="color:var(--checkpoint-color)">Checkpoint [${nextCheckpoint}] hit! OK.</span>`;
-                    nextCheckpoint++;
-                } else {
-                    // Wait, did we miss a previous checkpoint?
-                    if (path.filter(pos => pos.row === newRow && pos.col === newCol).length > 0) {
-                        endGame(`Pipeline Failed: Awaiting Checkpoint [${nextCheckpoint}]. Reached Checkpoint ${currentCell.textContent} too early.`);
-                        return;
-                    }
-                }
-            }
-
-            // B. Did we reach the Goal (PROD)?
-            if (newRow === goalPos.row && newCol === goalPos.col) {
-                // B.1 Did we hit ALL checkpoints?
-                if (nextCheckpoint <= checkpoints.length) {
-                    endGame("Pipeline Failed: Missed crucial security/testing checkpoints. Non-compliant build.", true);
-                    return;
-                }
-
-                // B.2 Did we visit ALL squares (100% efficiency)?
-                if (visited.size !== totalSquares) {
-                    endGame("Pipeline Failed: Inefficient path. Did not pass through every optimization step.", true);
-                    return;
-                }
-
-                // SUCCESS! 100% ZIP + DevOps Order
-                endGame("SUCCESS! Pipeline deployed to PROD with 100% compliance and efficiency.", false, true);
-            }
-        }
-
-        function endGame(message, failedAtGoal = false, success = false) {
-            isGameOver = true;
-            if (success) {
-                status.innerHTML = `<span style="color:var(--path-color); font-weight:bold;">${message}</span>`;
-                // Add special winning effect
-                document.getElementById('grid').style.boxShadow = "0 0 30px var(--path-color)";
-                return;
-            }
-
-            // Failure states
-            status.innerHTML = `<span style="color:var(--failed-color); font-weight:bold;">${message}</span>`;
-            if (failedAtGoal) {
-                player.style.backgroundColor = var(--failed-color);
-            }
-        }
-
-        function resetGame() {
-            // Reset variables
-            playerPos = { row: 0, col: 0 };
-            path = [{ row: 0, col: 0 }];
-            visited = new Set(['cell-0-0']);
-            nextCheckpoint = 1;
+        function initGame() {
+            gridEl.innerHTML = '';
+            cells = {};
+            path = [];
+            visited.clear();
             isGameOver = false;
+            messageEl.className = "banner";
+            messageEl.textContent = "Pipeline Running...";
 
-            // Clear UI: remove 'visited' from all cells
-            document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('visited'));
-            
-            // Initial UI update
-            status.textContent = "Use Arrow Keys to move.";
-            status.style.color = var(--text-color);
-            document.getElementById('grid').style.boxShadow = "none";
-            
-            updatePlayerDOM();
+            // Build grid
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const pos = `${x},${y}`;
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `cell-${x}-${y}`;
+                    
+                    if (cellData[pos]) {
+                        cell.classList.add(cellData[pos].type);
+                        cell.innerHTML = `<span>${cellData[pos].label}</span>`;
+                    }
+
+                    cell.addEventListener('click', () => tryMoveTo(x, y));
+                    gridEl.appendChild(cell);
+                    cells[pos] = cell;
+                }
+            }
+
+            // Start position
+            makeMove(0, 0, true);
         }
 
-        // --- EVENT LISTENERS ---
-        document.addEventListener('keydown', (e) => {
-            switch(e.key) {
-                case 'ArrowUp':    handleMove(-1, 0); break;
-                case 'ArrowDown':  handleMove(1, 0); break;
-                case 'ArrowLeft':  handleMove(0, -1); break;
-                case 'ArrowRight': handleMove(0, 1); break;
+        function tryMoveTo(x, y) {
+            if (isGameOver) return;
+            const current = path[path.length - 1];
+            const dx = Math.abs(x - current.x);
+            const dy = Math.abs(y - current.y);
+            const pos = `${x},${y}`;
+
+            // Allow backtracking (Undo)
+            if (path.length > 1) {
+                const prev = path[path.length - 2];
+                if (prev.x === x && prev.y === y) {
+                    undoMove();
+                    return;
+                }
             }
+
+            // Must be directly adjacent (no diagonals) and unvisited
+            if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+                if (!visited.has(pos)) {
+                    makeMove(x, y);
+                }
+            }
+        }
+
+        function makeMove(x, y, isFirst = false) {
+            const pos = `${x},${y}`;
+            const currentCell = cells[pos];
+
+            if (!isFirst) {
+                const prev = path[path.length - 1];
+                const prevCell = cells[`${prev.x},${prev.y}`];
+                
+                // Draw connecting line in the previous cell pointing to the new cell
+                const line = document.createElement('div');
+                if (x > prev.x) line.className = 'line-right';
+                else if (x < prev.x) line.className = 'line-left';
+                else if (y > prev.y) line.className = 'line-down';
+                else if (y < prev.y) line.className = 'line-up';
+                prevCell.appendChild(line);
+            }
+
+            path.push({x, y});
+            visited.add(pos);
+
+            // Draw dot
+            const dot = document.createElement('div');
+            dot.className = 'dot';
+            currentCell.appendChild(dot);
+
+            updateCurrentHighlight();
+            checkWinCondition(x, y);
+        }
+
+        function undoMove() {
+            const last = path.pop();
+            const pos = `${last.x},${last.y}`;
+            visited.delete(pos);
+            
+            const cell = cells[pos];
+            const dot = cell.querySelector('.dot');
+            if(dot) dot.remove();
+
+            const prev = path[path.length - 1];
+            const prevCell = cells[`${prev.x},${prev.y}`];
+
+            // Remove directional line from the new "current" cell
+            const lines = prevCell.querySelectorAll('.line-right, .line-left, .line-up, .line-down');
+            if (lines.length > 0) lines[lines.length - 1].remove();
+
+            updateCurrentHighlight();
+            
+            // Clear fail states if user backtracks
+            messageEl.className = "banner";
+            messageEl.textContent = "Pipeline Running...";
+            isGameOver = false; 
+        }
+
+        function updateCurrentHighlight() {
+            Object.values(cells).forEach(c => c.classList.remove('current'));
+            if (path.length > 0) {
+                const current = path[path.length - 1];
+                cells[`${current.x},${current.y}`].classList.add('current');
+            }
+        }
+
+        function checkWinCondition(x, y) {
+            if (x === 3 && y === 2) { // Reached Production
+                isGameOver = true;
+                
+                if (path.length !== 16) {
+                    messageEl.textContent = "Pipeline Failed: Code coverage not 100%.";
+                    messageEl.className = "banner fail";
+                    return;
+                }
+
+                let hitOrder = [];
+                for (let p of path) {
+                    const posStr = `${p.x},${p.y}`;
+                    if (requiredCheckpoints.includes(posStr)) {
+                        hitOrder.push(posStr);
+                    }
+                }
+
+                const sequenceCorrect = JSON.stringify(hitOrder) === JSON.stringify(requiredCheckpoints);
+
+                if (sequenceCorrect) {
+                    messageEl.textContent = "Deployment Successful! 🚀";
+                    messageEl.className = "banner success";
+                } else {
+                    messageEl.textContent = "Pipeline Failed: Incorrect checkpoint sequence.";
+                    messageEl.className = "banner fail";
+                }
+            }
+        }
+
+        // --- Controls ---
+        
+        // Keyboard Support
+        document.addEventListener('keydown', (e) => {
+            if (isGameOver || path.length === 0) return;
+            const current = path[path.length - 1];
+            if (e.key === 'ArrowUp') tryMoveTo(current.x, current.y - 1);
+            if (e.key === 'ArrowDown') tryMoveTo(current.x, current.y + 1);
+            if (e.key === 'ArrowLeft') tryMoveTo(current.x - 1, current.y);
+            if (e.key === 'ArrowRight') tryMoveTo(current.x + 1, current.y);
         });
 
-        resetBtn.addEventListener('click', resetGame);
+        // Swipe Support for Mobile
+        let touchStartX = 0, touchStartY = 0;
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        }, {passive: true});
 
-        // --- INITIAL SETUP ---
-        updatePlayerDOM();
+        document.addEventListener('touchend', e => {
+            if (isGameOver || path.length === 0) return;
+            const touchEndX = e.changedTouches[0].screenX;
+            const touchEndY = e.changedTouches[0].screenY;
+            
+            const dx = touchEndX - touchStartX;
+            const dy = touchEndY - touchStartY;
+            const current = path[path.length - 1];
 
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+                if (dx > 0) tryMoveTo(current.x + 1, current.y); 
+                else tryMoveTo(current.x - 1, current.y); 
+            } else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 30) {
+                if (dy > 0) tryMoveTo(current.x, current.y + 1);
+                else tryMoveTo(current.x, current.y - 1); 
+            }
+        }, {passive: true});
+
+        // Start Game
+        initGame();
     </script>
 </body>
 </html>
