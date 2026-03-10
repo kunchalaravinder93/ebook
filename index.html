@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DevOps Pipeline: Pro Edition</title>
+    <title>DevOps Pipeline: Educational Edition</title>
     <style>
         :root {
             --bg: #0d1117;
@@ -30,7 +30,6 @@
             min-height: 100vh;
             margin: 0;
             overflow: hidden;
-            /* Critical for smooth mobile swiping */
             touch-action: none; 
             -webkit-user-select: none;
             user-select: none;
@@ -38,55 +37,33 @@
 
         h1 { margin-bottom: 5px; font-size: 1.6rem; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
         
-        /* Progress Bar */
         .progress-container {
-            width: 310px;
-            height: 8px;
-            background: var(--border);
-            border-radius: 4px;
-            margin-bottom: 15px;
-            overflow: hidden;
+            width: 310px; height: 8px; background: var(--border);
+            border-radius: 4px; margin-bottom: 15px; overflow: hidden;
         }
         .progress-bar {
-            height: 100%;
-            width: 0%;
-            background: var(--blue);
+            height: 100%; width: 0%; background: var(--blue);
             transition: width 0.2s ease, background-color 0.3s;
             box-shadow: 0 0 8px var(--blue);
         }
 
-        /* The Grid */
         .grid-container {
-            background: #21262d;
-            padding: 12px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            background: #21262d; padding: 12px; border-radius: 12px;
+            border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.6);
             margin-bottom: 15px;
         }
 
         .grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            position: relative;
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 12px; position: relative;
         }
 
         .cell {
-            width: 70px;
-            height: 70px;
-            background: var(--cell-bg);
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            font-size: 0.6rem;
-            font-weight: bold;
-            box-sizing: border-box;
-            transition: border-color 0.2s, transform 0.1s;
+            width: 70px; height: 70px; background: var(--cell-bg);
+            border: 2px solid var(--border); border-radius: 8px; position: relative;
+            display: flex; align-items: center; justify-content: center;
+            text-align: center; font-size: 0.6rem; font-weight: bold;
+            box-sizing: border-box; transition: border-color 0.2s, transform 0.1s;
         }
 
         @media(max-width: 400px) {
@@ -97,65 +74,39 @@
         .cell.start { border-color: var(--blue); color: var(--blue); }
         .cell.end { border-color: var(--purple); color: var(--purple); }
         .cell.checkpoint { border-color: var(--yellow); color: var(--yellow); }
-        
         .cell.checkpoint.cleared { 
-            border-color: var(--green-glow); 
-            color: var(--green-glow);
+            border-color: var(--green-glow); color: var(--green-glow);
             text-shadow: 0 0 5px var(--green-glow);
         }
 
         .cell span {
-            z-index: 3;
-            pointer-events: none;
-            background: rgba(13, 17, 23, 0.9);
-            padding: 4px;
-            border-radius: 4px;
-            line-height: 1.2;
+            z-index: 3; pointer-events: none; background: rgba(13, 17, 23, 0.9);
+            padding: 4px; border-radius: 4px; line-height: 1.2;
             border: 1px solid rgba(255,255,255,0.05);
         }
 
-        /* Continuous Path Styling */
         .dot {
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 14px; height: 14px;
-            background: var(--green);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 2;
+            position: absolute; top: 50%; left: 50%; width: 14px; height: 14px;
+            background: var(--green); border-radius: 50%;
+            transform: translate(-50%, -50%); z-index: 2;
         }
         .cell.current .dot {
-            width: 20px; height: 20px;
-            background: var(--green-glow);
+            width: 20px; height: 20px; background: var(--green-glow);
             box-shadow: 0 0 15px var(--green-glow);
         }
 
-        .line {
-            position: absolute;
-            background: var(--green);
-            z-index: 1;
-        }
+        .line { position: absolute; background: var(--green); z-index: 1; }
         .line-right { top: calc(50% - 4px); left: 50%; width: calc(100% + 12px); height: 8px; }
         .line-left { top: calc(50% - 4px); right: 50%; width: calc(100% + 12px); height: 8px; }
         .line-down { left: calc(50% - 4px); top: 50%; height: calc(100% + 12px); width: 8px; }
         .line-up { left: calc(50% - 4px); bottom: 50%; height: calc(100% + 12px); width: 8px; }
 
-        /* Terminal Window */
         .terminal {
-            width: 310px;
-            height: 100px;
-            background: var(--term-bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 8px;
-            font-family: "Courier New", Courier, monospace;
-            font-size: 0.75rem;
-            color: #8b949e;
-            overflow-y: auto;
-            text-align: left;
-            display: flex;
-            flex-direction: column;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+            width: 310px; height: 100px; background: var(--term-bg);
+            border: 1px solid var(--border); border-radius: 6px; padding: 8px;
+            font-family: "Courier New", Courier, monospace; font-size: 0.75rem;
+            color: #8b949e; overflow-y: auto; text-align: left;
+            display: flex; flex-direction: column; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
         }
         @media(max-width: 400px) { .terminal { width: 290px; } }
 
@@ -168,18 +119,38 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
 
         button.reset {
-            margin-top: 15px;
-            background: transparent;
-            color: var(--text);
-            border: 1px solid var(--border);
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.9rem;
-            transition: 0.2s;
+            margin-top: 15px; background: transparent; color: var(--text);
+            border: 1px solid var(--border); padding: 10px 20px;
+            border-radius: 6px; cursor: pointer; font-weight: bold;
+            font-size: 0.9rem; transition: 0.2s;
         }
         button.reset:hover { background: #30363d; }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(1, 4, 9, 0.85); z-index: 100;
+            display: none; align-items: center; justify-content: center;
+            padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: var(--cell-bg); border: 1px solid var(--border);
+            border-radius: 12px; padding: 25px; max-width: 450px; width: 100%;
+            max-height: 85vh; overflow-y: auto; box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            user-select: text; /* Allow user to highlight/read text */
+        }
+        .modal-content h2 { color: var(--green-glow); margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
+        .modal-content h3 { color: var(--blue); font-size: 1rem; margin-bottom: 5px; }
+        .modal-content p, .modal-content li { font-size: 0.85rem; line-height: 1.6; color: var(--text); }
+        .modal-content ul { padding-left: 20px; margin-top: 5px; }
+        .modal-content strong { color: #fff; }
+        
+        button.close-modal {
+            background: var(--green); color: #fff; border: none;
+            padding: 12px; border-radius: 6px; cursor: pointer;
+            width: 100%; margin-top: 20px; font-weight: bold; font-size: 1rem;
+        }
+        button.close-modal:hover { background: var(--green-glow); }
     </style>
 </head>
 <body>
@@ -197,11 +168,32 @@
 
     <button class="reset" onclick="initGame()">Abort & Retry</button>
 
+    <div class="modal-overlay" id="info-modal">
+        <div class="modal-content">
+            <h2>🚀 Deployment Report</h2>
+            <p><strong>Deployment Type:</strong> Automated Continuous Deployment (CD)</p>
+            <p>Unlike <em>Continuous Delivery</em> (which requires a human click to deploy), you just executed a true <em>Continuous Deployment</em> pipeline. Because your code hit 100% coverage and passed all automated security gates, it went straight to production without human intervention.</p>
+            
+            <h3>Pipeline Stages Explained:</h3>
+            <ul>
+                <li><strong>git push (Source):</strong> The trigger. A developer commits new code to the main repository.</li>
+                <li><strong>[1] SAST (Static Analysis):</strong> The code is scanned <em>before</em> it runs. It checks for hardcoded secrets, bad syntax, and known insecure coding patterns.</li>
+                <li><strong>[2] Unit Tests:</strong> Automated scripts verify that individual functions of the code behave exactly as expected.</li>
+                <li><strong>[3] Docker Build:</strong> The application and its dependencies are packaged into a standardized container so it will run exactly the same way on any server.</li>
+                <li><strong>[4] Vuln Scan (Container Scanning):</strong> The newly built Docker container is checked against a database of known CVEs (Common Vulnerabilities and Exposures) to ensure no outdated, vulnerable libraries are inside.</li>
+                <li><strong>Deploy (Production):</strong> The container is pushed to a live environment (like a Kubernetes cluster) and traffic is routed to it.</li>
+            </ul>
+
+            <button class="close-modal" onclick="closeModal()">Acknowledge</button>
+        </div>
+    </div>
+
     <script>
         const gridEl = document.getElementById('grid');
         const gridContainer = document.getElementById('grid-container');
         const terminalEl = document.getElementById('terminal');
         const progressEl = document.getElementById('progress');
+        const modalEl = document.getElementById('info-modal');
         
         const cols = 4, rows = 4;
         const totalNodes = 16;
@@ -233,6 +225,7 @@
             visited.clear();
             clearedCheckpoints = [];
             isGameOver = false;
+            modalEl.style.display = 'none';
             
             updateProgress();
             logMsg("system initializing...", "log-sys");
@@ -257,7 +250,6 @@
             makeMove(0, 0, true);
         }
 
-        // --- Haptic Feedback ---
         function triggerHaptic(type) {
             if (!navigator.vibrate) return;
             if (type === 'tick') navigator.vibrate(10);
@@ -265,7 +257,6 @@
             if (type === 'error') navigator.vibrate([50, 50, 50, 50]);
         }
 
-        // --- Terminal Logic ---
         function logMsg(msg, className = "") {
             const line = document.createElement('div');
             line.className = `log-line ${className}`;
@@ -274,7 +265,6 @@
             terminalEl.scrollTop = terminalEl.scrollHeight;
         }
 
-        // --- Progress Bar ---
         function updateProgress() {
             const pct = (path.length / totalNodes) * 100;
             progressEl.style.width = `${pct}%`;
@@ -285,7 +275,6 @@
             else progressEl.style.backgroundColor = "var(--green-glow)";
         }
 
-        // --- Touch & Mouse Event Handling ---
         function handleInputStart(e) {
             if (isGameOver) return;
             isDragging = true;
@@ -294,64 +283,47 @@
 
         function handleInputMove(e) {
             if (!isDragging || isGameOver) return;
-            e.preventDefault(); // SUPER IMPORTANT: Stops mobile scrolling/jank
+            e.preventDefault(); 
             processInput(e);
         }
 
-        function handleInputEnd() {
-            isDragging = false;
-        }
+        function handleInputEnd() { isDragging = false; }
 
-        // Bind standard Mouse
         gridContainer.addEventListener('mousedown', handleInputStart);
         window.addEventListener('mousemove', handleInputMove, {passive: false});
         window.addEventListener('mouseup', handleInputEnd);
 
-        // Bind Touch specifically for mobile
         gridContainer.addEventListener('touchstart', handleInputStart, {passive: false});
         gridContainer.addEventListener('touchmove', handleInputMove, {passive: false});
         window.addEventListener('touchend', handleInputEnd);
 
         function processInput(e) {
-            let clientX = e.clientX;
-            let clientY = e.clientY;
-            
+            let clientX = e.clientX, clientY = e.clientY;
             if (e.touches && e.touches.length > 0) {
-                clientX = e.touches[0].clientX;
-                clientY = e.touches[0].clientY;
+                clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
             }
-
             const el = document.elementFromPoint(clientX, clientY);
             if (!el) return;
             const cell = el.closest('.cell');
             if (!cell) return;
-
             const parts = cell.id.split('-');
             tryMoveTo(parseInt(parts[1]), parseInt(parts[2]));
         }
 
         function tryMoveTo(x, y) {
             if (isGameOver || path.length === 0) return;
-            
             const current = path[path.length - 1];
             const dx = Math.abs(x - current.x);
             const dy = Math.abs(y - current.y);
             const pos = `${x},${y}`;
 
-            // Backtracking (Undo)
             if (path.length > 1) {
                 const prev = path[path.length - 2];
-                if (prev.x === x && prev.y === y) {
-                    undoMove();
-                    return;
-                }
+                if (prev.x === x && prev.y === y) { undoMove(); return; }
             }
 
-            // Must be adjacent orthogonally
             if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
-                if (!visited.has(pos)) {
-                    makeMove(x, y);
-                }
+                if (!visited.has(pos)) makeMove(x, y);
             }
         }
 
@@ -384,7 +356,6 @@
             dot.className = 'dot';
             currentCell.appendChild(dot);
 
-            // Handle Checkpoints visually
             if (requiredCheckpoints.includes(pos)) {
                 const cpIndex = requiredCheckpoints.indexOf(pos);
                 clearedCheckpoints.push(pos);
@@ -407,7 +378,6 @@
             const dot = cell.querySelector('.dot');
             if(dot) dot.remove();
 
-            // Revert checkpoint visuals if undone
             if (requiredCheckpoints.includes(pos)) {
                 cell.classList.remove('cleared');
                 clearedCheckpoints.pop();
@@ -448,7 +418,6 @@
                     return;
                 }
 
-                // Check specific order sequence
                 const sequenceCorrect = JSON.stringify(clearedCheckpoints) === JSON.stringify(requiredCheckpoints);
 
                 if (sequenceCorrect) {
@@ -456,6 +425,11 @@
                     logMsg("All artifacts verified.", "log-success");
                     logMsg("SUCCESS: Deployed to Production! 🚀", "log-success");
                     triggerHaptic('success');
+                    
+                    // Trigger Educational Modal on Success
+                    setTimeout(() => {
+                        modalEl.style.display = 'flex';
+                    }, 1200);
                 } else {
                     progressEl.style.backgroundColor = "var(--red)";
                     logMsg("FATAL: Security Gates Bypassed or Out of Order.", "log-err");
@@ -463,6 +437,10 @@
                     triggerHaptic('error');
                 }
             }
+        }
+
+        function closeModal() {
+            modalEl.style.display = 'none';
         }
 
         initGame();
