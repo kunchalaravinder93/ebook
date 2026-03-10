@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DevOps Pipeline: Educational Edition</title>
+    <title>DevOps Pipeline</title>
     <style>
         :root {
             --bg: #0d1117;
@@ -17,145 +17,96 @@
             --yellow: #d29922;
             --red: #f85149;
             --term-bg: #010409;
+            --grid-cols: 4; /* Dynamic based on level */
         }
 
         body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            overflow: hidden;
-            touch-action: none; 
-            -webkit-user-select: none;
-            user-select: none;
+            background-color: var(--bg); color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; margin: 0; overflow: hidden;
+            touch-action: none; -webkit-user-select: none; user-select: none;
         }
 
-        h1 { margin-bottom: 5px; font-size: 1.6rem; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        .header { display: flex; justify-content: space-between; width: 310px; align-items: flex-end; margin-bottom: 5px; }
+        h1 { margin: 0; font-size: 1.5rem; color: #fff; }
+        .level-indicator { font-size: 0.9rem; color: var(--blue); font-weight: bold; }
         
-        .progress-container {
-            width: 310px; height: 8px; background: var(--border);
-            border-radius: 4px; margin-bottom: 15px; overflow: hidden;
-        }
-        .progress-bar {
-            height: 100%; width: 0%; background: var(--blue);
-            transition: width 0.2s ease, background-color 0.3s;
-            box-shadow: 0 0 8px var(--blue);
-        }
+        .progress-container { width: 310px; height: 8px; background: var(--border); border-radius: 4px; margin-bottom: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; width: 0%; background: var(--blue); transition: width 0.1s linear, background-color 0.3s; }
 
         .grid-container {
-            background: #21262d; padding: 12px; border-radius: 12px;
-            border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-            margin-bottom: 15px;
+            background: #21262d; padding: 10px; border-radius: 12px;
+            border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.6); margin-bottom: 15px;
+            /* Using grid-template-columns dynamically */
         }
 
         .grid {
-            display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 12px; position: relative;
+            display: grid; 
+            grid-template-columns: repeat(var(--grid-cols), 1fr);
+            gap: 10px; position: relative;
         }
 
         .cell {
-            width: 70px; height: 70px; background: var(--cell-bg);
-            border: 2px solid var(--border); border-radius: 8px; position: relative;
-            display: flex; align-items: center; justify-content: center;
-            text-align: center; font-size: 0.6rem; font-weight: bold;
-            box-sizing: border-box; transition: border-color 0.2s, transform 0.1s;
-        }
-
-        @media(max-width: 400px) {
-            .cell { width: 65px; height: 65px; font-size: 0.55rem; }
-            .progress-container { width: 290px; }
+            /* Width/Height dynamic in JS based on grid size to fit screen */
+            background: var(--cell-bg); border: 2px solid var(--border); border-radius: 8px;
+            position: relative; display: flex; align-items: center; justify-content: center;
+            text-align: center; font-size: 0.55rem; font-weight: bold; box-sizing: border-box;
+            transition: border-color 0.2s;
         }
 
         .cell.start { border-color: var(--blue); color: var(--blue); }
         .cell.end { border-color: var(--purple); color: var(--purple); }
         .cell.checkpoint { border-color: var(--yellow); color: var(--yellow); }
-        .cell.checkpoint.cleared { 
-            border-color: var(--green-glow); color: var(--green-glow);
-            text-shadow: 0 0 5px var(--green-glow);
-        }
+        .cell.checkpoint.cleared { border-color: var(--green-glow); color: var(--green-glow); text-shadow: 0 0 5px var(--green-glow); }
 
-        .cell span {
-            z-index: 3; pointer-events: none; background: rgba(13, 17, 23, 0.9);
-            padding: 4px; border-radius: 4px; line-height: 1.2;
-            border: 1px solid rgba(255,255,255,0.05);
-        }
+        .cell span { z-index: 3; pointer-events: none; background: rgba(13, 17, 23, 0.9); padding: 4px; border-radius: 4px; line-height: 1.1; border: 1px solid rgba(255,255,255,0.05); }
 
-        .dot {
-            position: absolute; top: 50%; left: 50%; width: 14px; height: 14px;
-            background: var(--green); border-radius: 50%;
-            transform: translate(-50%, -50%); z-index: 2;
-        }
-        .cell.current .dot {
-            width: 20px; height: 20px; background: var(--green-glow);
-            box-shadow: 0 0 15px var(--green-glow);
-        }
+        .dot { position: absolute; top: 50%; left: 50%; width: 12px; height: 12px; background: var(--green); border-radius: 50%; transform: translate(-50%, -50%); z-index: 2; }
+        .cell.current .dot { width: 18px; height: 18px; background: var(--green-glow); box-shadow: 0 0 15px var(--green-glow); }
 
         .line { position: absolute; background: var(--green); z-index: 1; }
-        .line-right { top: calc(50% - 4px); left: 50%; width: calc(100% + 12px); height: 8px; }
-        .line-left { top: calc(50% - 4px); right: 50%; width: calc(100% + 12px); height: 8px; }
-        .line-down { left: calc(50% - 4px); top: 50%; height: calc(100% + 12px); width: 8px; }
-        .line-up { left: calc(50% - 4px); bottom: 50%; height: calc(100% + 12px); width: 8px; }
+        .line-right { top: calc(50% - 4px); left: 50%; width: calc(100% + 10px); height: 8px; }
+        .line-left { top: calc(50% - 4px); right: 50%; width: calc(100% + 10px); height: 8px; }
+        .line-down { left: calc(50% - 4px); top: 50%; height: calc(100% + 10px); width: 8px; }
+        .line-up { left: calc(50% - 4px); bottom: 50%; height: calc(100% + 10px); width: 8px; }
 
         .terminal {
-            width: 310px; height: 100px; background: var(--term-bg);
-            border: 1px solid var(--border); border-radius: 6px; padding: 8px;
-            font-family: "Courier New", Courier, monospace; font-size: 0.75rem;
-            color: #8b949e; overflow-y: auto; text-align: left;
+            width: 310px; height: 90px; background: var(--term-bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px;
+            font-family: "Courier New", monospace; font-size: 0.7rem; color: #8b949e; overflow-y: auto; text-align: left;
             display: flex; flex-direction: column; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
         }
-        @media(max-width: 400px) { .terminal { width: 290px; } }
 
-        .log-line { margin: 2px 0; animation: fadeIn 0.2s ease-in; }
+        .log-line { margin: 2px 0; }
         .log-sys { color: var(--blue); }
         .log-success { color: var(--green-glow); font-weight: bold; }
         .log-err { color: var(--red); font-weight: bold; }
         .log-warn { color: var(--yellow); }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
-
-        button.reset {
-            margin-top: 15px; background: transparent; color: var(--text);
-            border: 1px solid var(--border); padding: 10px 20px;
-            border-radius: 6px; cursor: pointer; font-weight: bold;
-            font-size: 0.9rem; transition: 0.2s;
-        }
-        button.reset:hover { background: #30363d; }
+        .controls { display: flex; gap: 10px; margin-top: 15px; }
+        button.btn { background: transparent; color: var(--text); border: 1px solid var(--border); padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
+        button.btn:hover { background: #30363d; }
+        button.btn.primary { background: var(--green); color: #fff; border: none; }
+        button.btn.primary:hover { background: var(--green-glow); }
 
         /* Modal Styles */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(1, 4, 9, 0.85); z-index: 100;
-            display: none; align-items: center; justify-content: center;
-            padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(1, 4, 9, 0.85); z-index: 100;
+            display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px);
         }
-        .modal-content {
-            background: var(--cell-bg); border: 1px solid var(--border);
-            border-radius: 12px; padding: 25px; max-width: 450px; width: 100%;
-            max-height: 85vh; overflow-y: auto; box-shadow: 0 0 40px rgba(0,0,0,0.8);
-            user-select: text; /* Allow user to highlight/read text */
-        }
+        .modal-content { background: var(--cell-bg); border: 1px solid var(--border); border-radius: 12px; padding: 25px; max-width: 450px; width: 100%; max-height: 85vh; overflow-y: auto; user-select: text;}
         .modal-content h2 { color: var(--green-glow); margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
         .modal-content h3 { color: var(--blue); font-size: 1rem; margin-bottom: 5px; }
-        .modal-content p, .modal-content li { font-size: 0.85rem; line-height: 1.6; color: var(--text); }
-        .modal-content ul { padding-left: 20px; margin-top: 5px; }
-        .modal-content strong { color: #fff; }
-        
-        button.close-modal {
-            background: var(--green); color: #fff; border: none;
-            padding: 12px; border-radius: 6px; cursor: pointer;
-            width: 100%; margin-top: 20px; font-weight: bold; font-size: 1rem;
-        }
-        button.close-modal:hover { background: var(--green-glow); }
+        .modal-content p, .modal-content li { font-size: 0.85rem; line-height: 1.6; }
     </style>
 </head>
 <body>
 
-    <h1>CI/CD Pipeline</h1>
+    <div class="header">
+        <h1>CI/CD Pipeline</h1>
+        <span class="level-indicator" id="level-display">Level 1</span>
+    </div>
+
     <div class="progress-container">
         <div id="progress" class="progress-bar"></div>
     </div>
@@ -166,37 +117,75 @@
 
     <div class="terminal" id="terminal"></div>
 
-    <button class="reset" onclick="initGame()">Abort & Retry</button>
+    <div class="controls">
+        <button class="btn" onclick="initLevel()">Restart Pipe</button>
+    </div>
 
     <div class="modal-overlay" id="info-modal">
-        <div class="modal-content">
-            <h2>🚀 Deployment Report</h2>
-            <p><strong>Deployment Type:</strong> Automated Continuous Deployment (CD)</p>
-            <p>Unlike <em>Continuous Delivery</em> (which requires a human click to deploy), you just executed a true <em>Continuous Deployment</em> pipeline. Because your code hit 100% coverage and passed all automated security gates, it went straight to production without human intervention.</p>
-            
-            <h3>Pipeline Stages Explained:</h3>
-            <ul>
-                <li><strong>git push (Source):</strong> The trigger. A developer commits new code to the main repository.</li>
-                <li><strong>[1] SAST (Static Analysis):</strong> The code is scanned <em>before</em> it runs. It checks for hardcoded secrets, bad syntax, and known insecure coding patterns.</li>
-                <li><strong>[2] Unit Tests:</strong> Automated scripts verify that individual functions of the code behave exactly as expected.</li>
-                <li><strong>[3] Docker Build:</strong> The application and its dependencies are packaged into a standardized container so it will run exactly the same way on any server.</li>
-                <li><strong>[4] Vuln Scan (Container Scanning):</strong> The newly built Docker container is checked against a database of known CVEs (Common Vulnerabilities and Exposures) to ensure no outdated, vulnerable libraries are inside.</li>
-                <li><strong>Deploy (Production):</strong> The container is pushed to a live environment (like a Kubernetes cluster) and traffic is routed to it.</li>
-            </ul>
-
-            <button class="close-modal" onclick="closeModal()">Acknowledge</button>
-        </div>
+        <div class="modal-content" id="modal-body">
+            </div>
     </div>
 
     <script>
+        // --- LEVEL CONFIGURATIONS ---
+        const levels = [
+            {
+                cols: 4, rows: 4,
+                endPos: {x: 3, y: 2},
+                checkpoints: ["3,0", "0,1", "1,2", "3,3"],
+                names: ["[1] SAST", "[2] Unit Tests", "[3] Docker Build", "[4] Vuln Scan"],
+                data: {
+                    "0,0": { label: "git push", type: "start" },
+                    "3,0": { label: "[1] SAST", type: "checkpoint" },
+                    "0,1": { label: "[2] Test", type: "checkpoint" },
+                    "1,2": { label: "[3] Build", type: "checkpoint" },
+                    "3,3": { label: "[4] Scan", type: "checkpoint" },
+                    "3,2": { label: "Deploy", type: "end" }
+                },
+                report: {
+                    title: "Automated Continuous Deployment",
+                    desc: "Because your code hit 100% coverage and passed all automated security gates, it went straight to production without human intervention.",
+                    bullets: [
+                        "<b>SAST:</b> Static code analysis for security.",
+                        "<b>Unit Tests:</b> Checking individual functions.",
+                        "<b>Docker Build:</b> Packaging the artifact.",
+                        "<b>Vuln Scan:</b> Container security checks."
+                    ]
+                }
+            },
+            {
+                cols: 5, rows: 5,
+                endPos: {x: 4, y: 4}, // Bottom right is mathematically solvable for 5x5
+                checkpoints: ["4,0", "0,3", "4,2", "0,4"],
+                names: ["[1] Build Image", "[2] Deploy Green", "[3] E2E Tests", "[4] Switch Router"],
+                data: {
+                    "0,0": { label: "Merge<br>Main", type: "start" },
+                    "4,0": { label: "[1] Build<br>Image", type: "checkpoint" },
+                    "0,3": { label: "[2] Deploy<br>Green", type: "checkpoint" },
+                    "4,2": { label: "[3] E2E<br>Tests", type: "checkpoint" },
+                    "0,4": { label: "[4] Switch<br>Router", type: "checkpoint" },
+                    "4,4": { label: "Live<br>Traffic", type: "end" }
+                },
+                report: {
+                    title: "Blue/Green Deployment",
+                    desc: "You just executed a Blue/Green rollout. The old version (Blue) kept running while you deployed the new version (Green) alongside it.",
+                    bullets: [
+                        "<b>Deploy Green:</b> Spining up the new version in a completely isolated environment.",
+                        "<b>E2E Tests:</b> Running integration tests on Green before any real users see it.",
+                        "<b>Switch Router:</b> Instantly flipping the load balancer to point to Green. Zero downtime, and instant rollback if something breaks!"
+                    ]
+                }
+            }
+        ];
+
+        let currentLevel = 0;
+        
+        // --- GAME STATE ---
         const gridEl = document.getElementById('grid');
-        const gridContainer = document.getElementById('grid-container');
         const terminalEl = document.getElementById('terminal');
         const progressEl = document.getElementById('progress');
         const modalEl = document.getElementById('info-modal');
-        
-        const cols = 4, rows = 4;
-        const totalNodes = 16;
+        const modalBody = document.getElementById('modal-body');
         
         let path = [];
         let visited = new Set();
@@ -204,49 +193,42 @@
         let isGameOver = false;
         let isDragging = false;
         let clearedCheckpoints = [];
+        let levelData;
 
-        const cellData = {
-            "0,0": { label: "git push", type: "start" },
-            "3,0": { label: "[1] SAST", type: "checkpoint" },
-            "0,1": { label: "[2] Test", type: "checkpoint" },
-            "1,2": { label: "[3] Build", type: "checkpoint" },
-            "3,3": { label: "[4] Scan", type: "checkpoint" },
-            "3,2": { label: "Deploy", type: "end" }
-        };
+        function initLevel() {
+            levelData = levels[currentLevel];
+            document.getElementById('level-display').innerText = `Level ${currentLevel + 1}`;
+            document.documentElement.style.setProperty('--grid-cols', levelData.cols);
 
-        const requiredCheckpoints = ["3,0", "0,1", "1,2", "3,3"];
-        const checkpointNames = ["[1] SAST", "[2] Unit Tests", "[3] Docker Build", "[4] Vuln Scan"];
-
-        function initGame() {
-            gridEl.innerHTML = '';
-            terminalEl.innerHTML = '';
-            cells = {};
-            path = [];
-            visited.clear();
-            clearedCheckpoints = [];
-            isGameOver = false;
-            modalEl.style.display = 'none';
+            gridEl.innerHTML = ''; terminalEl.innerHTML = '';
+            cells = {}; path = []; visited.clear(); clearedCheckpoints = [];
+            isGameOver = false; modalEl.style.display = 'none';
             
-            updateProgress();
-            logMsg("system initializing...", "log-sys");
-            logMsg("Awaiting code commit...", "log-sys");
+            // Adjust cell size dynamically based on grid size to fit standard mobile
+            const cellSize = levelData.cols === 5 ? '56px' : '70px';
 
-            for (let y = 0; y < rows; y++) {
-                for (let x = 0; x < cols; x++) {
+            for (let y = 0; y < levelData.rows; y++) {
+                for (let x = 0; x < levelData.cols; x++) {
                     const pos = `${x},${y}`;
                     const cell = document.createElement('div');
                     cell.className = 'cell';
+                    cell.style.width = cellSize;
+                    cell.style.height = cellSize;
                     cell.id = `cell-${x}-${y}`;
                     
-                    if (cellData[pos]) {
-                        cell.classList.add(cellData[pos].type);
-                        cell.innerHTML = `<span>${cellData[pos].label}</span>`;
+                    if (levelData.data[pos]) {
+                        cell.classList.add(levelData.data[pos].type);
+                        cell.innerHTML = `<span>${levelData.data[pos].label}</span>`;
                     }
 
                     gridEl.appendChild(cell);
                     cells[pos] = cell;
                 }
             }
+            
+            logMsg("system initializing...", "log-sys");
+            logMsg("Awaiting code commit...", "log-sys");
+            updateProgress();
             makeMove(0, 0, true);
         }
 
@@ -266,6 +248,7 @@
         }
 
         function updateProgress() {
+            const totalNodes = levelData.cols * levelData.rows;
             const pct = (path.length / totalNodes) * 100;
             progressEl.style.width = `${pct}%`;
             
@@ -275,44 +258,43 @@
             else progressEl.style.backgroundColor = "var(--green-glow)";
         }
 
-        function handleInputStart(e) {
-            if (isGameOver) return;
-            isDragging = true;
-            processInput(e);
-        }
+        // --- NEW MATHEMATICAL INPUT SYSTEM (Ultra Smooth) ---
+        gridEl.addEventListener('mousedown', (e) => { isDragging = true; processInput(e); });
+        window.addEventListener('mousemove', (e) => { if(isDragging) { e.preventDefault(); processInput(e); } }, {passive: false});
+        window.addEventListener('mouseup', () => isDragging = false);
 
-        function handleInputMove(e) {
-            if (!isDragging || isGameOver) return;
-            e.preventDefault(); 
-            processInput(e);
-        }
-
-        function handleInputEnd() { isDragging = false; }
-
-        gridContainer.addEventListener('mousedown', handleInputStart);
-        window.addEventListener('mousemove', handleInputMove, {passive: false});
-        window.addEventListener('mouseup', handleInputEnd);
-
-        gridContainer.addEventListener('touchstart', handleInputStart, {passive: false});
-        gridContainer.addEventListener('touchmove', handleInputMove, {passive: false});
-        window.addEventListener('touchend', handleInputEnd);
+        gridEl.addEventListener('touchstart', (e) => { isDragging = true; processInput(e); }, {passive: false});
+        gridEl.addEventListener('touchmove', (e) => { if(isDragging) { e.preventDefault(); processInput(e); } }, {passive: false});
+        window.addEventListener('touchend', () => isDragging = false);
 
         function processInput(e) {
+            if (isGameOver) return;
             let clientX = e.clientX, clientY = e.clientY;
             if (e.touches && e.touches.length > 0) {
                 clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
             }
-            const el = document.elementFromPoint(clientX, clientY);
-            if (!el) return;
-            const cell = el.closest('.cell');
-            if (!cell) return;
-            const parts = cell.id.split('-');
-            tryMoveTo(parseInt(parts[1]), parseInt(parts[2]));
+
+            // Calculate Grid Bounds
+            const rect = gridEl.getBoundingClientRect();
+            if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return;
+
+            // Math to find exact cell index
+            const colWidth = rect.width / levelData.cols;
+            const rowHeight = rect.height / levelData.rows;
+
+            const x = Math.floor((clientX - rect.left) / colWidth);
+            const y = Math.floor((clientY - rect.top) / rowHeight);
+
+            if (x >= 0 && x < levelData.cols && y >= 0 && y < levelData.rows) {
+                tryMoveTo(x, y);
+            }
         }
 
         function tryMoveTo(x, y) {
-            if (isGameOver || path.length === 0) return;
+            if (path.length === 0) return;
             const current = path[path.length - 1];
+            if (current.x === x && current.y === y) return;
+
             const dx = Math.abs(x - current.x);
             const dy = Math.abs(y - current.y);
             const pos = `${x},${y}`;
@@ -330,6 +312,7 @@
         function makeMove(x, y, isFirst = false) {
             const pos = `${x},${y}`;
             const currentCell = cells[pos];
+            const totalNodes = levelData.cols * levelData.rows;
 
             if (!isFirst) {
                 const prev = path[path.length - 1];
@@ -344,9 +327,6 @@
                 prevCell.appendChild(line);
                 
                 triggerHaptic('tick');
-                logMsg(`Executing step ${path.length + 1}/${totalNodes}...`);
-            } else {
-                logMsg("Commit triggered. Starting pipeline...", "log-success");
             }
 
             path.push({x, y});
@@ -356,12 +336,12 @@
             dot.className = 'dot';
             currentCell.appendChild(dot);
 
-            if (requiredCheckpoints.includes(pos)) {
-                const cpIndex = requiredCheckpoints.indexOf(pos);
+            if (levelData.checkpoints.includes(pos)) {
+                const cpIndex = levelData.checkpoints.indexOf(pos);
                 clearedCheckpoints.push(pos);
                 currentCell.classList.add('cleared');
                 triggerHaptic('success');
-                logMsg(`Gate Cleared: ${checkpointNames[cpIndex]}`, "log-warn");
+                logMsg(`Gate Cleared: ${levelData.names[cpIndex]}`, "log-warn");
             }
 
             updateCurrentHighlight();
@@ -378,17 +358,13 @@
             const dot = cell.querySelector('.dot');
             if(dot) dot.remove();
 
-            if (requiredCheckpoints.includes(pos)) {
+            if (levelData.checkpoints.includes(pos)) {
                 cell.classList.remove('cleared');
                 clearedCheckpoints.pop();
-                logMsg(`Reverted security gate.`, "log-err");
-            } else {
-                logMsg(`Reverted step.`);
             }
 
             const prev = path[path.length - 1];
             const prevCell = cells[`${prev.x},${prev.y}`];
-
             const lines = prevCell.querySelectorAll('.line');
             if (lines.length > 0) lines[lines.length - 1].remove();
 
@@ -406,44 +382,62 @@
         }
 
         function checkWinCondition(x, y) {
-            if (x === 3 && y === 2) { 
+            const endPos = levelData.endPos;
+            if (x === endPos.x && y === endPos.y) { 
                 isGameOver = true;
                 isDragging = false;
+                const totalNodes = levelData.cols * levelData.rows;
                 
-                if (path.length !== 16) {
+                if (path.length !== totalNodes) {
                     progressEl.style.backgroundColor = "var(--red)";
                     logMsg("FATAL: Dead Code Detected.", "log-err");
-                    logMsg("Pipeline Failed. 100% Coverage Required.", "log-err");
                     triggerHaptic('error');
                     return;
                 }
 
-                const sequenceCorrect = JSON.stringify(clearedCheckpoints) === JSON.stringify(requiredCheckpoints);
+                const sequenceCorrect = JSON.stringify(clearedCheckpoints) === JSON.stringify(levelData.checkpoints);
 
                 if (sequenceCorrect) {
                     progressEl.style.backgroundColor = "var(--green-glow)";
-                    logMsg("All artifacts verified.", "log-success");
-                    logMsg("SUCCESS: Deployed to Production! 🚀", "log-success");
+                    logMsg("SUCCESS: Environment Deployed!", "log-success");
                     triggerHaptic('success');
-                    
-                    // Trigger Educational Modal on Success
-                    setTimeout(() => {
-                        modalEl.style.display = 'flex';
-                    }, 1200);
+                    showModal();
                 } else {
                     progressEl.style.backgroundColor = "var(--red)";
-                    logMsg("FATAL: Security Gates Bypassed or Out of Order.", "log-err");
-                    logMsg("Pipeline Failed.", "log-err");
+                    logMsg("FATAL: Security Gates Out of Order.", "log-err");
                     triggerHaptic('error');
                 }
             }
         }
 
-        function closeModal() {
-            modalEl.style.display = 'none';
+        function showModal() {
+            const isLastLevel = currentLevel === levels.length - 1;
+            const btnHtml = isLastLevel 
+                ? `<button class="btn primary" onclick="closeModal()" style="width:100%; margin-top:15px;">Game Complete!</button>`
+                : `<button class="btn primary" onclick="nextLevel()" style="width:100%; margin-top:15px;">Start Level ${currentLevel + 2} 🚀</button>`;
+
+            let listHtml = "";
+            levelData.report.bullets.forEach(b => listHtml += `<li>${b}</li>`);
+
+            modalBody.innerHTML = `
+                <h2>✅ Deployment Report</h2>
+                <h3>${levelData.report.title}</h3>
+                <p>${levelData.report.desc}</p>
+                <ul>${listHtml}</ul>
+                ${btnHtml}
+            `;
+            setTimeout(() => { modalEl.style.display = 'flex'; }, 800);
         }
 
-        initGame();
+        function closeModal() { modalEl.style.display = 'none'; }
+        
+        function nextLevel() {
+            currentLevel++;
+            initLevel();
+        }
+
+        // Start Game
+        initLevel();
     </script>
 </body>
 </html>
