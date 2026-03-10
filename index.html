@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>DevOps Rush</title>
+<title>DevOps Rush V2</title>
 
 <style>
 
 body{
 margin:0;
-font-family:monospace;
+font-family:Arial;
 background:#0f172a;
 color:white;
 overflow:hidden;
@@ -23,8 +23,8 @@ background:#020617;
 display:flex;
 justify-content:space-around;
 align-items:center;
-z-index:100;
 border-bottom:2px solid #334155;
+z-index:10;
 }
 
 #game{
@@ -38,17 +38,33 @@ overflow:hidden;
 .zone{
 border:2px dashed #64748b;
 border-radius:10px;
-padding:10px;
 text-align:center;
+padding:10px;
+position:absolute;
 }
 
 .item{
 background:#1e293b;
-padding:12px;
 border-radius:8px;
+padding:10px;
 position:absolute;
 cursor:pointer;
 touch-action:none;
+box-shadow:0 4px 10px rgba(0,0,0,0.5);
+}
+
+.pipeline{
+height:6px;
+background:#334155;
+position:absolute;
+}
+
+.green{
+background:#065f46;
+}
+
+.red{
+background:#7f1d1d;
 }
 
 .center{
@@ -60,17 +76,19 @@ button{
 padding:12px 24px;
 background:#3b82f6;
 border:none;
-color:white;
 border-radius:6px;
+color:white;
+font-size:16px;
 cursor:pointer;
 }
 
-.alert{
-background:#7f1d1d;
-}
-
-.fix{
-background:#065f46;
+.levelup{
+position:absolute;
+top:100px;
+left:50%;
+transform:translateX(-50%);
+font-size:28px;
+color:#22c55e;
 }
 
 </style>
@@ -79,10 +97,11 @@ background:#065f46;
 <body>
 
 <div id="hud">
-<div>Stage: <span id="stage">INIT</span></div>
-<div>Score: <span id="score">0</span></div>
-<div>Health: <span id="health">100</span></div>
-<div>Time: <span id="time">0</span></div>
+<div>Stage: <span id="stage"></span></div>
+<div>Score: <span id="score"></span></div>
+<div>Health: <span id="health"></span></div>
+<div>Time: <span id="time"></span></div>
+<div>Combo: <span id="combo"></span></div>
 </div>
 
 <div id="game"></div>
@@ -91,46 +110,62 @@ background:#065f46;
 
 const GameState={
 INIT:"INIT",
-BUILD:"BUILD",
+CI:"CI_PIPELINE",
 DEPLOY:"DEPLOY",
 INCIDENT:"INCIDENT",
-SCORE:"SCORE"
+END:"END"
 }
 
 let state=GameState.INIT
 let score=0
 let health=100
-let timer=60
-let dragItem=null
+let timer=30
+let combo=0
 
-const game=document.getElementById("game")
+let drag=null
+let game=document.getElementById("game")
 
-function updateHUD(){
-document.getElementById("stage").innerText=state
-document.getElementById("score").innerText=score
-document.getElementById("health").innerText=health
-document.getElementById("time").innerText=timer
+function hud(){
+stage.innerText=state
+scoreEl.innerText=score
+healthEl.innerText=health
+timeEl.innerText=timer
+comboEl.innerText=combo
 }
+
+const stage=document.getElementById("stage")
+const scoreEl=document.getElementById("score")
+const healthEl=document.getElementById("health")
+const timeEl=document.getElementById("time")
+const comboEl=document.getElementById("combo")
 
 function clearGame(){
 game.innerHTML=""
 }
 
 function startTimer(){
+
 timer=30
+
 let t=setInterval(()=>{
+
 timer--
-updateHUD()
+hud()
+
 if(timer<=0){
 clearInterval(t)
 nextStage()
 }
+
 },1000)
+
 }
 
 function nextStage(){
 
-if(state===GameState.BUILD){
+combo=0
+
+if(state===GameState.CI){
 state=GameState.DEPLOY
 deployGame()
 return
@@ -143,13 +178,13 @@ return
 }
 
 if(state===GameState.INCIDENT){
-state=GameState.SCORE
-scoreScreen()
+state=GameState.END
+endGame()
 }
 
 }
 
-function initGame(){
+function intro(){
 
 clearGame()
 
@@ -157,54 +192,55 @@ let div=document.createElement("div")
 div.className="center"
 div.innerHTML=`
 <h1>🚀 DevOps Rush</h1>
-<p>Survive CI/CD pipeline chaos</p>
-<button onclick="startGame()">Start</button>
+<p>CI/CD Chaos Simulator</p>
+<button onclick="start()">Start Game</button>
 `
 
 game.appendChild(div)
 
 }
 
-function startGame(){
-state=GameState.BUILD
+function start(){
 score=0
 health=100
-buildGame()
+state=GameState.CI
+ciGame()
 }
 
-function buildGame(){
+function ciGame(){
 
 clearGame()
-updateHUD()
+hud()
 startTimer()
 
-let stages=["Code","Build","Test","Artifact"]
+let pipeline=["Code","Build","Test","Docker","Artifact"]
 
-stages.forEach((s,i)=>{
-let zone=document.createElement("div")
-zone.className="zone"
-zone.style.position="absolute"
-zone.style.left=(i*25)+"%"
-zone.style.top="40%"
-zone.style.width="24%"
-zone.style.height="120px"
-zone.innerHTML=s
-zone.dataset.name=s
-game.appendChild(zone)
+pipeline.forEach((p,i)=>{
+
+let z=document.createElement("div")
+z.className="zone"
+z.style.left=(i*18+5)+"%"
+z.style.top="40%"
+z.style.width="14%"
+z.style.height="100px"
+z.innerText=p
+z.dataset.name=p
+game.appendChild(z)
+
 })
 
-let items=["Code","Build","Test","Artifact"]
+pipeline.sort(()=>Math.random()-0.5)
 
-items.sort(()=>Math.random()-0.5)
+pipeline.forEach((p,i)=>{
 
-items.forEach((it,i)=>{
 let el=document.createElement("div")
 el.className="item"
-el.innerText=it
-el.style.left=(50+Math.random()*200)+"px"
-el.style.top=(80+Math.random()*200)+"px"
-enableDrag(el)
+el.innerText=p
+el.style.left=(Math.random()*500)+"px"
+el.style.top=(100+Math.random()*200)+"px"
+dragEnable(el)
 game.appendChild(el)
+
 })
 
 }
@@ -212,36 +248,37 @@ game.appendChild(el)
 function deployGame(){
 
 clearGame()
-updateHUD()
+hud()
 startTimer()
 
-let zones=["LoadBalancer","App","Database"]
+let arch=["Internet","LoadBalancer","AppCluster","Database","Cache"]
 
-zones.forEach((z,i)=>{
-let zone=document.createElement("div")
-zone.className="zone"
-zone.style.position="absolute"
-zone.style.left="35%"
-zone.style.top=(100+i*120)+"px"
-zone.style.width="30%"
-zone.style.height="100px"
-zone.innerHTML=z
-zone.dataset.name=z
-game.appendChild(zone)
+arch.forEach((a,i)=>{
+
+let z=document.createElement("div")
+z.className="zone"
+z.style.left="40%"
+z.style.top=(80+i*90)+"px"
+z.style.width="200px"
+z.style.height="70px"
+z.innerText=a
+z.dataset.name=a
+game.appendChild(z)
+
 })
 
-let items=["LoadBalancer","App","Database"]
+arch.sort(()=>Math.random()-0.5)
 
-items.sort(()=>Math.random()-0.5)
+arch.forEach((a,i)=>{
 
-items.forEach((it,i)=>{
 let el=document.createElement("div")
-el.className="item"
-el.innerText=it
-el.style.left=(20+Math.random()*300)+"px"
-el.style.top=(80+Math.random()*200)+"px"
-enableDrag(el)
+el.className="item green"
+el.innerText=a
+el.style.left=(Math.random()*300)+"px"
+el.style.top=(100+Math.random()*300)+"px"
+dragEnable(el)
 game.appendChild(el)
+
 })
 
 }
@@ -249,67 +286,73 @@ game.appendChild(el)
 function incidentGame(){
 
 clearGame()
-updateHUD()
+hud()
 startTimer()
 
 spawnIncident()
 
-setInterval(spawnIncident,4000)
+setInterval(spawnIncident,3000)
 
 }
 
 function spawnIncident(){
 
-if(state!==GameState.INCIDENT)return
+if(state!==GameState.INCIDENT) return
 
-let issues=[
-{problem:"High CPU",fix:"Scale"},
-{problem:"Pod Crash",fix:"Restart"},
-{problem:"Disk Full",fix:"Clean Logs"},
-{problem:"Latency",fix:"Cache"}
+let incidents=[
+["CPU Spike","AutoScale"],
+["Pod Crash","Restart"],
+["Disk Full","Cleanup"],
+["Latency","EnableCache"],
+["Memory Leak","Redeploy"]
 ]
 
-let i=issues[Math.floor(Math.random()*issues.length)]
+let i=incidents[Math.floor(Math.random()*incidents.length)]
 
 let alert=document.createElement("div")
-alert.className="item alert"
-alert.innerText=i.problem
-alert.dataset.fix=i.fix
+alert.className="item red"
+alert.innerText=i[0]
+alert.dataset.fix=i[1]
 alert.style.left=(Math.random()*window.innerWidth)+"px"
-alert.style.top=(100+Math.random()*300)+"px"
+alert.style.top=(100+Math.random()*200)+"px"
+
 game.appendChild(alert)
 
 let fix=document.createElement("div")
-fix.className="item fix"
-fix.innerText=i.fix
+fix.className="item green"
+fix.innerText=i[1]
 fix.style.left=(Math.random()*window.innerWidth)+"px"
 fix.style.top=(300+Math.random()*200)+"px"
-enableDrag(fix)
+
+dragEnable(fix)
 game.appendChild(fix)
 
 }
 
-function enableDrag(el){
+function dragEnable(el){
 
-el.addEventListener("pointerdown",e=>{
-dragItem=el
-})
+el.addEventListener("pointerdown",()=>drag=el)
 
 window.addEventListener("pointermove",e=>{
-if(!dragItem)return
-dragItem.style.left=(e.clientX-40)+"px"
-dragItem.style.top=(e.clientY-20)+"px"
+
+if(!drag)return
+
+drag.style.left=e.clientX-40+"px"
+drag.style.top=e.clientY-20+"px"
+
 })
 
-window.addEventListener("pointerup",e=>{
-if(!dragItem)return
-checkDrop(dragItem)
-dragItem=null
+window.addEventListener("pointerup",()=>{
+
+if(!drag)return
+dropCheck(drag)
+drag=null
+
 })
 
 }
 
-function checkDrop(el){
+function dropCheck(el){
 
 let zones=document.querySelectorAll(".zone")
 
@@ -318,53 +361,51 @@ zones.forEach(z=>{
 let r=z.getBoundingClientRect()
 let e=el.getBoundingClientRect()
 
-if(
-e.left<r.right &&
-e.right>r.left &&
-e.top<r.bottom &&
-e.bottom>r.top
-){
+if(e.left<r.right && e.right>r.left && e.top<r.bottom && e.bottom>r.top){
 
 if(el.innerText===z.dataset.name){
-score+=10
+
+combo++
+score+=10*combo
 el.remove()
-}
-else{
+
+}else{
+
+combo=0
 health-=10
+
 }
 
-updateHUD()
+hud()
 
 }
 
 })
 
-if(state===GameState.INCIDENT){
-
-let alerts=document.querySelectorAll(".alert")
+let alerts=document.querySelectorAll(".red")
 
 alerts.forEach(a=>{
 
 let r=a.getBoundingClientRect()
 let e=el.getBoundingClientRect()
 
-if(
-e.left<r.right &&
-e.right>r.left &&
-e.top<r.bottom &&
-e.bottom>r.top
-){
+if(e.left<r.right && e.right>r.left && e.top<r.bottom && e.bottom>r.top){
 
 if(el.innerText===a.dataset.fix){
+
 score+=20
+combo++
 a.remove()
 el.remove()
-}
-else{
+
+}else{
+
 health-=10
+combo=0
+
 }
 
-updateHUD()
+hud()
 
 }
 
@@ -372,25 +413,24 @@ updateHUD()
 
 }
 
-}
-
-function scoreScreen(){
+function endGame(){
 
 clearGame()
 
 let div=document.createElement("div")
 div.className="center"
+
 div.innerHTML=`
-<h1>Game Complete</h1>
-<h2>Score: ${score}</h2>
-<button onclick="startGame()">Play Again</button>
+<h1>🏆 Deployment Complete</h1>
+<h2>Final Score: ${score}</h2>
+<button onclick="start()">Play Again</button>
 `
 
 game.appendChild(div)
 
 }
 
-initGame()
+intro()
 
 </script>
 
