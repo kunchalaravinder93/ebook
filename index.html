@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CI/CD Pipeline Puzzle</title>
+    <title>DevOps Pipeline: Pro Edition</title>
     <style>
         :root {
             --bg: #0d1117;
@@ -11,11 +11,12 @@
             --border: #30363d;
             --text: #c9d1d9;
             --green: #238636;
-            --green-glow: #2ea043;
+            --green-glow: #3fb950;
             --blue: #58a6ff;
             --purple: #bc8cff;
             --yellow: #d29922;
             --red: #f85149;
+            --term-bg: #010409;
         }
 
         body {
@@ -29,38 +30,39 @@
             min-height: 100vh;
             margin: 0;
             overflow: hidden;
-            touch-action: none; /* Crucial for smooth mobile swiping */
+            /* Critical for smooth mobile swiping */
+            touch-action: none; 
+            -webkit-user-select: none;
             user-select: none;
         }
 
-        h1 { margin-bottom: 5px; font-size: 1.8rem; color: #fff; }
-        p.subtitle { color: #8b949e; margin-top: 0; font-size: 0.9rem; text-align: center; max-width: 320px; }
-
-        .dashboard {
-            background: var(--cell-bg);
-            border: 1px solid var(--border);
-            padding: 10px 20px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: bold;
-            font-size: 0.9rem;
-            min-width: 300px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        h1 { margin-bottom: 5px; font-size: 1.6rem; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        
+        /* Progress Bar */
+        .progress-container {
+            width: 310px;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            margin-bottom: 15px;
+            overflow: hidden;
         }
-        .dashboard.fail { border-color: var(--red); color: var(--red); }
-        .dashboard.success { border-color: var(--green); color: var(--green-glow); }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--blue);
+            transition: width 0.2s ease, background-color 0.3s;
+            box-shadow: 0 0 8px var(--blue);
+        }
 
+        /* The Grid */
         .grid-container {
             background: #21262d;
             padding: 12px;
             border-radius: 12px;
             border: 1px solid var(--border);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.8);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            margin-bottom: 15px;
         }
 
         .grid {
@@ -71,8 +73,8 @@
         }
 
         .cell {
-            width: 75px;
-            height: 75px;
+            width: 70px;
+            height: 70px;
             background: var(--cell-bg);
             border: 2px solid var(--border);
             border-radius: 8px;
@@ -81,30 +83,35 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             font-weight: bold;
             box-sizing: border-box;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, transform 0.1s;
         }
 
         @media(max-width: 400px) {
-            .cell { width: 65px; height: 65px; font-size: 0.6rem; }
-            h1 { font-size: 1.5rem; }
+            .cell { width: 65px; height: 65px; font-size: 0.55rem; }
+            .progress-container { width: 290px; }
         }
 
         .cell.start { border-color: var(--blue); color: var(--blue); }
         .cell.end { border-color: var(--purple); color: var(--purple); }
         .cell.checkpoint { border-color: var(--yellow); color: var(--yellow); }
         
-        /* Text labels sit above the drawing lines */
+        .cell.checkpoint.cleared { 
+            border-color: var(--green-glow); 
+            color: var(--green-glow);
+            text-shadow: 0 0 5px var(--green-glow);
+        }
+
         .cell span {
             z-index: 3;
             pointer-events: none;
             background: rgba(13, 17, 23, 0.9);
-            padding: 4px 6px;
+            padding: 4px;
             border-radius: 4px;
             line-height: 1.2;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.05);
         }
 
         /* Continuous Path Styling */
@@ -120,10 +127,10 @@
         .cell.current .dot {
             width: 20px; height: 20px;
             background: var(--green-glow);
-            box-shadow: 0 0 12px var(--green-glow);
+            box-shadow: 0 0 15px var(--green-glow);
         }
 
-        .line-right, .line-left, .line-up, .line-down {
+        .line {
             position: absolute;
             background: var(--green);
             z-index: 1;
@@ -133,66 +140,103 @@
         .line-down { left: calc(50% - 4px); top: 50%; height: calc(100% + 12px); width: 8px; }
         .line-up { left: calc(50% - 4px); bottom: 50%; height: calc(100% + 12px); width: 8px; }
 
+        /* Terminal Window */
+        .terminal {
+            width: 310px;
+            height: 100px;
+            background: var(--term-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.75rem;
+            color: #8b949e;
+            overflow-y: auto;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+        @media(max-width: 400px) { .terminal { width: 290px; } }
+
+        .log-line { margin: 2px 0; animation: fadeIn 0.2s ease-in; }
+        .log-sys { color: var(--blue); }
+        .log-success { color: var(--green-glow); font-weight: bold; }
+        .log-err { color: var(--red); font-weight: bold; }
+        .log-warn { color: var(--yellow); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
+
         button.reset {
-            margin-top: 30px;
-            background: #238636;
-            color: #fff;
-            border: 1px solid rgba(240, 246, 252, 0.1);
-            padding: 12px 24px;
+            margin-top: 15px;
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 10px 20px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 1rem;
+            font-size: 0.9rem;
             transition: 0.2s;
         }
-        button.reset:hover { background: #2ea043; }
+        button.reset:hover { background: #30363d; }
     </style>
 </head>
 <body>
 
     <h1>CI/CD Pipeline</h1>
-    <p class="subtitle">Drag to draw your pipeline. Achieve 100% coverage and clear all security gates in order.</p>
+    <div class="progress-container">
+        <div id="progress" class="progress-bar"></div>
+    </div>
 
-    <div id="dashboard" class="dashboard">Status: Waiting for git push...</div>
-
-    <div class="grid-container">
+    <div class="grid-container" id="grid-container">
         <div id="grid" class="grid"></div>
     </div>
 
-    <button class="reset" onclick="initGame()">Trigger Webhook (Reset)</button>
+    <div class="terminal" id="terminal"></div>
+
+    <button class="reset" onclick="initGame()">Abort & Retry</button>
 
     <script>
         const gridEl = document.getElementById('grid');
-        const dashboardEl = document.getElementById('dashboard');
+        const gridContainer = document.getElementById('grid-container');
+        const terminalEl = document.getElementById('terminal');
+        const progressEl = document.getElementById('progress');
+        
         const cols = 4, rows = 4;
+        const totalNodes = 16;
         
         let path = [];
         let visited = new Set();
         let cells = {};
         let isGameOver = false;
         let isDragging = false;
+        let clearedCheckpoints = [];
 
-        // Realistic CI/CD stages. 
-        // Production stays at 3,2 to ensure mathematical graph solvability.
         const cellData = {
-            "0,0": { label: "git push<br>(Source)", type: "start" },
-            "3,0": { label: "[1] SAST<br>& Lint", type: "checkpoint" },
-            "0,1": { label: "[2] Unit<br>Tests", type: "checkpoint" },
-            "1,2": { label: "[3] Build<br>Docker", type: "checkpoint" },
-            "3,3": { label: "[4] Vuln<br>Scan", type: "checkpoint" },
-            "3,2": { label: "Deploy<br>Prod", type: "end" }
+            "0,0": { label: "git push", type: "start" },
+            "3,0": { label: "[1] SAST", type: "checkpoint" },
+            "0,1": { label: "[2] Test", type: "checkpoint" },
+            "1,2": { label: "[3] Build", type: "checkpoint" },
+            "3,3": { label: "[4] Scan", type: "checkpoint" },
+            "3,2": { label: "Deploy", type: "end" }
         };
 
         const requiredCheckpoints = ["3,0", "0,1", "1,2", "3,3"];
+        const checkpointNames = ["[1] SAST", "[2] Unit Tests", "[3] Docker Build", "[4] Vuln Scan"];
 
         function initGame() {
             gridEl.innerHTML = '';
+            terminalEl.innerHTML = '';
             cells = {};
             path = [];
             visited.clear();
+            clearedCheckpoints = [];
             isGameOver = false;
-            dashboardEl.className = "dashboard";
-            dashboardEl.textContent = "Status: Pipeline Executing...";
+            
+            updateProgress();
+            logMsg("system initializing...", "log-sys");
+            logMsg("Awaiting code commit...", "log-sys");
 
             for (let y = 0; y < rows; y++) {
                 for (let x = 0; x < cols; x++) {
@@ -213,35 +257,77 @@
             makeMove(0, 0, true);
         }
 
-        // --- Continuous Drawing Logic (Mouse & Touch) ---
-        document.addEventListener('pointerdown', (e) => {
-            if (e.target.closest('.grid-container') && !isGameOver) {
-                isDragging = true;
-                processDrag(e);
-            }
-        });
+        // --- Haptic Feedback ---
+        function triggerHaptic(type) {
+            if (!navigator.vibrate) return;
+            if (type === 'tick') navigator.vibrate(10);
+            if (type === 'success') navigator.vibrate([30, 50, 30]);
+            if (type === 'error') navigator.vibrate([50, 50, 50, 50]);
+        }
 
-        document.addEventListener('pointermove', (e) => {
+        // --- Terminal Logic ---
+        function logMsg(msg, className = "") {
+            const line = document.createElement('div');
+            line.className = `log-line ${className}`;
+            line.innerText = `> ${msg}`;
+            terminalEl.appendChild(line);
+            terminalEl.scrollTop = terminalEl.scrollHeight;
+        }
+
+        // --- Progress Bar ---
+        function updateProgress() {
+            const pct = (path.length / totalNodes) * 100;
+            progressEl.style.width = `${pct}%`;
+            
+            if (isGameOver) return;
+            if (pct < 40) progressEl.style.backgroundColor = "var(--blue)";
+            else if (pct < 80) progressEl.style.backgroundColor = "var(--yellow)";
+            else progressEl.style.backgroundColor = "var(--green-glow)";
+        }
+
+        // --- Touch & Mouse Event Handling ---
+        function handleInputStart(e) {
+            if (isGameOver) return;
+            isDragging = true;
+            processInput(e);
+        }
+
+        function handleInputMove(e) {
             if (!isDragging || isGameOver) return;
-            processDrag(e);
-        });
+            e.preventDefault(); // SUPER IMPORTANT: Stops mobile scrolling/jank
+            processInput(e);
+        }
 
-        document.addEventListener('pointerup', () => {
+        function handleInputEnd() {
             isDragging = false;
-        });
+        }
 
-        function processDrag(e) {
-            // Find the element exactly under the pointer
-            const el = document.elementFromPoint(e.clientX, e.clientY);
+        // Bind standard Mouse
+        gridContainer.addEventListener('mousedown', handleInputStart);
+        window.addEventListener('mousemove', handleInputMove, {passive: false});
+        window.addEventListener('mouseup', handleInputEnd);
+
+        // Bind Touch specifically for mobile
+        gridContainer.addEventListener('touchstart', handleInputStart, {passive: false});
+        gridContainer.addEventListener('touchmove', handleInputMove, {passive: false});
+        window.addEventListener('touchend', handleInputEnd);
+
+        function processInput(e) {
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+            
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            const el = document.elementFromPoint(clientX, clientY);
             if (!el) return;
             const cell = el.closest('.cell');
             if (!cell) return;
 
             const parts = cell.id.split('-');
-            const x = parseInt(parts[1]);
-            const y = parseInt(parts[2]);
-            
-            tryMoveTo(x, y);
+            tryMoveTo(parseInt(parts[1]), parseInt(parts[2]));
         }
 
         function tryMoveTo(x, y) {
@@ -252,7 +338,7 @@
             const dy = Math.abs(y - current.y);
             const pos = `${x},${y}`;
 
-            // Backtracking (Undo) - drag back over the previous cell
+            // Backtracking (Undo)
             if (path.length > 1) {
                 const prev = path[path.length - 2];
                 if (prev.x === x && prev.y === y) {
@@ -278,11 +364,17 @@
                 const prevCell = cells[`${prev.x},${prev.y}`];
                 
                 const line = document.createElement('div');
-                if (x > prev.x) line.className = 'line-right';
-                else if (x < prev.x) line.className = 'line-left';
-                else if (y > prev.y) line.className = 'line-down';
-                else if (y < prev.y) line.className = 'line-up';
+                line.className = 'line';
+                if (x > prev.x) line.classList.add('line-right');
+                else if (x < prev.x) line.classList.add('line-left');
+                else if (y > prev.y) line.classList.add('line-down');
+                else if (y < prev.y) line.classList.add('line-up');
                 prevCell.appendChild(line);
+                
+                triggerHaptic('tick');
+                logMsg(`Executing step ${path.length + 1}/${totalNodes}...`);
+            } else {
+                logMsg("Commit triggered. Starting pipeline...", "log-success");
             }
 
             path.push({x, y});
@@ -292,7 +384,17 @@
             dot.className = 'dot';
             currentCell.appendChild(dot);
 
+            // Handle Checkpoints visually
+            if (requiredCheckpoints.includes(pos)) {
+                const cpIndex = requiredCheckpoints.indexOf(pos);
+                clearedCheckpoints.push(pos);
+                currentCell.classList.add('cleared');
+                triggerHaptic('success');
+                logMsg(`Gate Cleared: ${checkpointNames[cpIndex]}`, "log-warn");
+            }
+
             updateCurrentHighlight();
+            updateProgress();
             checkWinCondition(x, y);
         }
 
@@ -305,17 +407,24 @@
             const dot = cell.querySelector('.dot');
             if(dot) dot.remove();
 
+            // Revert checkpoint visuals if undone
+            if (requiredCheckpoints.includes(pos)) {
+                cell.classList.remove('cleared');
+                clearedCheckpoints.pop();
+                logMsg(`Reverted security gate.`, "log-err");
+            } else {
+                logMsg(`Reverted step.`);
+            }
+
             const prev = path[path.length - 1];
             const prevCell = cells[`${prev.x},${prev.y}`];
 
-            const lines = prevCell.querySelectorAll('.line-right, .line-left, .line-up, .line-down');
+            const lines = prevCell.querySelectorAll('.line');
             if (lines.length > 0) lines[lines.length - 1].remove();
 
+            triggerHaptic('tick');
             updateCurrentHighlight();
-            
-            dashboardEl.className = "dashboard";
-            dashboardEl.textContent = "Status: Pipeline Executing...";
-            isGameOver = false; 
+            updateProgress();
         }
 
         function updateCurrentHighlight() {
@@ -332,27 +441,26 @@
                 isDragging = false;
                 
                 if (path.length !== 16) {
-                    dashboardEl.innerHTML = "❌ Failed: Dead Code Detected. 100% Grid Coverage Required.";
-                    dashboardEl.className = "dashboard fail";
+                    progressEl.style.backgroundColor = "var(--red)";
+                    logMsg("FATAL: Dead Code Detected.", "log-err");
+                    logMsg("Pipeline Failed. 100% Coverage Required.", "log-err");
+                    triggerHaptic('error');
                     return;
                 }
 
-                let hitOrder = [];
-                for (let p of path) {
-                    const posStr = `${p.x},${p.y}`;
-                    if (requiredCheckpoints.includes(posStr)) {
-                        hitOrder.push(posStr);
-                    }
-                }
-
-                const sequenceCorrect = JSON.stringify(hitOrder) === JSON.stringify(requiredCheckpoints);
+                // Check specific order sequence
+                const sequenceCorrect = JSON.stringify(clearedCheckpoints) === JSON.stringify(requiredCheckpoints);
 
                 if (sequenceCorrect) {
-                    dashboardEl.innerHTML = "✅ Success: Artifacts verified. Deployed to Production!";
-                    dashboardEl.className = "dashboard success";
+                    progressEl.style.backgroundColor = "var(--green-glow)";
+                    logMsg("All artifacts verified.", "log-success");
+                    logMsg("SUCCESS: Deployed to Production! 🚀", "log-success");
+                    triggerHaptic('success');
                 } else {
-                    dashboardEl.innerHTML = "❌ Failed: Invalid Stage Sequence. Security Gates Bypassed.";
-                    dashboardEl.className = "dashboard fail";
+                    progressEl.style.backgroundColor = "var(--red)";
+                    logMsg("FATAL: Security Gates Bypassed or Out of Order.", "log-err");
+                    logMsg("Pipeline Failed.", "log-err");
+                    triggerHaptic('error');
                 }
             }
         }
