@@ -3,369 +3,457 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Section 4: Architecture Subjective Task</title>
+    <title>DevOps Campaign - Stage 1: The Pipeline</title>
     <style>
         :root {
-            --bg: #0d1117; --cell-bg: #161b22; --border: #30363d; --text: #c9d1d9;
-            --green: #238636; --green-glow: #3fb950; --blue: #58a6ff; --purple: #bc8cff;
-            --yellow: #d29922; --red: #f85149; --term-bg: #010409; --interview-bg: #f6f8fa;
-            --grid-cols: 4;
+            --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #c9d1d9;
+            --good: #238636; --bug: #d29922; --vuln: #f85149;
+            --prod: #2ea043; --trash: #8b949e;
         }
 
         body {
             background-color: var(--bg); color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0; padding: 0; display: flex; flex-direction: column;
+            align-items: center; height: 100vh; overflow: hidden;
+            touch-action: none; user-select: none; -webkit-user-select: none;
+        }
+
+        /* Top HUD */
+        .hud {
+            display: flex; justify-content: space-between; align-items: center;
+            width: 100%; max-width: 600px; padding: 15px 20px; box-sizing: border-box;
+            background: var(--panel); border-bottom: 1px solid var(--border);
+        }
+        .stats { display: flex; gap: 20px; font-weight: bold; }
+        .stat-box { display: flex; flex-direction: column; align-items: center; }
+        .stat-label { font-size: 0.7rem; color: #8b949e; text-transform: uppercase; }
+        .stat-value { font-size: 1.2rem; }
+        .health-val { color: var(--good); }
+        .budget-val { color: var(--blue); }
+
+        /* Automation Shop */
+        .shop {
+            display: flex; gap: 10px; padding: 10px; width: 100%; max-width: 600px;
+            justify-content: center; background: #010409; border-bottom: 1px solid var(--border);
+        }
+        .btn-buy {
+            background: var(--panel); border: 1px solid var(--border); color: var(--text);
+            padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;
+            font-size: 0.8rem; transition: 0.2s; display: flex; flex-direction: column; align-items: center;
+        }
+        .btn-buy:hover:not(:disabled) { background: #21262d; border-color: var(--text); }
+        .btn-buy:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-buy.active { background: rgba(35, 134, 54, 0.2); border-color: var(--good); color: var(--good); }
+
+        /* Game Area */
+        .game-area {
+            position: relative; flex: 1; width: 100%; max-width: 600px;
+            overflow: hidden; background: radial-gradient(circle at center, #161b22 0%, #0d1117 100%);
+        }
+
+        /* The Conveyor Belt */
+        .belt-container {
+            position: absolute; top: 30%; left: 0; width: 100%; height: 60px;
+            background: #21262d; border-top: 2px solid var(--border); border-bottom: 2px solid var(--border);
+            display: flex; align-items: center;
+        }
+        .belt-stripes {
+            width: 200%; height: 100%;
+            background: repeating-linear-gradient( -45deg, transparent, transparent 20px, rgba(255,255,255,0.05) 20px, rgba(255,255,255,0.05) 40px );
+            animation: moveBelt 2s linear infinite;
+        }
+        @keyframes moveBelt { 0% { transform: translateX(0); } 100% { transform: translateX(-50px); } }
+
+        /* Drop Zones */
+        .drop-zones {
+            position: absolute; bottom: 20px; left: 0; width: 100%;
+            display: flex; justify-content: space-around; padding: 0 20px; box-sizing: border-box;
+        }
+        .zone {
+            width: 120px; height: 100px; border-radius: 12px; border: 3px dashed;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-height: 100vh; margin: 0; overflow: hidden;
-            touch-action: none; -webkit-user-select: none; user-select: none;
+            font-weight: bold; font-size: 1.1rem; transition: 0.2s;
         }
+        .zone#trash { border-color: var(--trash); color: var(--trash); background: rgba(139, 148, 158, 0.1); }
+        .zone#prod { border-color: var(--prod); color: var(--prod); background: rgba(46, 160, 67, 0.1); }
+        .zone.drag-over { background: rgba(255,255,255,0.1); transform: scale(1.05); }
 
-        .header { width: 320px; margin-bottom: 12px; }
-        .header h1 { margin: 0 0 5px 0; font-size: 1.3rem; color: #fff; }
-        .meta-badges { display: flex; gap: 6px; justify-content: space-between; align-items: center;}
-        .badge { font-size: 0.65rem; font-weight: bold; padding: 3px 6px; border-radius: 4px; background: var(--cell-bg); border: 1px solid var(--border); color: #8b949e;}
-        .badge.level { border-color: var(--blue); color: var(--blue); }
-        
-        /* The New Budget Meter */
-        .budget-display { font-family: monospace; font-size: 1.1rem; color: var(--green-glow); font-weight: bold; background: #010409; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border);}
-        .budget-display.warning { color: var(--yellow); }
-        .budget-display.danger { color: var(--red); animation: shake 0.5s infinite; }
-
-        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } 100% { transform: translateX(0); } }
-
-        .progress-container { width: 320px; height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
-        .progress-bar { height: 100%; width: 0%; background: var(--green); transition: width 0.1s linear, background-color 0.2s; }
-
-        .grid-container {
-            background: #21262d; padding: 8px; border-radius: 8px;
-            border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.6); margin-bottom: 12px;
+        /* Commits (The items you drag) */
+        .commit {
+            position: absolute; width: 50px; height: 50px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 0.8rem; color: #fff; cursor: grab;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5); z-index: 10;
         }
-        .grid { display: grid; grid-template-columns: repeat(var(--grid-cols), 1fr); gap: 8px; position: relative; }
+        .commit:active { cursor: grabbing; transform: scale(1.1); }
+        .commit.good { background: var(--good); border: 2px solid #3fb950; }
+        .commit.bug { background: var(--bug); border: 2px solid #e3b341; }
+        .commit.vuln { background: var(--vuln); border: 2px solid #ff7b72; }
 
-        .cell {
-            background: var(--cell-bg); border: 1px dashed #484f58; border-radius: 4px;
-            position: relative; display: flex; align-items: center; justify-content: center;
-            text-align: center; font-size: 0.5rem; box-sizing: border-box;
-            color: #484f58; font-family: "Courier New", monospace;
+        /* Popups */
+        .floating-text {
+            position: absolute; font-weight: bold; font-size: 1.2rem;
+            pointer-events: none; animation: floatUp 1s ease-out forwards; z-index: 20;
         }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-30px); } }
 
-        .cell.start, .cell.end, .cell.checkpoint { border: 2px solid; font-weight: bold; color: var(--text); font-family: sans-serif;}
-        .cell.start { border-color: var(--blue); color: var(--blue); background: rgba(88, 166, 255, 0.1);}
-        .cell.end { border-color: var(--purple); color: var(--purple); background: rgba(188, 140, 255, 0.1);}
-        .cell.checkpoint { border-color: var(--yellow); color: var(--yellow); }
-        .cell.checkpoint.cleared { border-color: var(--green-glow); color: var(--green-glow); background: rgba(63, 185, 80, 0.1);}
-        .cell.bug { border-color: var(--red); color: var(--red); background: rgba(248, 81, 73, 0.1); border-width: 2px; border-style: solid;}
-
-        .cell span { z-index: 3; pointer-events: none; background: rgba(13, 17, 23, 0.9); padding: 2px 4px; border-radius: 2px; line-height: 1.1; }
-
-        .dot { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: var(--blue); border-radius: 50%; transform: translate(-50%, -50%); z-index: 2;}
-        .cell.current .dot { width: 16px; height: 16px; background: var(--blue); box-shadow: 0 0 15px var(--blue);}
-        .cell.visited:not(.checkpoint):not(.start):not(.end):not(.bug) { color: var(--blue); border-style: solid; border-color: rgba(88, 166, 255, 0.4); }
-
-        .line { position: absolute; background: var(--blue); z-index: 1;}
-        .line-right { top: calc(50% - 3px); left: 50%; width: calc(100% + 8px); height: 6px; }
-        .line-left { top: calc(50% - 3px); right: 50%; width: calc(100% + 8px); height: 6px; }
-        .line-down { left: calc(50% - 3px); top: 50%; height: calc(100% + 8px); width: 6px; }
-        .line-up { left: calc(50% - 3px); bottom: 50%; height: calc(100% + 8px); width: 6px; }
-
-        .terminal {
-            width: 320px; height: 95px; background: var(--term-bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; box-sizing: border-box;
-            font-family: "Courier New", monospace; font-size: 0.65rem; color: #8b949e; overflow-y: auto; text-align: left;
-            display: flex; flex-direction: column; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        .modal {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.8); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 100; padding: 20px; box-sizing: border-box; text-align: center;
         }
-        .log-line { margin: 1px 0; line-height: 1.2;}
-        .log-sys { color: var(--blue); }
-        .log-success { color: var(--green-glow); font-weight: bold; }
-        .log-err { color: var(--red); font-weight: bold; }
-        .log-warn { color: var(--yellow); }
-        .log-cost { color: #8b949e; font-style: italic; }
-
-        .controls { display: flex; gap: 8px; margin-top: 10px; width: 320px; }
-        button.btn { flex: 1; background: transparent; color: var(--text); border: 1px solid var(--border); padding: 10px 0; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
-        button.btn:hover { background: #30363d; }
-        button.btn.primary { background: #0052cc; border: none; color: #fff; }
-        button.btn.primary:hover { background: #0043a6; }
-
-        /* Modals */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(1, 4, 9, 0.9); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(3px); }
-        .interview-card { background: var(--interview-bg); color: #24292f; border-radius: 6px; padding: 25px; max-width: 400px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.8); font-family: -apple-system, sans-serif; user-select: text;}
-        .interview-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #d0d7de; padding-bottom: 10px; margin-bottom: 15px;}
-        .interview-title { font-weight: bold; color: #0969da; font-size: 1rem;}
-        .interview-role { background: #ddf4ff; color: #0969da; font-size: 0.7rem; font-weight: bold; padding: 4px 8px; border-radius: 12px; text-transform: uppercase;}
-        .interview-card h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #24292f;}
-        .interview-card .quote { border-left: 4px solid #0969da; padding-left: 15px; color: #57606a; font-style: italic; margin-bottom: 20px;}
-        .interview-card h3 { font-size: 0.85rem; color: #57606a; text-transform: uppercase; margin: 15px 0 5px 0;}
-        .interview-card ul { padding-left: 20px; margin: 0;}
-        .interview-card li { font-size: 0.9rem; line-height: 1.5; margin: 0 0 8px 0; color: #24292f;}
-        button.btn-start { background: #2da44e; color: #fff; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; font-size: 1rem;}
-        
-        .report-content { background: var(--cell-bg); border: 1px solid var(--border); border-radius: 8px; padding: 25px; max-width: 450px; width: 100%; max-height: 85vh; overflow-y: auto;}
-        .report-content h2 { color: var(--green-glow); margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
-        .report-content h3 { color: var(--blue); font-size: 1rem; margin-bottom: 5px; }
-        .report-content p, .report-content li { font-size: 0.85rem; line-height: 1.6; }
-        button.btn-rpt { background: var(--green); color: #fff; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 20px; font-weight: bold;}
+        .modal h2 { color: var(--prod); margin-bottom: 10px; font-size: 2rem;}
+        .modal p { font-size: 1.1rem; line-height: 1.5; max-width: 400px; margin-bottom: 20px;}
+        .btn-start { background: var(--good); color: #fff; border: none; padding: 15px 30px; font-size: 1.2rem; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-start:hover { background: #2ea043; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Subjective Task</h1>
-        <div class="meta-badges">
-            <span class="badge level" id="badge-level">Section 4</span>
-            <span class="budget-display" id="budget-display">Cost: $0 / $400</span>
+    <div class="hud">
+        <div>
+            <div class="stat-label">Artifact Progress</div>
+            <div class="stat-value" id="progress-val">0 / 15</div>
+        </div>
+        <div class="stats">
+            <div class="stat-box">
+                <span class="stat-label">Budget</span>
+                <span class="stat-value budget-val" id="budget-val">$0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">System Health</span>
+                <span class="stat-value health-val" id="health-val">100%</span>
+            </div>
         </div>
     </div>
 
-    <div class="progress-container"><div id="progress" class="progress-bar"></div></div>
-    <div class="grid-container" id="grid-container"><div id="grid" class="grid"></div></div>
-    <div class="terminal" id="terminal"></div>
-
-    <div class="controls">
-        <button class="btn" onclick="startLevelBriefing()">Read Requirements</button>
-        <button class="btn primary" onclick="submitArchitecture()">Submit Architecture</button>
+    <div class="shop">
+        <button class="btn-buy" id="btn-linter" onclick="buyAutomation('linter')">
+            <span>Buy Linter Bot</span>
+            <span style="color:var(--bug)">$50</span>
+        </button>
+        <button class="btn-buy" id="btn-trivy" onclick="buyAutomation('trivy')">
+            <span>Buy Trivy Scanner</span>
+            <span style="color:var(--vuln)">$100</span>
+        </button>
     </div>
 
-    <div class="modal-overlay" id="briefing-modal"><div class="interview-card" id="interview-content"></div></div>
-    <div class="modal-overlay" id="report-modal"><div class="report-content" id="report-body"></div></div>
+    <div class="game-area" id="game-area">
+        <div class="belt-container"><div class="belt-stripes"></div></div>
+        
+        <div class="drop-zones">
+            <div class="zone" id="trash">🗑️ Trash</div>
+            <div class="zone" id="prod">🚀 Deploy</div>
+        </div>
+    </div>
+
+    <div class="modal" id="start-modal">
+        <h2>Stage 1: The Factory</h2>
+        <p>Developers are pushing code. Drag <strong>Good Code</strong> to Deploy. Drag <strong>Bugs & Vulns</strong> to the Trash.</p>
+        <p>If you miss bad code, Production crashes. Build your budget and buy <strong>Automation Bots</strong> to survive as the belt speeds up!</p>
+        <button class="btn-start" onclick="startGame()">Start Sprint</button>
+    </div>
 
     <script>
-        // No more generic code files. Empty space is just empty space (networking).
-        const genericNodes = [ "Subnet", "VPC<br>Route", "Data<br>Transfer", "Hop" ];
+        // Game State
+        let state = {
+            health: 100, progress: 0, required: 15, budget: 0,
+            speed: 1.5, spawnRate: 2000, 
+            hasLinter: false, hasTrivy: false, isPlaying: false
+        };
 
-        const levels = [
-            {
-                cols: 4, rows: 4, 
-                maxBudget: 450, // Player fails if cost exceeds this
-                baseCost: 50,   // Cost per standard empty tile crossed
-                concept: "AWS High Availability",
-                endPos: {x: 3, y: 3},
-                checkpoints: ["1,0", "2,1", "1,2"],
-                names: ["[1] WAF", "[2] ALB", "[3] Auto Scaling"],
-                data: {
-                    "0,0": { label: "Internet<br>Traffic", type: "start" },
-                    "1,0": { label: "[1] AWS<br>WAF", type: "checkpoint" },
-                    "2,1": { label: "[2] App Load<br>Balancer", type: "checkpoint" },
-                    "1,2": { label: "[3] Auto<br>Scaling", type: "checkpoint" },
-                    "3,3": { label: "Multi-AZ<br>RDS", type: "end" },
-                    
-                    "0,2": { label: "Public<br>EC2", type: "bug" }, // Bad architecture
-                    "3,0": { label: "NAT<br>Gateway", type: "bug" }  // Expensive/wrong tool for inbound
-                },
-                logs: {
-                    "1,0": "[Architecture] WAF attached. Malicious traffic filtered.",
-                    "2,1": "[Architecture] ALB Provisioned. Traffic distributing across AZs.",
-                    "1,2": "[Architecture] ASG attached to Target Group. Compute will scale.",
-                    "0,2": "[Security Fault] You routed directly to a Public EC2 instance! Failed.",
-                    "3,0": "[Cost Fault] NAT Gateway is for outbound traffic. You wasted $32/mo. Failed.",
-                    "default": "> Network route created... +$50 Data Transfer Cost."
-                },
-                briefing: {
-                    role: "Architect", title: "Scenario: Secure Web App",
-                    quote: "Design a secure, highly available path from the public internet to our secure database. Do not overspend.",
-                    reqs: [
-                        "<strong>Route efficiently.</strong> Do NOT fill the whole board. Every empty square you cross costs $50 in data transfer.",
-                        "Filter traffic with a WAF, balance it with an ALB, and ensure the compute layer scales (ASG).",
-                        "Avoid exposing instances directly to the internet (Public EC2)."
-                    ]
-                },
-                report: {
-                    title: "Architecture Approved",
-                    desc: "You successfully designed a direct, secure, and cost-effective AWS architecture. You avoided the bloated costs of meandering network routes and skipped the anti-patterns."
-                }
-            }
+        const types = [
+            { id: 'good', label: '{ }', class: 'good' },
+            { id: 'bug', label: 'Bug', class: 'bug' },
+            { id: 'vuln', label: 'Vuln', class: 'vuln' }
         ];
 
-        let currentLevel = 0, path = [], visited = new Set(), cells = {}, isGameOver = false, isDragging = false, clearedCheckpoints = [], levelData;
-        let currentCost = 0;
-        const gridEl = document.getElementById('grid'), terminalEl = document.getElementById('terminal'), progressEl = document.getElementById('progress'), budgetDisplay = document.getElementById('budget-display'), modals = { briefing: document.getElementById('briefing-modal'), report: document.getElementById('report-modal') };
+        let commits = [];
+        let animationId;
+        let lastSpawnTime = 0;
+        let draggedCommit = null;
 
-        function startLevelBriefing() {
-            levelData = levels[currentLevel];
-            isGameOver = true;
-            
-            let reqsHtml = ""; levelData.briefing.reqs.forEach(r => reqsHtml += `<li>${r}</li>`);
-            document.getElementById('interview-content').innerHTML = `
-                <div class="interview-header"><span class="interview-title">${levelData.briefing.title}</span><span class="interview-role">${levelData.briefing.role}</span></div>
-                <div class="quote">"${levelData.briefing.quote}"</div>
-                <h3>Whiteboard Requirements</h3><ul>${reqsHtml}</ul>
-                <button class="btn-start" onclick="initLevel()">Start Whiteboarding</button>
-            `;
-            closeAllModals(); modals.briefing.style.display = 'flex';
+        const gameArea = document.getElementById('game-area');
+        const ui = {
+            health: document.getElementById('health-val'),
+            progress: document.getElementById('progress-val'),
+            budget: document.getElementById('budget-val'),
+            btnLinter: document.getElementById('btn-linter'),
+            btnTrivy: document.getElementById('btn-trivy'),
+            trash: document.getElementById('trash'),
+            prod: document.getElementById('prod')
+        };
+
+        // --- Core Loop ---
+        function startGame() {
+            document.getElementById('start-modal').style.display = 'none';
+            state.isPlaying = true;
+            lastSpawnTime = performance.now();
+            gameLoop(lastSpawnTime);
         }
 
-        function initLevel() {
-            levelData = levels[currentLevel]; closeAllModals();
-            gridEl.innerHTML = ''; terminalEl.innerHTML = ''; cells = {}; path = []; visited.clear(); clearedCheckpoints = []; isGameOver = false; 
-            currentCost = 0; updateCostDisplay();
-            
-            const cellSize = levelData.cols === 5 ? '56px' : '70px'; let fileIndex = 0;
+        function gameLoop(timestamp) {
+            if (!state.isPlaying) return;
 
-            for (let y = 0; y < levelData.rows; y++) {
-                for (let x = 0; x < levelData.cols; x++) {
-                    const pos = `${x},${y}`; const cell = document.createElement('div');
-                    cell.className = 'cell'; cell.style.width = cellSize; cell.style.height = cellSize; cell.id = `cell-${x}-${y}`;
-                    if (levelData.data[pos]) {
-                        cell.classList.add(levelData.data[pos].type); cell.innerHTML = `<span>${levelData.data[pos].label}</span>`;
-                    } else {
-                        cell.innerHTML = `<span>${genericNodes[fileIndex++ % genericNodes.length]}</span>`;
+            // Spawn new commits
+            if (timestamp - lastSpawnTime > state.spawnRate) {
+                spawnCommit();
+                lastSpawnTime = timestamp;
+                // Slowly increase difficulty
+                state.speed += 0.02;
+                state.spawnRate = Math.max(800, state.spawnRate - 50);
+            }
+
+            // Move and process commits
+            for (let i = commits.length - 1; i >= 0; i--) {
+                let c = commits[i];
+                if (!c.isDragging) {
+                    c.x += state.speed;
+                    c.el.style.transform = `translate(${c.x}px, ${c.y}px)`;
+
+                    // Automated Processing Checks
+                    if (c.x > 100) { // Give it a slight delay so player sees it spawn
+                        if (c.type === 'bug' && state.hasLinter && !c.autoProcessed) {
+                            processAuto(c, ui.trash, 'Linter Caught Bug! +$10');
+                            commits.splice(i, 1); continue;
+                        }
+                        if (c.type === 'vuln' && state.hasTrivy && !c.autoProcessed) {
+                            processAuto(c, ui.trash, 'Trivy Blocked Vuln! +$20');
+                            commits.splice(i, 1); continue;
+                        }
                     }
-                    gridEl.appendChild(cell); cells[pos] = cell;
-                }
-            }
-            logMsg(`[Interviewer] Let's see your architectural design. Keep costs under $${levelData.maxBudget}.`, "log-sys");
-            makeMove(0, 0, true);
-        }
 
-        function triggerHaptic(type) { if (navigator.vibrate) navigator.vibrate({tick:10, success:[30,50,30], error:[50,50,50,50]}[type]); }
-        
-        function logMsg(msg, className = "") {
-            const line = document.createElement('div'); line.className = `log-line ${className}`;
-            line.innerText = msg; terminalEl.appendChild(line); terminalEl.scrollTop = terminalEl.scrollHeight;
-        }
-
-        function updateCostDisplay() {
-            budgetDisplay.innerText = `Cost: $${currentCost} / $${levelData.maxBudget}`;
-            const pct = (currentCost / levelData.maxBudget) * 100;
-            progressEl.style.width = `${Math.min(pct, 100)}%`;
-            
-            budgetDisplay.className = "budget-display";
-            progressEl.style.backgroundColor = "var(--green)";
-            
-            if (pct >= 100) {
-                budgetDisplay.classList.add('danger');
-                progressEl.style.backgroundColor = "var(--red)";
-            } else if (pct >= 75) {
-                budgetDisplay.classList.add('warning');
-                progressEl.style.backgroundColor = "var(--yellow)";
-            }
-        }
-
-        gridEl.addEventListener('mousedown', (e) => { if(!isGameOver) { isDragging = true; processInput(e); }});
-        window.addEventListener('mousemove', (e) => { if(isDragging && !isGameOver) { e.preventDefault(); processInput(e); } }, {passive: false});
-        window.addEventListener('mouseup', () => isDragging = false);
-        gridEl.addEventListener('touchstart', (e) => { if(!isGameOver) { isDragging = true; processInput(e); }}, {passive: false});
-        gridEl.addEventListener('touchmove', (e) => { if(isDragging && !isGameOver) { e.preventDefault(); processInput(e); } }, {passive: false});
-        window.addEventListener('touchend', () => isDragging = false);
-
-        function processInput(e) {
-            let clientX = e.clientX, clientY = e.clientY;
-            if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
-            const rect = gridEl.getBoundingClientRect();
-            if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return;
-            const x = Math.floor((clientX - rect.left) / (rect.width / levelData.cols)), y = Math.floor((clientY - rect.top) / (rect.height / levelData.rows));
-            if (x >= 0 && x < levelData.cols && y >= 0 && y < levelData.rows) tryMoveTo(x, y);
-        }
-
-        function tryMoveTo(x, y) {
-            if (path.length === 0) return;
-            const current = path[path.length - 1], pos = `${x},${y}`;
-            if (current.x === x && current.y === y) return;
-            if (path.length > 1) { const prev = path[path.length - 2]; if (prev.x === x && prev.y === y) { undoMove(); return; } }
-            if ((Math.abs(x - current.x) === 1 && y === current.y) || (x === current.x && Math.abs(y - current.y) === 1)) {
-                if (!visited.has(pos)) makeMove(x, y);
-            }
-        }
-
-        function makeMove(x, y, isFirst = false) {
-            const pos = `${x},${y}`; const currentCell = cells[pos];
-            path.push({x, y}); visited.add(pos); currentCell.classList.add('visited');
-
-            // Apply Costs
-            if (!isFirst) {
-                const cellMeta = levelData.data[pos];
-                // Only charge for crossing empty routing tiles, not for hitting required services
-                if (!cellMeta || (cellMeta.type !== 'checkpoint' && cellMeta.type !== 'end' && cellMeta.type !== 'bug')) {
-                    currentCost += levelData.baseCost;
+                    // Missed Commit (Off screen)
+                    if (c.x > gameArea.clientWidth + 50) {
+                        handleMissed(c);
+                        c.el.remove();
+                        commits.splice(i, 1);
+                    }
                 }
             }
 
-            if (!isFirst) {
-                const prevCoord = path[path.length - 2], prevCell = cells[`${prevCoord.x},${prevCoord.y}`];
-                const line = document.createElement('div'); line.className = 'line';
-                if (x > prevCoord.x) line.classList.add('line-right'); else if (x < prevCoord.x) line.classList.add('line-left');
-                else if (y > prevCoord.y) line.classList.add('line-down'); else if (y < prevCoord.y) line.classList.add('line-up');
-                prevCell.appendChild(line); triggerHaptic('tick');
-            }
-
-            const dot = document.createElement('div'); dot.className = 'dot'; currentCell.appendChild(dot);
-            
-            const cellMeta = levelData.data[pos];
-            const logStr = (levelData.logs[pos]) ? levelData.logs[pos] : (cellMeta && cellMeta.type === 'start' ? "Scenario starting..." : "> Network route created... +$50 Data Transfer Cost.");
-            logMsg(logStr, levelData.logs[pos] ? "" : "log-cost");
-
-            updateCostDisplay();
-
-            // Fail Conditions
-            if (currentCost > levelData.maxBudget) {
-                logMsg(`[Interviewer] Your architecture is too inefficient. You exceeded the AWS budget. Failed.`, "log-err");
-                isGameOver = true; isDragging = false; triggerHaptic('error'); return;
-            }
-
-            if (cellMeta && cellMeta.type === 'bug') {
-                logMsg(`[Interviewer] That won't work in production. Interview Failed.`, "log-err");
-                isGameOver = true; isDragging = false; triggerHaptic('error'); return;
-            }
-
-            if (cellMeta && cellMeta.type === 'checkpoint') {
-                clearedCheckpoints.push(pos); currentCell.classList.add('cleared'); triggerHaptic('success');
-            }
-
-            updateCurrentHighlight();
-            
-            // Auto-check win if they hit the end
-            if (x === levelData.endPos.x && y === levelData.endPos.y) submitArchitecture();
+            checkShop();
+            animationId = requestAnimationFrame(gameLoop);
         }
 
-        function undoMove() {
-            const last = path.pop(), pos = `${last.x},${last.y}`; visited.delete(pos); cells[pos].classList.remove('visited');
-            const dot = cells[pos].querySelector('.dot'); if(dot) dot.remove();
+        function spawnCommit() {
+            // Weights: 50% Good, 30% Bug, 20% Vuln
+            const rand = Math.random();
+            const typeData = rand < 0.5 ? types[0] : (rand < 0.8 ? types[1] : types[2]);
             
-            const cellMeta = levelData.data[pos];
-            if (cellMeta && cellMeta.type === 'checkpoint') { cells[pos].classList.remove('cleared'); clearedCheckpoints.pop(); }
-            if (!cellMeta || (cellMeta.type !== 'checkpoint' && cellMeta.type !== 'end' && cellMeta.type !== 'bug')) {
-                currentCost -= levelData.baseCost;
-            }
+            const el = document.createElement('div');
+            el.className = `commit ${typeData.class}`;
+            el.innerText = typeData.label;
 
-            const prevCell = cells[`${path[path.length - 1].x},${path[path.length - 1].y}`];
-            const lines = prevCell.querySelectorAll('.line'); if (lines.length > 0) lines[lines.length - 1].remove();
-            triggerHaptic('tick'); updateCurrentHighlight(); updateCostDisplay();
-            isGameOver = false; // Allow recovery if they went over budget
+            // Positioning on the belt
+            const beltY = gameArea.clientHeight * 0.3 + 5; 
+            const commitObj = { el, type: typeData.id, x: -60, y: beltY, isDragging: false, autoProcessed: false };
+            
+            el.style.transform = `translate(${commitObj.x}px, ${commitObj.y}px)`;
+            
+            // Pointer Events for Dragging
+            el.addEventListener('pointerdown', (e) => startDrag(e, commitObj));
+            
+            gameArea.appendChild(el);
+            commits.push(commitObj);
         }
 
-        function updateCurrentHighlight() {
-            Object.values(cells).forEach(c => c.classList.remove('current'));
-            if (path.length > 0) cells[`${path[path.length - 1].x},${path[path.length - 1].y}`].classList.add('current');
+        // --- Drag and Drop Physics ---
+        function startDrag(e, commitObj) {
+            if (!state.isPlaying) return;
+            draggedCommit = commitObj;
+            draggedCommit.isDragging = true;
+            draggedCommit.el.style.zIndex = 100;
+            draggedCommit.el.setPointerCapture(e.pointerId);
+
+            draggedCommit.el.addEventListener('pointermove', moveDrag);
+            draggedCommit.el.addEventListener('pointerup', endDrag);
         }
 
-        // The New Win Condition Logic
-        function submitArchitecture() {
-            const current = path[path.length - 1];
-            if (current.x !== levelData.endPos.x || current.y !== levelData.endPos.y) {
-                logMsg("[Interviewer] You haven't connected to the final destination (RDS) yet.", "log-err");
-                triggerHaptic('error'); return;
+        function moveDrag(e) {
+            if (!draggedCommit) return;
+            const rect = gameArea.getBoundingClientRect();
+            // Center the commit on the pointer
+            draggedCommit.x = e.clientX - rect.left - 25; 
+            draggedCommit.y = e.clientY - rect.top - 25;
+            draggedCommit.el.style.transform = `translate(${draggedCommit.x}px, ${draggedCommit.y}px)`;
+            
+            // Highlight drop zones
+            checkHover(e.clientX, e.clientY);
+        }
+
+        function endDrag(e) {
+            if (!draggedCommit) return;
+            draggedCommit.el.removeEventListener('pointermove', moveDrag);
+            draggedCommit.el.removeEventListener('pointerup', endDrag);
+            draggedCommit.isDragging = false;
+            draggedCommit.el.style.zIndex = 10;
+            ui.trash.classList.remove('drag-over');
+            ui.prod.classList.remove('drag-over');
+
+            const droppedZone = getDroppedZone(e.clientX, e.clientY);
+            
+            if (droppedZone === 'prod') handleDropProd(draggedCommit);
+            else if (droppedZone === 'trash') handleDropTrash(draggedCommit);
+            else {
+                // Snap back to belt height if dropped nowhere
+                draggedCommit.y = gameArea.clientHeight * 0.3 + 5;
+                draggedCommit.el.style.transform = `translate(${draggedCommit.x}px, ${draggedCommit.y}px)`;
+                draggedCommit = null;
+                return; 
             }
 
-            isGameOver = true; isDragging = false;
-            
-            if (JSON.stringify(clearedCheckpoints) === JSON.stringify(levelData.checkpoints)) {
-                logMsg("[Interviewer] Excellent design. Direct, secure, and under budget.", "log-success"); 
-                triggerHaptic('success'); showReport();
+            // Clean up array
+            const idx = commits.indexOf(draggedCommit);
+            if (idx > -1) commits.splice(idx, 1);
+            draggedCommit.el.remove();
+            draggedCommit = null;
+        }
+
+        // --- Collision & Logic ---
+        function checkHover(x, y) {
+            ui.trash.classList.toggle('drag-over', isOver(x, y, ui.trash));
+            ui.prod.classList.toggle('drag-over', isOver(x, y, ui.prod));
+        }
+
+        function getDroppedZone(x, y) {
+            if (isOver(x, y, ui.prod)) return 'prod';
+            if (isOver(x, y, ui.trash)) return 'trash';
+            return null;
+        }
+
+        function isOver(x, y, element) {
+            const rect = element.getBoundingClientRect();
+            return (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom);
+        }
+
+        function handleDropProd(commit) {
+            if (commit.type === 'good') {
+                updateProgress(1); updateBudget(10); showText("+10", "#3fb950", commit.x, commit.y);
             } else {
-                logMsg("[Interviewer] You missed core security/scaling requirements or did them out of order.", "log-err"); 
+                // Deployed a bug!
+                const dmg = commit.type === 'bug' ? 20 : 40;
+                updateHealth(-dmg); 
+                showText(`OUTAGE! -${dmg} HP`, "#ff7b72", commit.x, commit.y - 20);
                 triggerHaptic('error');
             }
         }
 
-        function showReport() {
-            document.getElementById('report-body').innerHTML = `
-                <h2>✅ Section 4 Passed</h2><h3>${levelData.report.title}</h3><p>${levelData.report.desc}</p>
-                <button class="btn-rpt" onclick="closeAllModals()">Finish Exam</button>
-            `;
-            setTimeout(() => { modals.report.style.display = 'flex'; }, 800);
+        function handleDropTrash(commit) {
+            if (commit.type === 'good') {
+                updateHealth(-10); showText("Wasted Code! -10 HP", "#8b949e", commit.x, commit.y - 20);
+            } else {
+                const reward = commit.type === 'bug' ? 10 : 20;
+                updateBudget(reward); showText(`+$${reward}`, "#58a6ff", commit.x, commit.y);
+            }
         }
-        function closeAllModals() { modals.briefing.style.display = 'none'; modals.report.style.display = 'none'; }
-        
-        startLevelBriefing();
+
+        function handleMissed(commit) {
+            // Unprocessed items fall off the belt
+            if (commit.type === 'good') {
+                // Code stalled in pipeline
+                updateHealth(-5); showText("Missed Deadline", "#d29922", commit.x - 50, commit.y);
+            } else {
+                // Bugs that slip through untouched automatically go to Prod in a manual pipeline
+                handleDropProd(commit); 
+            }
+        }
+
+        function processAuto(commit, targetZone, msg) {
+            commit.autoProcessed = true;
+            // Visual fly-to animation
+            const rectArea = gameArea.getBoundingClientRect();
+            const targetRect = targetZone.getBoundingClientRect();
+            const tx = targetRect.left - rectArea.left + 35;
+            const ty = targetRect.top - rectArea.top + 25;
+            
+            commit.el.style.transition = "all 0.4s ease";
+            commit.el.style.transform = `translate(${tx}px, ${ty}px)`;
+            commit.el.style.opacity = "0";
+            
+            showText(msg, "#58a6ff", commit.x, commit.y);
+            
+            setTimeout(() => {
+                if(commit.type === 'bug') updateBudget(5); // Auto bots earn slightly less
+                if(commit.type === 'vuln') updateBudget(10);
+                commit.el.remove();
+            }, 400);
+        }
+
+        // --- State Management ---
+        function updateHealth(amt) {
+            state.health = Math.max(0, Math.min(100, state.health + amt));
+            ui.health.innerText = `${state.health}%`;
+            if (state.health < 30) ui.health.style.color = 'var(--vuln)';
+            else if (state.health < 60) ui.health.style.color = 'var(--bug)';
+            else ui.health.style.color = 'var(--good)';
+
+            if (state.health <= 0) endGame("Fired! Production crashed too many times.");
+        }
+
+        function updateProgress(amt) {
+            state.progress += amt;
+            ui.progress.innerText = `${state.progress} / ${state.required}`;
+            if (state.progress >= state.required) endGame("Artifact Built! Ready for Infrastructure.", true);
+        }
+
+        function updateBudget(amt) {
+            state.budget += amt;
+            ui.budget.innerText = `$${state.budget}`;
+            checkShop();
+        }
+
+        function checkShop() {
+            ui.btnLinter.disabled = state.hasLinter || state.budget < 50;
+            ui.btnTrivy.disabled = state.hasTrivy || state.budget < 100;
+        }
+
+        function buyAutomation(type) {
+            if (type === 'linter' && state.budget >= 50 && !state.hasLinter) {
+                updateBudget(-50); state.hasLinter = true;
+                ui.btnLinter.classList.add('active'); ui.btnLinter.innerText = "Linter Active";
+                logSystem("Linter initialized. Bugs will be auto-rejected.");
+            }
+            if (type === 'trivy' && state.budget >= 100 && !state.hasTrivy) {
+                updateBudget(-100); state.hasTrivy = true;
+                ui.btnTrivy.classList.add('active'); ui.btnTrivy.innerText = "Trivy Active";
+                logSystem("Trivy Scanner active. Securing pipeline.");
+            }
+        }
+
+        // --- Utils ---
+        function showText(msg, color, x, y) {
+            const el = document.createElement('div');
+            el.className = 'floating-text';
+            el.innerText = msg; el.style.color = color;
+            el.style.left = `${x}px`; el.style.top = `${y}px`;
+            gameArea.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function logSystem(msg) {
+            showText(msg, "#58a6ff", gameArea.clientWidth / 2 - 100, 20);
+        }
+
+        function triggerHaptic(type) {
+            if (navigator.vibrate) {
+                if (type === 'error') navigator.vibrate([50, 50, 50]);
+            }
+        }
+
+        function endGame(msg, won = false) {
+            state.isPlaying = false;
+            cancelAnimationFrame(animationId);
+            const modal = document.getElementById('start-modal');
+            modal.innerHTML = `
+                <h2 style="color: ${won ? 'var(--prod)' : 'var(--vuln)'}">${won ? 'Sprint Complete!' : 'Sprint Failed'}</h2>
+                <p>${msg}</p>
+                ${won ? '<button class="btn-start" onclick="alert(\'Ready for Stage 2: Cloud Plumber!\')">Proceed to Stage 2</button>' 
+                      : '<button class="btn-start" style="background:var(--trash)" onclick="location.reload()">Try Again</button>'}
+            `;
+            modal.style.display = 'flex';
+        }
     </script>
 </body>
 </html>
