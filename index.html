@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>DevOps Rush V2</title>
+<title>DevOps Rush V3</title>
 
 <style>
 
 body{
 margin:0;
-font-family:Arial;
+font-family:Segoe UI,Arial;
 background:#0f172a;
 color:white;
 overflow:hidden;
@@ -50,21 +50,19 @@ padding:10px;
 position:absolute;
 cursor:pointer;
 touch-action:none;
-box-shadow:0 4px 10px rgba(0,0,0,0.5);
+box-shadow:0 4px 12px rgba(0,0,0,0.6);
 }
 
-.pipeline{
-height:6px;
-background:#334155;
+.good{background:#065f46;}
+.bad{background:#7f1d1d;}
+
+.particle{
 position:absolute;
-}
-
-.green{
-background:#065f46;
-}
-
-.red{
-background:#7f1d1d;
+width:6px;
+height:6px;
+background:#22c55e;
+border-radius:50%;
+pointer-events:none;
 }
 
 .center{
@@ -80,15 +78,6 @@ border-radius:6px;
 color:white;
 font-size:16px;
 cursor:pointer;
-}
-
-.levelup{
-position:absolute;
-top:100px;
-left:50%;
-transform:translateX(-50%);
-font-size:28px;
-color:#22c55e;
 }
 
 </style>
@@ -108,36 +97,38 @@ color:#22c55e;
 
 <script>
 
-const GameState={
-INIT:"INIT",
-CI:"CI_PIPELINE",
-DEPLOY:"DEPLOY",
+const State={
+INTRO:"INTRO",
+CI:"CI",
+ARCH:"ARCH",
 INCIDENT:"INCIDENT",
 END:"END"
 }
 
-let state=GameState.INIT
+let state=State.INTRO
 let score=0
-let health=100
-let timer=30
 let combo=0
+let health=100
+let timer=40
+let difficulty=1
+
+const game=document.getElementById("game")
+
+const stageEl=document.getElementById("stage")
+const scoreEl=document.getElementById("score")
+const healthEl=document.getElementById("health")
+const timeEl=document.getElementById("time")
+const comboEl=document.getElementById("combo")
 
 let drag=null
-let game=document.getElementById("game")
 
 function hud(){
-stage.innerText=state
+stageEl.innerText=state
 scoreEl.innerText=score
 healthEl.innerText=health
 timeEl.innerText=timer
 comboEl.innerText=combo
 }
-
-const stage=document.getElementById("stage")
-const scoreEl=document.getElementById("score")
-const healthEl=document.getElementById("health")
-const timeEl=document.getElementById("time")
-const comboEl=document.getElementById("combo")
 
 function clearGame(){
 game.innerHTML=""
@@ -145,7 +136,7 @@ game.innerHTML=""
 
 function startTimer(){
 
-timer=30
+timer=40
 
 let t=setInterval(()=>{
 
@@ -164,21 +155,22 @@ nextStage()
 function nextStage(){
 
 combo=0
+difficulty++
 
-if(state===GameState.CI){
-state=GameState.DEPLOY
-deployGame()
+if(state===State.CI){
+state=State.ARCH
+archGame()
 return
 }
 
-if(state===GameState.DEPLOY){
-state=GameState.INCIDENT
+if(state===State.ARCH){
+state=State.INCIDENT
 incidentGame()
 return
 }
 
-if(state===GameState.INCIDENT){
-state=GameState.END
+if(state===State.INCIDENT){
+state=State.END
 endGame()
 }
 
@@ -190,21 +182,27 @@ clearGame()
 
 let div=document.createElement("div")
 div.className="center"
+
 div.innerHTML=`
-<h1>🚀 DevOps Rush</h1>
-<p>CI/CD Chaos Simulator</p>
-<button onclick="start()">Start Game</button>
+<h1>🚀 DevOps Rush V3</h1>
+<p>Advanced Cloud Deployment Simulator</p>
+<button onclick="startGame()">Start</button>
 `
 
 game.appendChild(div)
 
 }
 
-function start(){
+function startGame(){
+
 score=0
+combo=0
 health=100
-state=GameState.CI
+difficulty=1
+state=State.CI
+
 ciGame()
+
 }
 
 function ciGame(){
@@ -213,70 +211,72 @@ clearGame()
 hud()
 startTimer()
 
-let pipeline=["Code","Build","Test","Docker","Artifact"]
+let pipeline=["Git","Build","Test","Docker","Registry","Deploy"]
 
 pipeline.forEach((p,i)=>{
 
 let z=document.createElement("div")
 z.className="zone"
-z.style.left=(i*18+5)+"%"
-z.style.top="40%"
-z.style.width="14%"
-z.style.height="100px"
 z.innerText=p
 z.dataset.name=p
+z.style.left=(i*14+5)+"%"
+z.style.top="40%"
+z.style.width="12%"
+z.style.height="100px"
 game.appendChild(z)
 
 })
 
 pipeline.sort(()=>Math.random()-0.5)
 
-pipeline.forEach((p,i)=>{
+pipeline.forEach(p=>{
 
 let el=document.createElement("div")
 el.className="item"
 el.innerText=p
-el.style.left=(Math.random()*500)+"px"
-el.style.top=(100+Math.random()*200)+"px"
-dragEnable(el)
+el.style.left=(Math.random()*600)+"px"
+el.style.top=(100+Math.random()*300)+"px"
+enableDrag(el)
 game.appendChild(el)
 
 })
 
 }
 
-function deployGame(){
+function archGame(){
 
 clearGame()
 hud()
 startTimer()
 
-let arch=["Internet","LoadBalancer","AppCluster","Database","Cache"]
+let arch=["Internet","CloudFront","LoadBalancer","K8sCluster","Database","Cache"]
 
 arch.forEach((a,i)=>{
 
 let z=document.createElement("div")
 z.className="zone"
-z.style.left="40%"
-z.style.top=(80+i*90)+"px"
-z.style.width="200px"
-z.style.height="70px"
 z.innerText=a
 z.dataset.name=a
+z.style.left="40%"
+z.style.top=(80+i*80)+"px"
+z.style.width="220px"
+z.style.height="60px"
+
 game.appendChild(z)
 
 })
 
 arch.sort(()=>Math.random()-0.5)
 
-arch.forEach((a,i)=>{
+arch.forEach(a=>{
 
 let el=document.createElement("div")
-el.className="item green"
+el.className="item good"
 el.innerText=a
 el.style.left=(Math.random()*300)+"px"
 el.style.top=(100+Math.random()*300)+"px"
-dragEnable(el)
+enableDrag(el)
+
 game.appendChild(el)
 
 })
@@ -291,26 +291,27 @@ startTimer()
 
 spawnIncident()
 
-setInterval(spawnIncident,3000)
+setInterval(spawnIncident,2500/difficulty)
 
 }
 
 function spawnIncident(){
 
-if(state!==GameState.INCIDENT) return
+if(state!==State.INCIDENT)return
 
-let incidents=[
-["CPU Spike","AutoScale"],
+let data=[
+["CPU Spike","Scale"],
 ["Pod Crash","Restart"],
 ["Disk Full","Cleanup"],
-["Latency","EnableCache"],
-["Memory Leak","Redeploy"]
+["Latency","Cache"],
+["Memory Leak","Redeploy"],
+["DDoS","EnableWAF"]
 ]
 
-let i=incidents[Math.floor(Math.random()*incidents.length)]
+let i=data[Math.floor(Math.random()*data.length)]
 
 let alert=document.createElement("div")
-alert.className="item red"
+alert.className="item bad"
 alert.innerText=i[0]
 alert.dataset.fix=i[1]
 alert.style.left=(Math.random()*window.innerWidth)+"px"
@@ -319,17 +320,17 @@ alert.style.top=(100+Math.random()*200)+"px"
 game.appendChild(alert)
 
 let fix=document.createElement("div")
-fix.className="item green"
+fix.className="item good"
 fix.innerText=i[1]
 fix.style.left=(Math.random()*window.innerWidth)+"px"
 fix.style.top=(300+Math.random()*200)+"px"
 
-dragEnable(fix)
+enableDrag(fix)
 game.appendChild(fix)
 
 }
 
-function dragEnable(el){
+function enableDrag(el){
 
 el.addEventListener("pointerdown",()=>drag=el)
 
@@ -345,14 +346,51 @@ drag.style.top=e.clientY-20+"px"
 window.addEventListener("pointerup",()=>{
 
 if(!drag)return
-dropCheck(drag)
+checkDrop(drag)
 drag=null
 
 })
 
 }
 
-function dropCheck(el){
+function particle(x,y){
+
+for(let i=0;i<8;i++){
+
+let p=document.createElement("div")
+p.className="particle"
+p.style.left=x+"px"
+p.style.top=y+"px"
+
+game.appendChild(p)
+
+let vx=(Math.random()-0.5)*6
+let vy=(Math.random()-0.5)*6
+
+let life=30
+
+function animate(){
+
+vx*=0.95
+vy*=0.95
+
+p.style.left=(parseFloat(p.style.left)+vx)+"px"
+p.style.top=(parseFloat(p.style.top)+vy)+"px"
+
+life--
+
+if(life>0) requestAnimationFrame(animate)
+else p.remove()
+
+}
+
+animate()
+
+}
+
+}
+
+function checkDrop(el){
 
 let zones=document.querySelectorAll(".zone")
 
@@ -367,6 +405,7 @@ if(el.innerText===z.dataset.name){
 
 combo++
 score+=10*combo
+particle(e.left,e.top)
 el.remove()
 
 }else{
@@ -382,7 +421,7 @@ hud()
 
 })
 
-let alerts=document.querySelectorAll(".red")
+let alerts=document.querySelectorAll(".bad")
 
 alerts.forEach(a=>{
 
@@ -395,6 +434,8 @@ if(el.innerText===a.dataset.fix){
 
 score+=20
 combo++
+particle(e.left,e.top)
+
 a.remove()
 el.remove()
 
@@ -413,7 +454,21 @@ hud()
 
 }
 
+function saveScore(){
+
+let best=localStorage.getItem("devopsScore")
+
+if(!best || score>best){
+localStorage.setItem("devopsScore",score)
+}
+
+}
+
 function endGame(){
+
+saveScore()
+
+let best=localStorage.getItem("devopsScore")
 
 clearGame()
 
@@ -421,9 +476,10 @@ let div=document.createElement("div")
 div.className="center"
 
 div.innerHTML=`
-<h1>🏆 Deployment Complete</h1>
-<h2>Final Score: ${score}</h2>
-<button onclick="start()">Play Again</button>
+<h1>🏆 Deployment Successful</h1>
+<h2>Score: ${score}</h2>
+<h3>Best: ${best}</h3>
+<button onclick="startGame()">Play Again</button>
 `
 
 game.appendChild(div)
