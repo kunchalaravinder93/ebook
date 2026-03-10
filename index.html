@@ -3,21 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DevOps Pipeline Puzzle</title>
+    <title>CI/CD Pipeline Puzzle</title>
     <style>
         :root {
-            --bg-color: #0d1117;
+            --bg: #0d1117;
             --cell-bg: #161b22;
-            --cell-border: #30363d;
-            --path-color: #238636; /* GitHub Green */
-            --text-color: #c9d1d9;
-            --text-muted: #8b949e;
-            --error-color: #f85149;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --green: #238636;
+            --green-glow: #2ea043;
+            --blue: #58a6ff;
+            --purple: #bc8cff;
+            --yellow: #d29922;
+            --red: #f85149;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: var(--bg);
+            color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
             display: flex;
             flex-direction: column;
@@ -26,257 +29,334 @@
             min-height: 100vh;
             margin: 0;
             overflow: hidden;
-        }
-
-        h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-
-        p.instructions {
-            color: var(--text-muted);
-            font-size: 14px;
-            margin-bottom: 20px;
-            text-align: center;
-            max-width: 320px;
-        }
-
-        #grid {
-            display: grid;
-            grid-template-columns: repeat(4, 75px);
-            grid-template-rows: repeat(4, 75px);
-            gap: 8px;
-            margin-bottom: 20px;
-            touch-action: none; /* Prevent scrolling while swiping */
-        }
-
-        .cell {
-            background-color: var(--cell-bg);
-            border: 2px solid var(--cell-border);
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: bold;
-            text-align: center;
-            transition: all 0.15s ease;
+            touch-action: none; /* Crucial for smooth mobile swiping */
             user-select: none;
         }
 
-        .cell span.icon {
-            font-size: 16px;
-            margin-bottom: 2px;
-        }
+        h1 { margin-bottom: 5px; font-size: 1.8rem; color: #fff; }
+        p.subtitle { color: #8b949e; margin-top: 0; font-size: 0.9rem; text-align: center; max-width: 320px; }
 
-        .visited {
-            background-color: var(--path-color);
-            border-color: #2ea043;
-            color: #ffffff;
-        }
-
-        .head {
-            box-shadow: 0 0 15px rgba(46, 160, 67, 0.8);
-            transform: scale(1.05);
-        }
-
-        #status {
-            font-size: 18px;
-            font-weight: bold;
-            height: 24px;
-            margin-bottom: 15px;
-        }
-
-        .success { color: var(--path-color); }
-        .error { color: var(--error-color); }
-
-        button {
-            background-color: #21262d;
-            color: var(--text-color);
-            border: 1px solid var(--cell-border);
+        .dashboard {
+            background: var(--cell-bg);
+            border: 1px solid var(--border);
             padding: 10px 20px;
             border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            min-width: 300px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        .dashboard.fail { border-color: var(--red); color: var(--red); }
+        .dashboard.success { border-color: var(--green); color: var(--green-glow); }
+
+        .grid-container {
+            background: #21262d;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.8);
         }
 
-        button:hover {
-            background-color: #30363d;
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            position: relative;
         }
+
+        .cell {
+            width: 75px;
+            height: 75px;
+            background: var(--cell-bg);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.65rem;
+            font-weight: bold;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        @media(max-width: 400px) {
+            .cell { width: 65px; height: 65px; font-size: 0.6rem; }
+            h1 { font-size: 1.5rem; }
+        }
+
+        .cell.start { border-color: var(--blue); color: var(--blue); }
+        .cell.end { border-color: var(--purple); color: var(--purple); }
+        .cell.checkpoint { border-color: var(--yellow); color: var(--yellow); }
+        
+        /* Text labels sit above the drawing lines */
+        .cell span {
+            z-index: 3;
+            pointer-events: none;
+            background: rgba(13, 17, 23, 0.9);
+            padding: 4px 6px;
+            border-radius: 4px;
+            line-height: 1.2;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Continuous Path Styling */
+        .dot {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 14px; height: 14px;
+            background: var(--green);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+        .cell.current .dot {
+            width: 20px; height: 20px;
+            background: var(--green-glow);
+            box-shadow: 0 0 12px var(--green-glow);
+        }
+
+        .line-right, .line-left, .line-up, .line-down {
+            position: absolute;
+            background: var(--green);
+            z-index: 1;
+        }
+        .line-right { top: calc(50% - 4px); left: 50%; width: calc(100% + 12px); height: 8px; }
+        .line-left { top: calc(50% - 4px); right: 50%; width: calc(100% + 12px); height: 8px; }
+        .line-down { left: calc(50% - 4px); top: 50%; height: calc(100% + 12px); width: 8px; }
+        .line-up { left: calc(50% - 4px); bottom: 50%; height: calc(100% + 12px); width: 8px; }
+
+        button.reset {
+            margin-top: 30px;
+            background: #238636;
+            color: #fff;
+            border: 1px solid rgba(240, 246, 252, 0.1);
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+        button.reset:hover { background: #2ea043; }
     </style>
 </head>
 <body>
 
-    <h1>DevOps Pipeline</h1>
-    <p class="instructions">Swipe or use Arrow Keys. Connect Source Code to Production. Visit ALL squares. Hit checkpoints in order.</p>
+    <h1>CI/CD Pipeline</h1>
+    <p class="subtitle">Drag to draw your pipeline. Achieve 100% coverage and clear all security gates in order.</p>
 
-    <div id="status"></div>
-    <div id="grid"></div>
-    <button onclick="initGame()">Restart Pipeline</button>
+    <div id="dashboard" class="dashboard">Status: Waiting for git push...</div>
+
+    <div class="grid-container">
+        <div id="grid" class="grid"></div>
+    </div>
+
+    <button class="reset" onclick="initGame()">Trigger Webhook (Reset)</button>
 
     <script>
-        const COLS = 4;
-        const ROWS = 4;
-        const START_POS = { x: 0, y: 1 }; // Adjusted to make puzzle solvable!
-        const END_POS = { x: 3, y: 3 };
+        const gridEl = document.getElementById('grid');
+        const dashboardEl = document.getElementById('dashboard');
+        const cols = 4, rows = 4;
         
-        // Define checkpoints and special cells
-        const CELL_DATA = {
-            "0,1": { label: "Source", icon: "📄" },
-            "3,3": { label: "Prod", icon: "🚀" },
-            "2,0": { label: "[1] Test", icon: "🧪", order: 1 },
-            "2,1": { label: "[2] Sec", icon: "🛡️", order: 2 },
-            "0,3": { label: "[3] Build", icon: "🐳", order: 3 },
-            "2,3": { label: "[4] Stage", icon: "server", order: 4 } // Fallback to text if emoji fails
+        let path = [];
+        let visited = new Set();
+        let cells = {};
+        let isGameOver = false;
+        let isDragging = false;
+
+        // Realistic CI/CD stages. 
+        // Production stays at 3,2 to ensure mathematical graph solvability.
+        const cellData = {
+            "0,0": { label: "git push<br>(Source)", type: "start" },
+            "3,0": { label: "[1] SAST<br>& Lint", type: "checkpoint" },
+            "0,1": { label: "[2] Unit<br>Tests", type: "checkpoint" },
+            "1,2": { label: "[3] Build<br>Docker", type: "checkpoint" },
+            "3,3": { label: "[4] Vuln<br>Scan", type: "checkpoint" },
+            "3,2": { label: "Deploy<br>Prod", type: "end" }
         };
 
-        let path = [];
-        let gameOver = false;
-        const gridElement = document.getElementById('grid');
-        const statusElement = document.getElementById('status');
+        const requiredCheckpoints = ["3,0", "0,1", "1,2", "3,3"];
 
         function initGame() {
-            path = [{ ...START_POS }];
-            gameOver = false;
-            statusElement.innerHTML = "";
-            createGrid();
-            render();
-        }
+            gridEl.innerHTML = '';
+            cells = {};
+            path = [];
+            visited.clear();
+            isGameOver = false;
+            dashboardEl.className = "dashboard";
+            dashboardEl.textContent = "Status: Pipeline Executing...";
 
-        function createGrid() {
-            gridElement.innerHTML = '';
-            for (let y = 0; y < ROWS; y++) {
-                for (let x = 0; x < COLS; x++) {
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const pos = `${x},${y}`;
                     const cell = document.createElement('div');
                     cell.className = 'cell';
                     cell.id = `cell-${x}-${y}`;
                     
-                    const key = `${x},${y}`;
-                    if (CELL_DATA[key]) {
-                        cell.innerHTML = `<span class="icon">${CELL_DATA[key].icon}</span>${CELL_DATA[key].label}`;
+                    if (cellData[pos]) {
+                        cell.classList.add(cellData[pos].type);
+                        cell.innerHTML = `<span>${cellData[pos].label}</span>`;
                     }
-                    gridElement.appendChild(cell);
+
+                    gridEl.appendChild(cell);
+                    cells[pos] = cell;
                 }
             }
+            makeMove(0, 0, true);
         }
 
-        function render() {
-            // Clear previous states
-            document.querySelectorAll('.cell').forEach(cell => {
-                cell.classList.remove('visited', 'head');
-            });
+        // --- Continuous Drawing Logic (Mouse & Touch) ---
+        document.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('.grid-container') && !isGameOver) {
+                isDragging = true;
+                processDrag(e);
+            }
+        });
 
-            // Draw path
-            path.forEach((p, index) => {
-                const cell = document.getElementById(`cell-${p.x}-${p.y}`);
-                if (cell) {
-                    cell.classList.add('visited');
-                    // Mark the current head of the path
-                    if (index === path.length - 1) {
-                        cell.classList.add('head');
-                    }
-                }
-            });
+        document.addEventListener('pointermove', (e) => {
+            if (!isDragging || isGameOver) return;
+            processDrag(e);
+        });
+
+        document.addEventListener('pointerup', () => {
+            isDragging = false;
+        });
+
+        function processDrag(e) {
+            // Find the element exactly under the pointer
+            const el = document.elementFromPoint(e.clientX, e.clientY);
+            if (!el) return;
+            const cell = el.closest('.cell');
+            if (!cell) return;
+
+            const parts = cell.id.split('-');
+            const x = parseInt(parts[1]);
+            const y = parseInt(parts[2]);
+            
+            tryMoveTo(x, y);
         }
 
-        function move(dx, dy) {
-            if (gameOver) return;
-
+        function tryMoveTo(x, y) {
+            if (isGameOver || path.length === 0) return;
+            
             const current = path[path.length - 1];
-            const nextX = current.x + dx;
-            const nextY = current.y + dy;
+            const dx = Math.abs(x - current.x);
+            const dy = Math.abs(y - current.y);
+            const pos = `${x},${y}`;
 
-            // Bounds check
-            if (nextX < 0 || nextX >= COLS || nextY < 0 || nextY >= ROWS) return;
-
-            // Backtrack logic (Undo move)
+            // Backtracking (Undo) - drag back over the previous cell
             if (path.length > 1) {
                 const prev = path[path.length - 2];
-                if (prev.x === nextX && prev.y === nextY) {
-                    path.pop();
-                    render();
+                if (prev.x === x && prev.y === y) {
+                    undoMove();
                     return;
                 }
             }
 
-            // Prevent crossing own path
-            if (path.some(p => p.x === nextX && p.y === nextY)) return;
-
-            // Valid move
-            path.push({ x: nextX, y: nextY });
-            render();
-
-            // Check End Condition
-            if (nextX === END_POS.x && nextY === END_POS.y) {
-                evaluateWin();
-            }
-        }
-
-        function evaluateWin() {
-            gameOver = true;
-            
-            // 1. Check if all squares were visited (16 total)
-            if (path.length < (COLS * ROWS)) {
-                statusElement.innerHTML = "<span class='error'>Pipeline Failed: Code coverage not 100%</span>";
-                return;
-            }
-
-            // 2. Check checkpoint order
-            let hitOrder = [];
-            path.forEach(p => {
-                const key = `${p.x},${p.y}`;
-                if (CELL_DATA[key] && CELL_DATA[key].order) {
-                    hitOrder.push(CELL_DATA[key].order);
+            // Must be adjacent orthogonally
+            if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+                if (!visited.has(pos)) {
+                    makeMove(x, y);
                 }
-            });
-
-            const isCorrectOrder = hitOrder.length === 4 && hitOrder.every((val, index) => val === index + 1);
-
-            if (isCorrectOrder) {
-                statusElement.innerHTML = "<span class='success'>Deployment Successful! 🎉</span>";
-            } else {
-                statusElement.innerHTML = "<span class='error'>Pipeline Failed: Checkpoints out of order</span>";
             }
         }
 
-        // --- Event Listeners ---
+        function makeMove(x, y, isFirst = false) {
+            const pos = `${x},${y}`;
+            const currentCell = cells[pos];
 
-        // Keyboard Controls
-        window.addEventListener('keydown', e => {
-            switch(e.key) {
-                case 'ArrowUp': move(0, -1); break;
-                case 'ArrowDown': move(0, 1); break;
-                case 'ArrowLeft': move(-1, 0); break;
-                case 'ArrowRight': move(1, 0); break;
+            if (!isFirst) {
+                const prev = path[path.length - 1];
+                const prevCell = cells[`${prev.x},${prev.y}`];
+                
+                const line = document.createElement('div');
+                if (x > prev.x) line.className = 'line-right';
+                else if (x < prev.x) line.className = 'line-left';
+                else if (y > prev.y) line.className = 'line-down';
+                else if (y < prev.y) line.className = 'line-up';
+                prevCell.appendChild(line);
             }
-        });
 
-        // Swipe Controls for Mobile
-        let touchStartX = 0;
-        let touchStartY = 0;
+            path.push({x, y});
+            visited.add(pos);
 
-        gridElement.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
-            touchStartY = e.changedTouches[0].screenY;
-        }, {passive: false});
+            const dot = document.createElement('div');
+            dot.className = 'dot';
+            currentCell.appendChild(dot);
 
-        gridElement.addEventListener('touchend', e => {
-            let dx = e.changedTouches[0].screenX - touchStartX;
-            let dy = e.changedTouches[0].screenY - touchStartY;
+            updateCurrentHighlight();
+            checkWinCondition(x, y);
+        }
+
+        function undoMove() {
+            const last = path.pop();
+            const pos = `${last.x},${last.y}`;
+            visited.delete(pos);
             
-            // Require a minimum swipe distance
-            if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    move(dx > 0 ? 1 : -1, 0); // Horizontal
+            const cell = cells[pos];
+            const dot = cell.querySelector('.dot');
+            if(dot) dot.remove();
+
+            const prev = path[path.length - 1];
+            const prevCell = cells[`${prev.x},${prev.y}`];
+
+            const lines = prevCell.querySelectorAll('.line-right, .line-left, .line-up, .line-down');
+            if (lines.length > 0) lines[lines.length - 1].remove();
+
+            updateCurrentHighlight();
+            
+            dashboardEl.className = "dashboard";
+            dashboardEl.textContent = "Status: Pipeline Executing...";
+            isGameOver = false; 
+        }
+
+        function updateCurrentHighlight() {
+            Object.values(cells).forEach(c => c.classList.remove('current'));
+            if (path.length > 0) {
+                const current = path[path.length - 1];
+                cells[`${current.x},${current.y}`].classList.add('current');
+            }
+        }
+
+        function checkWinCondition(x, y) {
+            if (x === 3 && y === 2) { 
+                isGameOver = true;
+                isDragging = false;
+                
+                if (path.length !== 16) {
+                    dashboardEl.innerHTML = "❌ Failed: Dead Code Detected. 100% Grid Coverage Required.";
+                    dashboardEl.className = "dashboard fail";
+                    return;
+                }
+
+                let hitOrder = [];
+                for (let p of path) {
+                    const posStr = `${p.x},${p.y}`;
+                    if (requiredCheckpoints.includes(posStr)) {
+                        hitOrder.push(posStr);
+                    }
+                }
+
+                const sequenceCorrect = JSON.stringify(hitOrder) === JSON.stringify(requiredCheckpoints);
+
+                if (sequenceCorrect) {
+                    dashboardEl.innerHTML = "✅ Success: Artifacts verified. Deployed to Production!";
+                    dashboardEl.className = "dashboard success";
                 } else {
-                    move(0, dy > 0 ? 1 : -1); // Vertical
+                    dashboardEl.innerHTML = "❌ Failed: Invalid Stage Sequence. Security Gates Bypassed.";
+                    dashboardEl.className = "dashboard fail";
                 }
             }
-        });
+        }
 
-        // Initialize on load
         initGame();
     </script>
 </body>
