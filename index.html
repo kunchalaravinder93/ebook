@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DevOps Pipeline</title>
+    <title>DevOps Pipeline Academy</title>
     <style>
         :root {
             --bg: #0d1117;
@@ -17,7 +17,7 @@
             --yellow: #d29922;
             --red: #f85149;
             --term-bg: #010409;
-            --grid-cols: 4; /* Dynamic based on level */
+            --grid-cols: 4;
         }
 
         body {
@@ -28,27 +28,30 @@
             touch-action: none; -webkit-user-select: none; user-select: none;
         }
 
-        .header { display: flex; justify-content: space-between; width: 310px; align-items: flex-end; margin-bottom: 5px; }
-        h1 { margin: 0; font-size: 1.5rem; color: #fff; }
-        .level-indicator { font-size: 0.9rem; color: var(--blue); font-weight: bold; }
+        /* Upgraded Header with Educational Metadata */
+        .header { width: 320px; margin-bottom: 12px; }
+        .header h1 { margin: 0 0 5px 0; font-size: 1.6rem; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.1); }
+        .meta-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+        .badge { 
+            font-size: 0.7rem; font-weight: bold; padding: 4px 8px; border-radius: 12px; 
+            background: var(--cell-bg); border: 1px solid var(--border);
+        }
+        .badge.level { color: #fff; border-color: var(--blue); background: rgba(88, 166, 255, 0.1); }
+        .badge.diff-beginner { color: var(--green-glow); border-color: var(--green); background: rgba(35, 134, 54, 0.1); }
+        .badge.diff-inter { color: var(--yellow); border-color: var(--yellow); background: rgba(210, 153, 34, 0.1); }
+        .badge.concept { color: var(--purple); border-color: var(--purple); background: rgba(188, 140, 255, 0.1); }
         
-        .progress-container { width: 310px; height: 8px; background: var(--border); border-radius: 4px; margin-bottom: 15px; overflow: hidden; }
+        .progress-container { width: 320px; height: 8px; background: var(--border); border-radius: 4px; margin-bottom: 12px; overflow: hidden; }
         .progress-bar { height: 100%; width: 0%; background: var(--blue); transition: width 0.1s linear, background-color 0.3s; }
 
         .grid-container {
             background: #21262d; padding: 10px; border-radius: 12px;
-            border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.6); margin-bottom: 15px;
-            /* Using grid-template-columns dynamically */
+            border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.6); margin-bottom: 12px;
         }
 
-        .grid {
-            display: grid; 
-            grid-template-columns: repeat(var(--grid-cols), 1fr);
-            gap: 10px; position: relative;
-        }
+        .grid { display: grid; grid-template-columns: repeat(var(--grid-cols), 1fr); gap: 10px; position: relative; }
 
         .cell {
-            /* Width/Height dynamic in JS based on grid size to fit screen */
             background: var(--cell-bg); border: 2px solid var(--border); border-radius: 8px;
             position: relative; display: flex; align-items: center; justify-content: center;
             text-align: center; font-size: 0.55rem; font-weight: bold; box-sizing: border-box;
@@ -71,8 +74,16 @@
         .line-down { left: calc(50% - 4px); top: 50%; height: calc(100% + 10px); width: 8px; }
         .line-up { left: calc(50% - 4px); bottom: 50%; height: calc(100% + 10px); width: 8px; }
 
+        /* Hint Animation */
+        @keyframes pulseHint {
+            0% { box-shadow: 0 0 0 0 rgba(88, 166, 255, 0.7); border-color: var(--blue); }
+            70% { box-shadow: 0 0 0 15px rgba(88, 166, 255, 0); border-color: var(--blue); }
+            100% { box-shadow: 0 0 0 0 rgba(88, 166, 255, 0); border-color: var(--border); }
+        }
+        .cell.hint { animation: pulseHint 1.5s infinite; z-index: 4; }
+
         .terminal {
-            width: 310px; height: 90px; background: var(--term-bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px;
+            width: 320px; height: 90px; background: var(--term-bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; box-sizing: border-box;
             font-family: "Courier New", monospace; font-size: 0.7rem; color: #8b949e; overflow-y: auto; text-align: left;
             display: flex; flex-direction: column; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
         }
@@ -83,17 +94,13 @@
         .log-err { color: var(--red); font-weight: bold; }
         .log-warn { color: var(--yellow); }
 
-        .controls { display: flex; gap: 10px; margin-top: 15px; }
-        button.btn { background: transparent; color: var(--text); border: 1px solid var(--border); padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
+        .controls { display: flex; gap: 10px; margin-top: 15px; width: 320px; justify-content: space-between; }
+        button.btn { flex: 1; background: var(--cell-bg); color: var(--text); border: 1px solid var(--border); padding: 10px 0; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; transition: 0.2s; }
         button.btn:hover { background: #30363d; }
-        button.btn.primary { background: var(--green); color: #fff; border: none; }
-        button.btn.primary:hover { background: var(--green-glow); }
+        button.btn.primary { background: var(--blue); color: #fff; border: none; }
+        button.btn.primary:hover { background: #388bfd; }
 
-        /* Modal Styles */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(1, 4, 9, 0.85); z-index: 100;
-            display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px);
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(1, 4, 9, 0.85); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px); }
         .modal-content { background: var(--cell-bg); border: 1px solid var(--border); border-radius: 12px; padding: 25px; max-width: 450px; width: 100%; max-height: 85vh; overflow-y: auto; user-select: text;}
         .modal-content h2 { color: var(--green-glow); margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
         .modal-content h3 { color: var(--blue); font-size: 1rem; margin-bottom: 5px; }
@@ -103,8 +110,12 @@
 <body>
 
     <div class="header">
-        <h1>CI/CD Pipeline</h1>
-        <span class="level-indicator" id="level-display">Level 1</span>
+        <h1>DevOps Academy</h1>
+        <div class="meta-badges">
+            <span class="badge level" id="badge-level">Lvl 1</span>
+            <span class="badge" id="badge-diff">Beginner</span>
+            <span class="badge concept" id="badge-concept">CD Pipeline</span>
+        </div>
     </div>
 
     <div class="progress-container">
@@ -118,22 +129,25 @@
     <div class="terminal" id="terminal"></div>
 
     <div class="controls">
-        <button class="btn" onclick="initLevel()">Restart Pipe</button>
+        <button class="btn" onclick="initLevel()">Reset</button>
+        <button class="btn primary" onclick="showHint()">Ask Lead (Hint)</button>
     </div>
 
     <div class="modal-overlay" id="info-modal">
-        <div class="modal-content" id="modal-body">
-            </div>
+        <div class="modal-content" id="modal-body"></div>
     </div>
 
     <script>
-        // --- LEVEL CONFIGURATIONS ---
+        // --- LEVEL CONFIGURATIONS (With Exact Path Solutions) ---
         const levels = [
             {
                 cols: 4, rows: 4,
+                difficulty: "Beginner", diffClass: "diff-beginner",
+                concept: "Continuous Deployment",
                 endPos: {x: 3, y: 2},
                 checkpoints: ["3,0", "0,1", "1,2", "3,3"],
                 names: ["[1] SAST", "[2] Unit Tests", "[3] Docker Build", "[4] Vuln Scan"],
+                solution: ["0,0", "1,0", "2,0", "3,0", "3,1", "2,1", "1,1", "0,1", "0,2", "0,3", "1,3", "1,2", "2,2", "2,3", "3,3", "3,2"],
                 data: {
                     "0,0": { label: "git push", type: "start" },
                     "3,0": { label: "[1] SAST", type: "checkpoint" },
@@ -146,23 +160,26 @@
                     title: "Automated Continuous Deployment",
                     desc: "Because your code hit 100% coverage and passed all automated security gates, it went straight to production without human intervention.",
                     bullets: [
-                        "<b>SAST:</b> Static code analysis for security.",
-                        "<b>Unit Tests:</b> Checking individual functions.",
-                        "<b>Docker Build:</b> Packaging the artifact.",
-                        "<b>Vuln Scan:</b> Container security checks."
+                        "<b>SAST:</b> Static code analysis. Catches hardcoded secrets.",
+                        "<b>Unit Tests:</b> Verifies individual functions in isolation.",
+                        "<b>Docker Build:</b> Packages the artifact for deployment.",
+                        "<b>Vuln Scan:</b> Scans the container image for known CVEs."
                     ]
                 }
             },
             {
                 cols: 5, rows: 5,
-                endPos: {x: 4, y: 4}, // Bottom right is mathematically solvable for 5x5
-                checkpoints: ["4,0", "0,3", "4,2", "0,4"],
+                difficulty: "Intermediate", diffClass: "diff-inter",
+                concept: "Blue/Green Deployment",
+                endPos: {x: 4, y: 4}, 
+                checkpoints: ["4,0", "0,2", "4,3", "0,4"],
                 names: ["[1] Build Image", "[2] Deploy Green", "[3] E2E Tests", "[4] Switch Router"],
+                solution: ["0,0", "1,0", "2,0", "3,0", "4,0", "4,1", "3,1", "2,1", "1,1", "0,1", "0,2", "1,2", "2,2", "3,2", "4,2", "4,3", "3,3", "2,3", "1,3", "0,3", "0,4", "1,4", "2,4", "3,4", "4,4"],
                 data: {
                     "0,0": { label: "Merge<br>Main", type: "start" },
                     "4,0": { label: "[1] Build<br>Image", type: "checkpoint" },
-                    "0,3": { label: "[2] Deploy<br>Green", type: "checkpoint" },
-                    "4,2": { label: "[3] E2E<br>Tests", type: "checkpoint" },
+                    "0,2": { label: "[2] Deploy<br>Green", type: "checkpoint" },
+                    "4,3": { label: "[3] E2E<br>Tests", type: "checkpoint" },
                     "0,4": { label: "[4] Switch<br>Router", type: "checkpoint" },
                     "4,4": { label: "Live<br>Traffic", type: "end" }
                 },
@@ -170,9 +187,9 @@
                     title: "Blue/Green Deployment",
                     desc: "You just executed a Blue/Green rollout. The old version (Blue) kept running while you deployed the new version (Green) alongside it.",
                     bullets: [
-                        "<b>Deploy Green:</b> Spining up the new version in a completely isolated environment.",
-                        "<b>E2E Tests:</b> Running integration tests on Green before any real users see it.",
-                        "<b>Switch Router:</b> Instantly flipping the load balancer to point to Green. Zero downtime, and instant rollback if something breaks!"
+                        "<b>Deploy Green:</b> Spinning up the new version in an isolated environment.",
+                        "<b>E2E Tests:</b> Running integration tests on Green before users see it.",
+                        "<b>Switch Router:</b> Flipping the load balancer to Green. Zero downtime, instant rollback!"
                     ]
                 }
             }
@@ -180,7 +197,6 @@
 
         let currentLevel = 0;
         
-        // --- GAME STATE ---
         const gridEl = document.getElementById('grid');
         const terminalEl = document.getElementById('terminal');
         const progressEl = document.getElementById('progress');
@@ -197,14 +213,20 @@
 
         function initLevel() {
             levelData = levels[currentLevel];
-            document.getElementById('level-display').innerText = `Level ${currentLevel + 1}`;
+            
+            // Update Headers
+            document.getElementById('badge-level').innerText = `Lvl ${currentLevel + 1}`;
+            const badgeDiff = document.getElementById('badge-diff');
+            badgeDiff.innerText = levelData.difficulty;
+            badgeDiff.className = `badge ${levelData.diffClass}`;
+            document.getElementById('badge-concept').innerText = levelData.concept;
+
             document.documentElement.style.setProperty('--grid-cols', levelData.cols);
 
             gridEl.innerHTML = ''; terminalEl.innerHTML = '';
             cells = {}; path = []; visited.clear(); clearedCheckpoints = [];
             isGameOver = false; modalEl.style.display = 'none';
             
-            // Adjust cell size dynamically based on grid size to fit standard mobile
             const cellSize = levelData.cols === 5 ? '56px' : '70px';
 
             for (let y = 0; y < levelData.rows; y++) {
@@ -220,16 +242,40 @@
                         cell.classList.add(levelData.data[pos].type);
                         cell.innerHTML = `<span>${levelData.data[pos].label}</span>`;
                     }
-
                     gridEl.appendChild(cell);
                     cells[pos] = cell;
                 }
             }
             
-            logMsg("system initializing...", "log-sys");
-            logMsg("Awaiting code commit...", "log-sys");
+            logMsg(`[Level ${currentLevel + 1}] System initializing...`, "log-sys");
+            logMsg(`Concept: ${levelData.concept}`, "log-sys");
             updateProgress();
             makeMove(0, 0, true);
+        }
+
+        // --- NEW HINT SYSTEM ---
+        function showHint() {
+            if (isGameOver) return;
+            Object.values(cells).forEach(c => c.classList.remove('hint'));
+            
+            let isCorrectSoFar = true;
+            for(let i=0; i<path.length; i++) {
+                if(`${path[i].x},${path[i].y}` !== levelData.solution[i]) {
+                    isCorrectSoFar = false; break;
+                }
+            }
+            
+            if(isCorrectSoFar) {
+                if(path.length < levelData.solution.length) {
+                    const nextPos = levelData.solution[path.length];
+                    cells[nextPos].classList.add('hint');
+                    logMsg(`SENIOR DEV: "Try routing through the highlighted node to ensure 100% coverage without trapping yourself."`, "log-sys");
+                }
+            } else {
+                const currentPos = `${path[path.length-1].x},${path[path.length-1].y}`;
+                cells[currentPos].classList.add('hint');
+                logMsg(`SENIOR DEV: "Pipeline Drift Detected. You took a wrong turn and will miss coverage. Drag backward to undo!"`, "log-err");
+            }
         }
 
         function triggerHaptic(type) {
@@ -258,7 +304,6 @@
             else progressEl.style.backgroundColor = "var(--green-glow)";
         }
 
-        // --- NEW MATHEMATICAL INPUT SYSTEM (Ultra Smooth) ---
         gridEl.addEventListener('mousedown', (e) => { isDragging = true; processInput(e); });
         window.addEventListener('mousemove', (e) => { if(isDragging) { e.preventDefault(); processInput(e); } }, {passive: false});
         window.addEventListener('mouseup', () => isDragging = false);
@@ -273,28 +318,20 @@
             if (e.touches && e.touches.length > 0) {
                 clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
             }
-
-            // Calculate Grid Bounds
             const rect = gridEl.getBoundingClientRect();
             if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return;
-
-            // Math to find exact cell index
             const colWidth = rect.width / levelData.cols;
             const rowHeight = rect.height / levelData.rows;
-
             const x = Math.floor((clientX - rect.left) / colWidth);
             const y = Math.floor((clientY - rect.top) / rowHeight);
 
-            if (x >= 0 && x < levelData.cols && y >= 0 && y < levelData.rows) {
-                tryMoveTo(x, y);
-            }
+            if (x >= 0 && x < levelData.cols && y >= 0 && y < levelData.rows) tryMoveTo(x, y);
         }
 
         function tryMoveTo(x, y) {
             if (path.length === 0) return;
             const current = path[path.length - 1];
             if (current.x === x && current.y === y) return;
-
             const dx = Math.abs(x - current.x);
             const dy = Math.abs(y - current.y);
             const pos = `${x},${y}`;
@@ -310,14 +347,13 @@
         }
 
         function makeMove(x, y, isFirst = false) {
+            Object.values(cells).forEach(c => c.classList.remove('hint')); // Clear hints on move
             const pos = `${x},${y}`;
             const currentCell = cells[pos];
-            const totalNodes = levelData.cols * levelData.rows;
 
             if (!isFirst) {
                 const prev = path[path.length - 1];
                 const prevCell = cells[`${prev.x},${prev.y}`];
-                
                 const line = document.createElement('div');
                 line.className = 'line';
                 if (x > prev.x) line.classList.add('line-right');
@@ -325,12 +361,10 @@
                 else if (y > prev.y) line.classList.add('line-down');
                 else if (y < prev.y) line.classList.add('line-up');
                 prevCell.appendChild(line);
-                
                 triggerHaptic('tick');
             }
 
-            path.push({x, y});
-            visited.add(pos);
+            path.push({x, y}); visited.add(pos);
 
             const dot = document.createElement('div');
             dot.className = 'dot';
@@ -344,16 +378,14 @@
                 logMsg(`Gate Cleared: ${levelData.names[cpIndex]}`, "log-warn");
             }
 
-            updateCurrentHighlight();
-            updateProgress();
-            checkWinCondition(x, y);
+            updateCurrentHighlight(); updateProgress(); checkWinCondition(x, y);
         }
 
         function undoMove() {
+            Object.values(cells).forEach(c => c.classList.remove('hint'));
             const last = path.pop();
             const pos = `${last.x},${last.y}`;
             visited.delete(pos);
-            
             const cell = cells[pos];
             const dot = cell.querySelector('.dot');
             if(dot) dot.remove();
@@ -368,9 +400,7 @@
             const lines = prevCell.querySelectorAll('.line');
             if (lines.length > 0) lines[lines.length - 1].remove();
 
-            triggerHaptic('tick');
-            updateCurrentHighlight();
-            updateProgress();
+            triggerHaptic('tick'); updateCurrentHighlight(); updateProgress();
         }
 
         function updateCurrentHighlight() {
@@ -384,19 +414,18 @@
         function checkWinCondition(x, y) {
             const endPos = levelData.endPos;
             if (x === endPos.x && y === endPos.y) { 
-                isGameOver = true;
-                isDragging = false;
+                isGameOver = true; isDragging = false;
                 const totalNodes = levelData.cols * levelData.rows;
                 
                 if (path.length !== totalNodes) {
                     progressEl.style.backgroundColor = "var(--red)";
                     logMsg("FATAL: Dead Code Detected.", "log-err");
+                    logMsg("Pipeline Failed. 100% Coverage Required.", "log-err");
                     triggerHaptic('error');
                     return;
                 }
 
                 const sequenceCorrect = JSON.stringify(clearedCheckpoints) === JSON.stringify(levelData.checkpoints);
-
                 if (sequenceCorrect) {
                     progressEl.style.backgroundColor = "var(--green-glow)";
                     logMsg("SUCCESS: Environment Deployed!", "log-success");
@@ -413,8 +442,8 @@
         function showModal() {
             const isLastLevel = currentLevel === levels.length - 1;
             const btnHtml = isLastLevel 
-                ? `<button class="btn primary" onclick="closeModal()" style="width:100%; margin-top:15px;">Game Complete!</button>`
-                : `<button class="btn primary" onclick="nextLevel()" style="width:100%; margin-top:15px;">Start Level ${currentLevel + 2} 🚀</button>`;
+                ? `<button class="btn primary" onclick="closeModal()" style="width:100%; margin-top:15px; padding:12px;">Academy Completed! 🎓</button>`
+                : `<button class="btn primary" onclick="nextLevel()" style="width:100%; margin-top:15px; padding:12px;">Start Level ${currentLevel + 2} 🚀</button>`;
 
             let listHtml = "";
             levelData.report.bullets.forEach(b => listHtml += `<li>${b}</li>`);
@@ -432,11 +461,9 @@
         function closeModal() { modalEl.style.display = 'none'; }
         
         function nextLevel() {
-            currentLevel++;
-            initLevel();
+            currentLevel++; initLevel();
         }
 
-        // Start Game
         initLevel();
     </script>
 </body>
