@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DevOps Pipeline Academy</title>
+    <title>DevOps Pipeline Simulator</title>
     <style>
         :root {
             --bg: #0d1117;
@@ -17,6 +17,7 @@
             --yellow: #d29922;
             --red: #f85149;
             --term-bg: #010409;
+            --jira-bg: #fff; /* Jira style */
             --grid-cols: 4;
         }
 
@@ -28,93 +29,101 @@
             touch-action: none; -webkit-user-select: none; user-select: none;
         }
 
-        /* Upgraded Header with Educational Metadata */
         .header { width: 320px; margin-bottom: 12px; }
-        .header h1 { margin: 0 0 5px 0; font-size: 1.6rem; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.1); }
-        .meta-badges { display: flex; gap: 8px; flex-wrap: wrap; }
-        .badge { 
-            font-size: 0.7rem; font-weight: bold; padding: 4px 8px; border-radius: 12px; 
-            background: var(--cell-bg); border: 1px solid var(--border);
-        }
-        .badge.level { color: #fff; border-color: var(--blue); background: rgba(88, 166, 255, 0.1); }
-        .badge.diff-beginner { color: var(--green-glow); border-color: var(--green); background: rgba(35, 134, 54, 0.1); }
-        .badge.diff-inter { color: var(--yellow); border-color: var(--yellow); background: rgba(210, 153, 34, 0.1); }
-        .badge.concept { color: var(--purple); border-color: var(--purple); background: rgba(188, 140, 255, 0.1); }
+        .header h1 { margin: 0 0 5px 0; font-size: 1.4rem; color: #fff; }
+        .meta-badges { display: flex; gap: 6px; }
+        .badge { font-size: 0.65rem; font-weight: bold; padding: 3px 6px; border-radius: 4px; background: var(--cell-bg); border: 1px solid var(--border); color: #8b949e;}
+        .badge.level { border-color: var(--blue); color: var(--blue); }
+        .badge.concept { border-color: var(--purple); color: var(--purple); }
         
-        .progress-container { width: 320px; height: 8px; background: var(--border); border-radius: 4px; margin-bottom: 12px; overflow: hidden; }
-        .progress-bar { height: 100%; width: 0%; background: var(--blue); transition: width 0.1s linear, background-color 0.3s; }
+        .progress-container { width: 320px; height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
+        .progress-bar { height: 100%; width: 0%; background: var(--blue); transition: width 0.1s linear; }
 
         .grid-container {
-            background: #21262d; padding: 10px; border-radius: 12px;
+            background: #21262d; padding: 8px; border-radius: 8px;
             border: 1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.6); margin-bottom: 12px;
         }
-
-        .grid { display: grid; grid-template-columns: repeat(var(--grid-cols), 1fr); gap: 10px; position: relative; }
+        .grid { display: grid; grid-template-columns: repeat(var(--grid-cols), 1fr); gap: 8px; position: relative; }
 
         .cell {
-            background: var(--cell-bg); border: 2px solid var(--border); border-radius: 8px;
+            background: var(--cell-bg); border: 1px solid var(--border); border-radius: 4px;
             position: relative; display: flex; align-items: center; justify-content: center;
-            text-align: center; font-size: 0.55rem; font-weight: bold; box-sizing: border-box;
-            transition: border-color 0.2s;
+            text-align: center; font-size: 0.5rem; font-weight: normal; box-sizing: border-box;
+            color: #8b949e; /* Default gray for code files */
+            font-family: "Courier New", monospace;
         }
 
+        /* Essential Gates */
+        .cell.start, .cell.end, .cell.checkpoint { border-width: 2px; font-weight: bold; color: var(--text); font-family: sans-serif;}
         .cell.start { border-color: var(--blue); color: var(--blue); }
         .cell.end { border-color: var(--purple); color: var(--purple); }
         .cell.checkpoint { border-color: var(--yellow); color: var(--yellow); }
-        .cell.checkpoint.cleared { border-color: var(--green-glow); color: var(--green-glow); text-shadow: 0 0 5px var(--green-glow); }
+        .cell.checkpoint.cleared { border-color: var(--green-glow); color: var(--green-glow); }
 
-        .cell span { z-index: 3; pointer-events: none; background: rgba(13, 17, 23, 0.9); padding: 4px; border-radius: 4px; line-height: 1.1; border: 1px solid rgba(255,255,255,0.05); }
+        /* Anti-Patterns (Bugs) */
+        .cell.bug { border-color: var(--red); color: var(--red); background: rgba(248, 81, 73, 0.1); border-width: 2px;}
 
-        .dot { position: absolute; top: 50%; left: 50%; width: 12px; height: 12px; background: var(--green); border-radius: 50%; transform: translate(-50%, -50%); z-index: 2; }
-        .cell.current .dot { width: 18px; height: 18px; background: var(--green-glow); box-shadow: 0 0 15px var(--green-glow); }
+        .cell span { z-index: 3; pointer-events: none; background: rgba(13, 17, 23, 0.9); padding: 2px 4px; border-radius: 2px; line-height: 1.1; }
 
-        .line { position: absolute; background: var(--green); z-index: 1; }
-        .line-right { top: calc(50% - 4px); left: 50%; width: calc(100% + 10px); height: 8px; }
-        .line-left { top: calc(50% - 4px); right: 50%; width: calc(100% + 10px); height: 8px; }
-        .line-down { left: calc(50% - 4px); top: 50%; height: calc(100% + 10px); width: 8px; }
-        .line-up { left: calc(50% - 4px); bottom: 50%; height: calc(100% + 10px); width: 8px; }
+        /* Path Styling */
+        .dot { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: var(--green); border-radius: 50%; transform: translate(-50%, -50%); z-index: 2; opacity: 0.7;}
+        .cell.current .dot { width: 16px; height: 16px; background: var(--green-glow); box-shadow: 0 0 15px var(--green-glow); opacity: 1;}
+        /* Make code files look "integrated" when crossed */
+        .cell.visited:not(.checkpoint):not(.start):not(.end):not(.bug) { color: var(--green-glow); border-color: rgba(63, 185, 80, 0.3); }
 
-        /* Hint Animation */
-        @keyframes pulseHint {
-            0% { box-shadow: 0 0 0 0 rgba(88, 166, 255, 0.7); border-color: var(--blue); }
-            70% { box-shadow: 0 0 0 15px rgba(88, 166, 255, 0); border-color: var(--blue); }
-            100% { box-shadow: 0 0 0 0 rgba(88, 166, 255, 0); border-color: var(--border); }
-        }
-        .cell.hint { animation: pulseHint 1.5s infinite; z-index: 4; }
+        .line { position: absolute; background: var(--green); z-index: 1; opacity: 0.7;}
+        .line-right { top: calc(50% - 3px); left: 50%; width: calc(100% + 8px); height: 6px; }
+        .line-left { top: calc(50% - 3px); right: 50%; width: calc(100% + 8px); height: 6px; }
+        .line-down { left: calc(50% - 3px); top: 50%; height: calc(100% + 8px); width: 6px; }
+        .line-up { left: calc(50% - 3px); bottom: 50%; height: calc(100% + 8px); width: 6px; }
 
         .terminal {
-            width: 320px; height: 90px; background: var(--term-bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; box-sizing: border-box;
-            font-family: "Courier New", monospace; font-size: 0.7rem; color: #8b949e; overflow-y: auto; text-align: left;
+            width: 320px; height: 100px; background: var(--term-bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; box-sizing: border-box;
+            font-family: "Courier New", monospace; font-size: 0.65rem; color: #8b949e; overflow-y: auto; text-align: left;
             display: flex; flex-direction: column; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
         }
-
-        .log-line { margin: 2px 0; }
+        .log-line { margin: 1px 0; line-height: 1.2;}
         .log-sys { color: var(--blue); }
         .log-success { color: var(--green-glow); font-weight: bold; }
         .log-err { color: var(--red); font-weight: bold; }
         .log-warn { color: var(--yellow); }
+        .log-code { color: #d2a8ff; } /* realistic code log color */
 
-        .controls { display: flex; gap: 10px; margin-top: 15px; width: 320px; justify-content: space-between; }
-        button.btn { flex: 1; background: var(--cell-bg); color: var(--text); border: 1px solid var(--border); padding: 10px 0; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; transition: 0.2s; }
+        .controls { display: flex; gap: 10px; margin-top: 15px; width: 320px; }
+        button.btn { flex: 1; background: transparent; color: var(--text); border: 1px solid var(--border); padding: 10px 0; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
         button.btn:hover { background: #30363d; }
-        button.btn.primary { background: var(--blue); color: #fff; border: none; }
-        button.btn.primary:hover { background: #388bfd; }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(1, 4, 9, 0.85); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(5px); }
-        .modal-content { background: var(--cell-bg); border: 1px solid var(--border); border-radius: 12px; padding: 25px; max-width: 450px; width: 100%; max-height: 85vh; overflow-y: auto; user-select: text;}
-        .modal-content h2 { color: var(--green-glow); margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
-        .modal-content h3 { color: var(--blue); font-size: 1rem; margin-bottom: 5px; }
-        .modal-content p, .modal-content li { font-size: 0.85rem; line-height: 1.6; }
+        /* Modals (Jira & Report) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(1, 4, 9, 0.9); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(3px); }
+        
+        /* Jira Ticket Style Briefing */
+        .jira-ticket { background: var(--jira-bg); color: #172b4d; border-radius: 3px; padding: 20px; max-width: 400px; width: 100%; box-shadow: 0 10px 20px rgba(0,0,0,0.5); font-family: -apple-system, sans-serif; user-select: text;}
+        .jira-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dfe1e6; padding-bottom: 10px; margin-bottom: 15px;}
+        .jira-key { font-weight: bold; color: #5e6c84; font-size: 0.9rem;}
+        .jira-status { background: #deebff; color: #0052cc; font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 3px; text-transform: uppercase;}
+        .jira-ticket h2 { margin: 0 0 15px 0; font-size: 1.3rem; color: #172b4d;}
+        .jira-ticket h3 { font-size: 0.85rem; color: #5e6c84; text-transform: uppercase; margin: 15px 0 5px 0;}
+        .jira-ticket p, .jira-ticket li { font-size: 0.9rem; line-height: 1.5; margin: 0 0 10px 0;}
+        .jira-ticket ul { padding-left: 20px; margin: 0;}
+        .jira-ticket strong { color: #000; }
+        button.btn-jira { background: #0052cc; color: #fff; border: none; padding: 10px 20px; border-radius: 3px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px;}
+        button.btn-jira:hover { background: #0747a6; }
+
+        /* Dark Report Style */
+        .report-content { background: var(--cell-bg); border: 1px solid var(--border); border-radius: 8px; padding: 25px; max-width: 450px; width: 100%; max-height: 85vh; overflow-y: auto; user-select: text;}
+        .report-content h2 { color: var(--green-glow); margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
+        .report-content h3 { color: var(--blue); font-size: 1rem; margin-bottom: 5px; }
+        .report-content p, .report-content li { font-size: 0.85rem; line-height: 1.6; }
+        button.btn-rpt { background: var(--green); color: #fff; border: none; padding: 12px; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 20px; font-weight: bold;}
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h1>DevOps Academy</h1>
+        <h1>Pipeline Simulator</h1>
         <div class="meta-badges">
             <span class="badge level" id="badge-level">Lvl 1</span>
-            <span class="badge" id="badge-diff">Beginner</span>
-            <span class="badge concept" id="badge-concept">CD Pipeline</span>
+            <span class="badge concept" id="badge-concept">Concept</span>
         </div>
     </div>
 
@@ -129,67 +138,112 @@
     <div class="terminal" id="terminal"></div>
 
     <div class="controls">
-        <button class="btn" onclick="initLevel()">Reset</button>
-        <button class="btn primary" onclick="showHint()">Ask Lead (Hint)</button>
+        <button class="btn" onclick="startLevelBriefing()">Restart Mission</button>
     </div>
 
-    <div class="modal-overlay" id="info-modal">
-        <div class="modal-content" id="modal-body"></div>
+    <div class="modal-overlay" id="briefing-modal">
+        <div class="jira-ticket" id="jira-content"></div>
+    </div>
+
+    <div class="modal-overlay" id="report-modal">
+        <div class="report-content" id="report-body"></div>
     </div>
 
     <script>
-        // --- LEVEL CONFIGURATIONS (With Exact Path Solutions) ---
+        // Specific Generic Labels to fill empty squares
+        const genericCodeFiles = [
+            "auth.js", "user.controller.go", "settings.yaml", "index.html", "styles.css",
+            "db.config.php", "api_router.py", "webpack.config.js", "readme.md", "data.json",
+            "server.java", "routes.ts", "utils.rb", "app.manifest", "deploy.sh"
+        ];
+
+        // --- LEVEL CONFIGURATIONS ---
         const levels = [
             {
                 cols: 4, rows: 4,
-                difficulty: "Beginner", diffClass: "diff-beginner",
                 concept: "Continuous Deployment",
                 endPos: {x: 3, y: 2},
                 checkpoints: ["3,0", "0,1", "1,2", "3,3"],
                 names: ["[1] SAST", "[2] Unit Tests", "[3] Docker Build", "[4] Vuln Scan"],
-                solution: ["0,0", "1,0", "2,0", "3,0", "3,1", "2,1", "1,1", "0,1", "0,2", "0,3", "1,3", "1,2", "2,2", "2,3", "3,3", "3,2"],
                 data: {
                     "0,0": { label: "git push", type: "start" },
+                    "1,1": { label: "Merge<br>Conflict", type: "bug" }, // Obstacle
                     "3,0": { label: "[1] SAST", type: "checkpoint" },
                     "0,1": { label: "[2] Test", type: "checkpoint" },
                     "1,2": { label: "[3] Build", type: "checkpoint" },
                     "3,3": { label: "[4] Scan", type: "checkpoint" },
                     "3,2": { label: "Deploy", type: "end" }
                 },
+                // Realistic tool logs based on cell ID
+                logs: {
+                    "3,0": "[INFO] running sonarqube-scanner... 0 Security Hotspots found.",
+                    "0,1": "[PASS] 112 unit tests executed successfully in 1.2s.",
+                    "1,2": "[DOCKER] step 3/5: COPY . /app ... step 4/5: RUN npm install...",
+                    "3,3": "[WARN] 2 Low-severity CVEs found in old base image. Acceptable for now.",
+                    "1,1": "[FATAL] Automatic merge failed; fix conflicts and then commit the result.",
+                    "default": "> Code component integrated into build artifact."
+                },
+                briefing: {
+                    key: "PROJ-101",
+                    title: "Implement CD for Frontend",
+                    desc: "Automate the deployment pipeline so merges to main go straight to prod. Security Gates must be enforced.",
+                    reqs: [
+                        "Enforce <strong>100% Code Integration</strong> (fill all service/config squares). Orphaned code cannot be deployed.",
+                        "Pass Gates 1 thru 4 in strict order.",
+                        "Avoid known <strong>Merge Conflicts</strong> (red tiles)."
+                    ]
+                },
                 report: {
-                    title: "Automated Continuous Deployment",
-                    desc: "Because your code hit 100% coverage and passed all automated security gates, it went straight to production without human intervention.",
+                    title: "Deployment Successful",
+                    desc: "You established a Continuous Deployment (CD) pipeline. Every integrated file was bundled, scanned, and deployed automatically.",
                     bullets: [
-                        "<b>SAST:</b> Static code analysis. Catches hardcoded secrets.",
-                        "<b>Unit Tests:</b> Verifies individual functions in isolation.",
-                        "<b>Docker Build:</b> Packages the artifact for deployment.",
-                        "<b>Vuln Scan:</b> Scans the container image for known CVEs."
+                        "<strong>Ludonarrative alignment:</strong> You filled the grid because in a real build process, you must bundle 100% of the required source files and configurations into the final artifact (Docker image/ZIP) before deploying."
                     ]
                 }
             },
             {
                 cols: 5, rows: 5,
-                difficulty: "Intermediate", diffClass: "diff-inter",
                 concept: "Blue/Green Deployment",
                 endPos: {x: 4, y: 4}, 
                 checkpoints: ["4,0", "0,2", "4,3", "0,4"],
                 names: ["[1] Build Image", "[2] Deploy Green", "[3] E2E Tests", "[4] Switch Router"],
-                solution: ["0,0", "1,0", "2,0", "3,0", "4,0", "4,1", "3,1", "2,1", "1,1", "0,1", "0,2", "1,2", "2,2", "3,2", "4,2", "4,3", "3,3", "2,3", "1,3", "0,3", "0,4", "1,4", "2,4", "3,4", "4,4"],
                 data: {
                     "0,0": { label: "Merge<br>Main", type: "start" },
+                    "2,1": { label: "Hardcoded<br>AWS Key", type: "bug" }, // Risky obstacle
                     "4,0": { label: "[1] Build<br>Image", type: "checkpoint" },
                     "0,2": { label: "[2] Deploy<br>Green", type: "checkpoint" },
+                    "4,2": { label: "Deprecated<br>API", type: "bug" }, // Obstacle on obvious path
                     "4,3": { label: "[3] E2E<br>Tests", type: "checkpoint" },
                     "0,4": { label: "[4] Switch<br>Router", type: "checkpoint" },
                     "4,4": { label: "Live<br>Traffic", type: "end" }
                 },
+                logs: {
+                    "4,0": "[DOCKER] pushing image backend:v2.1 to private registry...",
+                    "0,2": "[K8s] creating isolated green-environment namespace... scaling pods...",
+                    "4,3": "[INFO] running cypress integration tests against Green URL... 100% Pass.",
+                    "0,4": "[NGINX] reloading configuration... load balancer now pointing to Green namespace.",
+                    "2,1": "[SECURITY ERROR] trivy-scan found HIGH severity secret leakage. Pipeline halted.",
+                    "4,2": "[COMPILE ERROR] use of deprecated API v1.beta (removed in v2). Build failed.",
+                    "default": "> Integrating backend module or database migration."
+                },
+                briefing: {
+                    key: "PROJ-202",
+                    title: "Zero-Downtime API Upgrade",
+                    desc: "Upgrade the core API to v2. Users must not experience downtime during the rollout.",
+                    reqs: [
+                        "Integrate all backend services (fill the grid).",
+                        "Spin up the new version alongside old (Deploy Green).",
+                        "Verify Green with End-to-End tests.",
+                        "Flipping the router only AFTER verification.",
+                        "Avoid known anti-patterns like <strong>Hardcoded Secrets</strong>."
+                    ]
+                },
                 report: {
-                    title: "Blue/Green Deployment",
-                    desc: "You just executed a Blue/Green rollout. The old version (Blue) kept running while you deployed the new version (Green) alongside it.",
+                    title: "Blue/Green Rollout Complete",
+                    desc: "The old environment (Blue) stayed live while you prepared and tested the new environment (Green). The cutover was instant.",
                     bullets: [
-                        "<b>Deploy Green:</b> Spinning up the new version in an isolated environment.",
-                        "<b>E2E Tests:</b> Running integration tests on Green before users see it.",
-                        "<b>Switch Router:</b> Flipping the load balancer to Green. Zero downtime, instant rollback!"
+                        "<strong>Zero Downtime:</strong> Users never saw a 503 error because Nginx was only reloaded after Green was 100% verified.",
+                        "<strong>Instant Rollback:</strong> If something broke, you could have just pointed Nginx back to Blue instantly."
                     ]
                 }
             }
@@ -200,8 +254,7 @@
         const gridEl = document.getElementById('grid');
         const terminalEl = document.getElementById('terminal');
         const progressEl = document.getElementById('progress');
-        const modalEl = document.getElementById('info-modal');
-        const modalBody = document.getElementById('modal-body');
+        const modals = { briefing: document.getElementById('briefing-modal'), report: document.getElementById('report-modal') };
         
         let path = [];
         let visited = new Set();
@@ -211,86 +264,102 @@
         let clearedCheckpoints = [];
         let levelData;
 
-        function initLevel() {
-            levelData = levels[currentLevel];
-            
-            // Update Headers
-            document.getElementById('badge-level').innerText = `Lvl ${currentLevel + 1}`;
-            const badgeDiff = document.getElementById('badge-diff');
-            badgeDiff.innerText = levelData.difficulty;
-            badgeDiff.className = `badge ${levelData.diffClass}`;
-            document.getElementById('badge-concept').innerText = levelData.concept;
+        // --- Game Setup ---
 
+        function startLevelBriefing() {
+            levelData = levels[currentLevel];
+            isGameOver = true; // Disable interaction during briefing
+
+            // Update UI headers
+            document.getElementById('badge-level').innerText = `Lvl ${currentLevel + 1}`;
+            document.getElementById('badge-concept').innerText = levelData.concept;
             document.documentElement.style.setProperty('--grid-cols', levelData.cols);
 
+            // Populate Jira Ticket
+            let reqsHtml = "";
+            levelData.briefing.reqs.forEach(r => reqsHtml += `<li>${r}</li>`);
+
+            document.getElementById('jira-content').innerHTML = `
+                <div class="jira-header">
+                    <span class="jira-key">${levelData.briefing.key}</span>
+                    <span class="jira-status">To Do</span>
+                </div>
+                <h2>${levelData.briefing.title}</h2>
+                <p>${levelData.briefing.desc}</p>
+                <h3>Requirements</h3>
+                <ul>${reqsHtml}</ul>
+                <button class="btn-jira" onclick="initLevel()">Accept Assignment & Start Pipeline</button>
+            `;
+            
+            closeAllModals();
+            modals.briefing.style.display = 'flex';
+        }
+
+        function initLevel() {
+            levelData = levels[currentLevel]; // Ensure levelData is set
+            closeAllModals();
             gridEl.innerHTML = ''; terminalEl.innerHTML = '';
             cells = {}; path = []; visited.clear(); clearedCheckpoints = [];
-            isGameOver = false; modalEl.style.display = 'none';
+            isGameOver = false; 
             
             const cellSize = levelData.cols === 5 ? '56px' : '70px';
+            let fileLabelIndex = 0;
 
             for (let y = 0; y < levelData.rows; y++) {
                 for (let x = 0; x < levelData.cols; x++) {
                     const pos = `${x},${y}`;
                     const cell = document.createElement('div');
                     cell.className = 'cell';
-                    cell.style.width = cellSize;
-                    cell.style.height = cellSize;
+                    cell.style.width = cellSize; cell.style.height = cellSize;
                     cell.id = `cell-${x}-${y}`;
                     
                     if (levelData.data[pos]) {
-                        cell.classList.add(levelData.data[pos].type);
-                        cell.innerHTML = `<span>${levelData.data[pos].label}</span>`;
+                        const cellMeta = levelData.data[pos];
+                        cell.classList.add(cellMeta.type);
+                        cell.innerHTML = `<span>${cellMeta.label}</span>`;
+                    } else {
+                        // Dynamically label "empty" tiles as integrated code files
+                        const label = genericCodeFiles[fileLabelIndex % genericCodeFiles.length];
+                        cell.innerHTML = `<span>${label}</span>`;
+                        fileLabelIndex++;
                     }
                     gridEl.appendChild(cell);
                     cells[pos] = cell;
                 }
             }
             
-            logMsg(`[Level ${currentLevel + 1}] System initializing...`, "log-sys");
-            logMsg(`Concept: ${levelData.concept}`, "log-sys");
+            logMsg(`[SIM] Starting Pipeline: ${levelData.briefing.key}...`, "log-sys");
+            logMsg(`Requirement: Integrate all local code modules.`, "log-sys");
             updateProgress();
             makeMove(0, 0, true);
         }
 
-        // --- NEW HINT SYSTEM ---
-        function showHint() {
-            if (isGameOver) return;
-            Object.values(cells).forEach(c => c.classList.remove('hint'));
-            
-            let isCorrectSoFar = true;
-            for(let i=0; i<path.length; i++) {
-                if(`${path[i].x},${path[i].y}` !== levelData.solution[i]) {
-                    isCorrectSoFar = false; break;
-                }
-            }
-            
-            if(isCorrectSoFar) {
-                if(path.length < levelData.solution.length) {
-                    const nextPos = levelData.solution[path.length];
-                    cells[nextPos].classList.add('hint');
-                    logMsg(`SENIOR DEV: "Try routing through the highlighted node to ensure 100% coverage without trapping yourself."`, "log-sys");
-                }
-            } else {
-                const currentPos = `${path[path.length-1].x},${path[path.length-1].y}`;
-                cells[currentPos].classList.add('hint');
-                logMsg(`SENIOR DEV: "Pipeline Drift Detected. You took a wrong turn and will miss coverage. Drag backward to undo!"`, "log-err");
-            }
-        }
+        // --- Haptic/Logs/Progress ---
 
         function triggerHaptic(type) {
             if (!navigator.vibrate) return;
-            if (type === 'tick') navigator.vibrate(10);
-            if (type === 'success') navigator.vibrate([30, 50, 30]);
-            if (type === 'error') navigator.vibrate([50, 50, 50, 50]);
+            const pat = { tick: 10, success: [30, 50, 30], error: [50, 50, 50, 50] };
+            if (pat[type]) navigator.vibrate(pat[type]);
         }
 
         function logMsg(msg, className = "") {
             const line = document.createElement('div');
             line.className = `log-line ${className}`;
-            line.innerText = `> ${msg}`;
+            line.innerText = msg.startsWith('>') ? msg : `> ${msg}`;
             terminalEl.appendChild(line);
             terminalEl.scrollTop = terminalEl.scrollHeight;
+        }
+
+        function getRealisticLog(pos) {
+            // Priority 1: Specific logs for a gate or bug
+            if(levelData.logs[pos]) return { msg: levelData.logs[pos], type: "" };
+            
+            const cellType = levelData.data[pos] ? levelData.data[pos].type : 'standard';
+            if (cellType === 'start') return { msg: "Commit detected. Initiating automated workflow...", type: "log-success"};
+            
+            // Priority 2: generic code file integration logs
+            const fileName = cells[pos].querySelector('span').innerText;
+            return { msg: `Code Integrity Check: Linter passed for ${fileName}. Integrated.`, type: "log-code"};
         }
 
         function updateProgress() {
@@ -299,32 +368,27 @@
             progressEl.style.width = `${pct}%`;
             
             if (isGameOver) return;
-            if (pct < 40) progressEl.style.backgroundColor = "var(--blue)";
-            else if (pct < 80) progressEl.style.backgroundColor = "var(--yellow)";
-            else progressEl.style.backgroundColor = "var(--green-glow)";
+            const colors = ["var(--blue)", "var(--yellow)", "var(--green-glow)"];
+            progressEl.style.backgroundColor = colors[pct < 40 ? 0 : (pct < 80 ? 1 : 2)];
         }
 
-        gridEl.addEventListener('mousedown', (e) => { isDragging = true; processInput(e); });
-        window.addEventListener('mousemove', (e) => { if(isDragging) { e.preventDefault(); processInput(e); } }, {passive: false});
+        // --- Input Engine (Math-based, smooth) ---
+
+        gridEl.addEventListener('mousedown', (e) => { if(!isGameOver) { isDragging = true; processInput(e); }});
+        window.addEventListener('mousemove', (e) => { if(isDragging && !isGameOver) { e.preventDefault(); processInput(e); } }, {passive: false});
         window.addEventListener('mouseup', () => isDragging = false);
 
-        gridEl.addEventListener('touchstart', (e) => { isDragging = true; processInput(e); }, {passive: false});
-        gridEl.addEventListener('touchmove', (e) => { if(isDragging) { e.preventDefault(); processInput(e); } }, {passive: false});
+        gridEl.addEventListener('touchstart', (e) => { if(!isGameOver) { isDragging = true; processInput(e); }}, {passive: false});
+        gridEl.addEventListener('touchmove', (e) => { if(isDragging && !isGameOver) { e.preventDefault(); processInput(e); } }, {passive: false});
         window.addEventListener('touchend', () => isDragging = false);
 
         function processInput(e) {
-            if (isGameOver) return;
             let clientX = e.clientX, clientY = e.clientY;
-            if (e.touches && e.touches.length > 0) {
-                clientX = e.touches[0].clientX; clientY = e.touches[0].clientY;
-            }
+            if (e.touches && e.touches.length > 0) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
             const rect = gridEl.getBoundingClientRect();
             if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return;
-            const colWidth = rect.width / levelData.cols;
-            const rowHeight = rect.height / levelData.rows;
-            const x = Math.floor((clientX - rect.left) / colWidth);
-            const y = Math.floor((clientY - rect.top) / rowHeight);
-
+            const x = Math.floor((clientX - rect.left) / (rect.width / levelData.cols));
+            const y = Math.floor((clientY - rect.top) / (rect.height / levelData.rows));
             if (x >= 0 && x < levelData.cols && y >= 0 && y < levelData.rows) tryMoveTo(x, y);
         }
 
@@ -332,8 +396,6 @@
             if (path.length === 0) return;
             const current = path[path.length - 1];
             if (current.x === x && current.y === y) return;
-            const dx = Math.abs(x - current.x);
-            const dy = Math.abs(y - current.y);
             const pos = `${x},${y}`;
 
             if (path.length > 1) {
@@ -341,62 +403,79 @@
                 if (prev.x === x && prev.y === y) { undoMove(); return; }
             }
 
-            if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+            if ((Math.abs(x - current.x) === 1 && y === current.y) || (x === current.x && Math.abs(y - current.y) === 1)) {
+                // Important educational change: We now handle bug tiles here. We allow moving onto them to fail.
                 if (!visited.has(pos)) makeMove(x, y);
             }
         }
 
         function makeMove(x, y, isFirst = false) {
-            Object.values(cells).forEach(c => c.classList.remove('hint')); // Clear hints on move
             const pos = `${x},${y}`;
             const currentCell = cells[pos];
+            
+            path.push({x, y}); visited.add(pos);
+            currentCell.classList.add('visited'); // For styling generic files as green
 
             if (!isFirst) {
-                const prev = path[path.length - 1];
-                const prevCell = cells[`${prev.x},${prev.y}`];
+                const prev = path[path.length - 1]; // Wait, path already has current at end.
+                const prevCoord = path[path.length - 2];
+                const prevCell = cells[`${prevCoord.x},${prevCoord.y}`];
+                
                 const line = document.createElement('div');
                 line.className = 'line';
-                if (x > prev.x) line.classList.add('line-right');
-                else if (x < prev.x) line.classList.add('line-left');
-                else if (y > prev.y) line.classList.add('line-down');
-                else if (y < prev.y) line.classList.add('line-up');
+                if (x > prevCoord.x) line.classList.add('line-right');
+                else if (x < prevCoord.x) line.classList.add('line-left');
+                else if (y > prevCoord.y) line.classList.add('line-down');
+                else if (y < prevCoord.y) line.classList.add('line-up');
                 prevCell.appendChild(line);
                 triggerHaptic('tick');
             }
-
-            path.push({x, y}); visited.add(pos);
 
             const dot = document.createElement('div');
             dot.className = 'dot';
             currentCell.appendChild(dot);
 
-            if (levelData.checkpoints.includes(pos)) {
-                const cpIndex = levelData.checkpoints.indexOf(pos);
+            // Fetch realistic log
+            const logData = getRealisticLog(pos);
+            logMsg(logData.msg, logData.type);
+
+            // Check if we hit an obstacle (Bug/Anti-Pattern)
+            const cellMeta = levelData.data[pos];
+            if (cellMeta && cellMeta.type === 'bug') {
+                logMsg(`🛑 PIPELINE CRASHED: ${cellMeta.label.replace('<br>',' ')} detected.`, "log-err");
+                progressEl.style.backgroundColor = "var(--red)";
+                isGameOver = true; isDragging = false;
+                triggerHaptic('error');
+                return; // halt processing
+            }
+
+            // Standard Gate handling
+            if (cellMeta && cellMeta.type === 'checkpoint') {
                 clearedCheckpoints.push(pos);
                 currentCell.classList.add('cleared');
                 triggerHaptic('success');
-                logMsg(`Gate Cleared: ${levelData.names[cpIndex]}`, "log-warn");
+                const cpIndex = levelData.checkpoints.indexOf(pos);
+                logMsg(`>> Security Gate cleared: ${levelData.names[cpIndex]}`, "log-warn");
             }
 
             updateCurrentHighlight(); updateProgress(); checkWinCondition(x, y);
         }
 
         function undoMove() {
-            Object.values(cells).forEach(c => c.classList.remove('hint'));
             const last = path.pop();
             const pos = `${last.x},${last.y}`;
             visited.delete(pos);
-            const cell = cells[pos];
-            const dot = cell.querySelector('.dot');
+            cells[pos].classList.remove('visited');
+            const dot = cells[pos].querySelector('.dot');
             if(dot) dot.remove();
 
-            if (levelData.checkpoints.includes(pos)) {
-                cell.classList.remove('cleared');
+            if (levelData.data[pos] && levelData.data[pos].type === 'checkpoint') {
+                cells[pos].classList.remove('cleared');
                 clearedCheckpoints.pop();
             }
 
-            const prev = path[path.length - 1];
-            const prevCell = cells[`${prev.x},${prev.y}`];
+            const prevCoord = path[path.length - 1];
+            const prevCell = cells[`${prevCoord.x},${prevCoord.y}`];
             const lines = prevCell.querySelectorAll('.line');
             if (lines.length > 0) lines[lines.length - 1].remove();
 
@@ -412,59 +491,60 @@
         }
 
         function checkWinCondition(x, y) {
-            const endPos = levelData.endPos;
-            if (x === endPos.x && y === endPos.y) { 
+            if (x === levelData.endPos.x && y === levelData.endPos.y) { 
                 isGameOver = true; isDragging = false;
-                const totalNodes = levelData.cols * levelData.rows;
                 
-                if (path.length !== totalNodes) {
+                // 1. Grid Coverage Check ( Ludonarrative: Artifact Integrity)
+                if (path.length !== (levelData.cols * levelData.rows)) {
                     progressEl.style.backgroundColor = "var(--red)";
-                    logMsg("FATAL: Dead Code Detected.", "log-err");
-                    logMsg("Pipeline Failed. 100% Coverage Required.", "log-err");
+                    logMsg("FATAL: Orphaned source code detected in workspace.", "log-err");
+                    logMsg("Build failed. Artifact integrity check incomplete.", "log-err");
                     triggerHaptic('error');
                     return;
                 }
 
-                const sequenceCorrect = JSON.stringify(clearedCheckpoints) === JSON.stringify(levelData.checkpoints);
-                if (sequenceCorrect) {
+                // 2. Gate Order Check
+                if (JSON.stringify(clearedCheckpoints) === JSON.stringify(levelData.checkpoints)) {
                     progressEl.style.backgroundColor = "var(--green-glow)";
-                    logMsg("SUCCESS: Environment Deployed!", "log-success");
+                    logMsg("Build validated. Security profile accepted.", "log-success");
+                    logMsg("DEPLOYMENT SUCCESSFUL. Traffic routed.", "log-success");
                     triggerHaptic('success');
-                    showModal();
+                    showReport();
                 } else {
                     progressEl.style.backgroundColor = "var(--red)";
-                    logMsg("FATAL: Security Gates Out of Order.", "log-err");
+                    logMsg("FATAL: Security Gates Bypassed or executed out of order.", "log-err");
+                    logMsg("Deployment Aborted to prevent breach.", "log-err");
                     triggerHaptic('error');
                 }
             }
         }
 
-        function showModal() {
-            const isLastLevel = currentLevel === levels.length - 1;
-            const btnHtml = isLastLevel 
-                ? `<button class="btn primary" onclick="closeModal()" style="width:100%; margin-top:15px; padding:12px;">Academy Completed! 🎓</button>`
-                : `<button class="btn primary" onclick="nextLevel()" style="width:100%; margin-top:15px; padding:12px;">Start Level ${currentLevel + 2} 🚀</button>`;
+        // --- Modal Management ---
+
+        function showReport() {
+            const isLast = currentLevel === levels.length - 1;
+            const btnHtml = isLast 
+                ? `<button class="btn-rpt" onclick="closeAllModals()">Simulator Complete</button>`
+                : `<button class="btn-rpt" onclick="nextLevel()">Start Level ${currentLevel + 2}</button>`;
 
             let listHtml = "";
             levelData.report.bullets.forEach(b => listHtml += `<li>${b}</li>`);
 
-            modalBody.innerHTML = `
-                <h2>✅ Deployment Report</h2>
+            document.getElementById('report-body').innerHTML = `
+                <h2>✅ Post-Action Report</h2>
                 <h3>${levelData.report.title}</h3>
                 <p>${levelData.report.desc}</p>
                 <ul>${listHtml}</ul>
                 ${btnHtml}
             `;
-            setTimeout(() => { modalEl.style.display = 'flex'; }, 800);
+            setTimeout(() => { modals.report.style.display = 'flex'; }, 800);
         }
 
-        function closeModal() { modalEl.style.display = 'none'; }
-        
-        function nextLevel() {
-            currentLevel++; initLevel();
-        }
+        function nextLevel() { currentLevel++; startLevelBriefing(); }
+        function closeAllModals() { modals.briefing.style.display = 'none'; modals.report.style.display = 'none'; }
 
-        initLevel();
+        // Start Simulator
+        startLevelBriefing();
     </script>
 </body>
 </html>
