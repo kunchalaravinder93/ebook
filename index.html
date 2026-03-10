@@ -1,880 +1,1691 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DevOps Rush - Cloud Operations Simulator</title>
-    <style>
-        /* --- CORE THEME & RESET --- */
-        :root {
-            --bg-base: #050b14;
-            --bg-panel: #0d1a2d;
-            --border-glow: #1e3a5f;
-            --neon-blue: #00f3ff;
-            --neon-green: #39ff14;
-            --neon-red: #ff003c;
-            --neon-yellow: #ffea00;
-            --text-main: #e2f1ff;
-            --text-muted: #6b8eb5;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>DevOps Rush — Production Operations Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap');
 
-        * { box-sizing: border-box; font-family: 'Courier New', Courier, monospace; user-select: none; }
-        
-        body {
-            margin: 0; padding: 0; background-color: var(--bg-base); color: var(--text-main);
-            overflow: hidden; display: flex; flex-direction: column; height: 100vh;
-            touch-action: none; /* Crucial for mobile dragging */
-        }
+:root {
+  --bg-deep: #020812;
+  --bg-panel: #050e1e;
+  --bg-card: #071224;
+  --accent-cyan: #00f5ff;
+  --accent-green: #00ff88;
+  --accent-red: #ff2d55;
+  --accent-orange: #ff8c00;
+  --accent-purple: #bf5fff;
+  --accent-yellow: #ffe600;
+  --text-primary: #e8f4ff;
+  --text-dim: #4a7fa8;
+  --border-glow: rgba(0,245,255,0.3);
+  --shadow-cyan: 0 0 20px rgba(0,245,255,0.4);
+  --shadow-green: 0 0 20px rgba(0,255,136,0.4);
+  --shadow-red: 0 0 20px rgba(255,45,85,0.4);
+  --grid-line: rgba(0,245,255,0.06);
+  --font-mono: 'Share Tech Mono', monospace;
+  --font-display: 'Orbitron', monospace;
+  --font-body: 'Exo 2', sans-serif;
+}
 
-        h1, h2, h3, p { margin: 0; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* --- HUD (HEADS UP DISPLAY) --- */
-        #hud {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px 20px; background: rgba(13, 26, 45, 0.9);
-            border-bottom: 2px solid var(--border-glow); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
-            z-index: 100; font-weight: bold; font-size: 0.9rem;
-        }
-        
-        .hud-group { display: flex; gap: 20px; align-items: center; }
-        .hud-item { display: flex; flex-direction: column; align-items: center; }
-        .hud-label { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;}
-        .hud-value { font-size: 1.2rem; text-shadow: 0 0 5px currentColor; }
-        
-        #val-health { color: var(--neon-green); }
-        #val-score { color: var(--neon-blue); }
-        #val-combo { color: var(--neon-yellow); }
-        #val-time { color: var(--text-main); }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
 
-        .health-bar-bg { width: 100px; height: 10px; background: #111; border: 1px solid var(--border-glow); border-radius: 5px; overflow: hidden; margin-top: 3px;}
-        .health-bar-fill { height: 100%; width: 100%; background: var(--neon-green); transition: width 0.3s, background-color 0.3s; box-shadow: 0 0 10px var(--neon-green);}
+/* ── SCANLINES & GRID OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px),
+    repeating-linear-gradient(90deg, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 60px),
+    repeating-linear-gradient(0deg, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 60px);
+}
 
-        /* --- SCREENS --- */
-        .screen { display: none; flex: 1; flex-direction: column; align-items: center; padding: 20px; position: relative; overflow: hidden; width: 100%; max-width: 800px; margin: 0 auto;}
-        .screen.active { display: flex; }
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 9998; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0,245,255,0.06) 0%, transparent 70%),
+              radial-gradient(ellipse at 0% 100%, rgba(0,255,136,0.04) 0%, transparent 50%),
+              radial-gradient(ellipse at 100% 100%, rgba(191,95,255,0.04) 0%, transparent 50%);
+}
 
-        /* General UI Elements */
-        .btn {
-            background: rgba(0, 243, 255, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue);
-            padding: 12px 24px; font-size: 1.2rem; font-weight: bold; border-radius: 4px;
-            cursor: pointer; text-transform: uppercase; transition: 0.2s; box-shadow: 0 0 10px rgba(0,243,255,0.2);
-        }
-        .btn:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 20px var(--neon-blue); }
+/* ── CANVAS ── */
+#particleCanvas {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+}
 
-        .title { color: var(--neon-blue); font-size: 2.5rem; text-shadow: 0 0 15px var(--neon-blue); margin-bottom: 10px; text-align: center; text-transform: uppercase;}
-        .subtitle { color: var(--text-muted); margin-bottom: 30px; text-align: center; max-width: 500px; line-height: 1.5;}
+/* ── GAME WRAPPER ── */
+#gameWrapper {
+  position: relative; z-index: 10;
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+}
 
-        /* --- DRAG & DROP ELEMENTS --- */
-        .draggable {
-            position: absolute; padding: 10px 15px; background: var(--bg-panel);
-            border: 2px solid var(--neon-blue); color: var(--neon-blue); border-radius: 6px;
-            font-weight: bold; font-size: 0.8rem; cursor: grab; z-index: 50;
-            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); text-align: center;
-            display: flex; align-items: center; justify-content: center;
-            transition: transform 0.1s;
-        }
-        .draggable:active, .draggable.dragging { cursor: grabbing; transform: scale(1.1); z-index: 100; box-shadow: 0 0 20px var(--neon-blue); background: #001f3f;}
-        
-        .dropzone {
-            border: 2px dashed var(--text-muted); border-radius: 6px; background: rgba(0,0,0,0.3);
-            display: flex; align-items: center; justify-content: center;
-            color: var(--text-muted); font-size: 0.8rem; text-align: center; transition: 0.2s;
-        }
-        .dropzone.hover { border-color: var(--neon-yellow); background: rgba(255, 234, 0, 0.1); }
-        .dropzone.filled { border-style: solid; border-color: var(--neon-green); color: var(--neon-green); }
+/* ── HUD ── */
+#hud {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 8px 16px;
+  background: linear-gradient(180deg, rgba(2,8,18,0.98) 0%, rgba(5,14,30,0.95) 100%);
+  border-bottom: 1px solid var(--border-glow);
+  box-shadow: 0 4px 30px rgba(0,0,0,0.8), inset 0 -1px 0 var(--border-glow);
+  gap: 12px;
+  min-height: 64px;
+}
 
-        .tools-tray {
-            position: absolute; bottom: 20px; width: 100%; display: flex; flex-wrap: wrap;
-            justify-content: center; gap: 10px; padding: 10px;
-            background: rgba(13, 26, 45, 0.8); border: 1px solid var(--border-glow); border-radius: 8px;
-        }
+.hud-title {
+  font-family: var(--font-display);
+  font-size: clamp(10px, 2vw, 14px);
+  font-weight: 900;
+  color: var(--accent-cyan);
+  text-shadow: var(--shadow-cyan);
+  letter-spacing: 3px;
+  text-align: center;
+}
 
-        /* --- STAGE 1: CI PIPELINE --- */
-        .pipeline-track { display: flex; gap: 10px; width: 100%; justify-content: space-between; align-items: center; margin-top: 40px; flex-wrap: wrap;}
-        .pipe-zone { width: 80px; height: 80px; position: relative;}
-        .pipe-arrow { color: var(--border-glow); font-weight: bold; font-size: 1.5rem; }
+.hud-metrics {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+.hud-metrics.right { justify-content: flex-end; }
 
-        /* --- STAGE 2: CLOUD ARCHITECTURE --- */
-        .arch-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); gap: 15px; width: 100%; height: 350px; position: relative; margin-top: 20px;}
-        .arch-zone { width: 100%; height: 100%; }
-        /* Positioning logic handled in JS, but grid helps spacing */
+.hud-metric {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 4px 10px;
+  background: rgba(0,245,255,0.04);
+  border: 1px solid rgba(0,245,255,0.15);
+  border-radius: 4px;
+  min-width: 60px;
+  position: relative;
+  overflow: hidden;
+}
+.hud-metric::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+  opacity: 0.5;
+}
+.hud-metric-label {
+  font-family: var(--font-mono);
+  font-size: 8px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase;
+}
+.hud-metric-value {
+  font-family: var(--font-display);
+  font-size: clamp(11px, 1.8vw, 14px); font-weight: 700;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 10px currentColor;
+  line-height: 1.2;
+}
+.hud-metric-value.health { color: var(--accent-green); }
+.hud-metric-value.danger { color: var(--accent-red); animation: blink 0.5s infinite; }
+.hud-metric-value.combo { color: var(--accent-purple); }
+.hud-metric-value.timer { color: var(--accent-yellow); }
 
-        /* --- STAGE 3: K8S CLUSTER --- */
-        .k8s-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; margin-top: 20px;}
-        .pod {
-            background: var(--bg-panel); border: 2px solid var(--neon-green); border-radius: 8px;
-            height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); transition: 0.3s; position: relative;
-        }
-        .pod-title { font-weight: bold; font-size: 0.9rem; color: var(--text-main); margin-bottom: 5px;}
-        .pod-status { font-size: 0.7rem; color: var(--neon-green); text-transform: uppercase;}
-        
-        .pod.crash { border-color: var(--neon-red); box-shadow: 0 0 20px rgba(255, 0, 60, 0.5); animation: pulseAlert 1s infinite; }
-        .pod.crash .pod-status { color: var(--neon-red); }
+/* ── HEALTH BAR ── */
+.health-bar-wrap {
+  width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 2px;
+}
+.health-bar-fill {
+  height: 100%; border-radius: 2px; transition: width 0.3s ease, background 0.3s;
+  background: var(--accent-green);
+  box-shadow: 0 0 8px currentColor;
+}
 
-        @keyframes pulseAlert { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+/* ── STAGE INDICATOR ── */
+.stage-badge {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--accent-cyan); letter-spacing: 2px;
+  padding: 4px 12px; background: rgba(0,245,255,0.06);
+  border: 1px solid rgba(0,245,255,0.2); border-radius: 20px;
+}
+.stage-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); animation: pulse 1.5s infinite; }
 
-        /* --- STAGE 4: INCIDENT RESPONSE --- */
-        .terminal-window {
-            width: 100%; height: 350px; background: #020408; border: 1px solid var(--border-glow);
-            border-radius: 6px; padding: 15px; display: flex; flex-direction: column; gap: 10px;
-            overflow: hidden; position: relative; margin-top: 20px;
-        }
-        .alert-row {
-            background: rgba(255, 0, 60, 0.1); border-left: 4px solid var(--neon-red);
-            padding: 10px; display: flex; justify-content: space-between; align-items: center;
-            animation: slideIn 0.3s ease-out; width: 100%;
-        }
-        .alert-text { color: var(--neon-red); font-weight: bold; font-size: 0.85rem;}
-        .alert-target { width: 120px; height: 40px; border: 1px dashed var(--neon-red); border-radius: 4px; display: flex; align-items: center; justify-content: center;}
-        
-        @keyframes slideIn { from { transform: translateX(-100%); opacity: 0;} to { transform: translateX(0); opacity: 1;} }
+/* ── MAIN GAME AREA ── */
+#gameArea {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
 
-        /* --- PARTICLES & EFFECTS --- */
-        .particle { position: absolute; border-radius: 50%; pointer-events: none; z-index: 1000; }
-        .floating-text { position: absolute; font-weight: bold; font-size: 1.2rem; pointer-events: none; z-index: 1000; animation: floatUp 1s forwards; text-shadow: 0 2px 5px rgba(0,0,0,0.8);}
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-40px); } }
+/* ── SCREENS ── */
+.screen {
+  position: absolute; inset: 0;
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+.screen.active { display: flex; }
 
-        /* --- LEADERBOARD --- */
-        .leaderboard { width: 100%; max-width: 400px; background: var(--bg-panel); border: 1px solid var(--border-glow); border-radius: 8px; padding: 15px; margin-bottom: 20px;}
-        .lb-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem;}
-        .lb-row:last-child { border: none; }
-        .lb-rank { color: var(--neon-yellow); width: 30px;}
-        .lb-score { color: var(--neon-blue); font-weight: bold;}
+/* ── INTRO SCREEN ── */
+#introScreen {
+  background: radial-gradient(ellipse at 50% 30%, rgba(0,245,255,0.08) 0%, transparent 70%);
+}
 
-        /* Utilities */
-        .instruction { position: absolute; top: 20px; width: 100%; text-align: center; color: var(--neon-yellow); font-size: 0.9rem; letter-spacing: 1px;}
-    </style>
+.intro-logo {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 8vw, 72px);
+  font-weight: 900;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 40px rgba(0,245,255,0.8), 0 0 80px rgba(0,245,255,0.4);
+  letter-spacing: 8px;
+  text-align: center;
+  animation: glitch 4s infinite;
+  line-height: 1;
+}
+.intro-sub {
+  font-family: var(--font-mono); font-size: clamp(9px,2vw,13px);
+  color: var(--text-dim); letter-spacing: 4px; margin: 12px 0 40px;
+  text-align: center;
+}
+
+.intro-terminal {
+  width: min(500px, 90vw);
+  background: rgba(5,14,30,0.9);
+  border: 1px solid var(--border-glow);
+  border-radius: 8px; padding: 16px;
+  margin-bottom: 32px;
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--accent-green); line-height: 1.6;
+  box-shadow: var(--shadow-cyan);
+}
+.terminal-line { opacity: 0; animation: fadeIn 0.3s forwards; }
+
+.btn-primary {
+  font-family: var(--font-display); font-size: clamp(12px,2.5vw,16px);
+  font-weight: 700; letter-spacing: 4px; text-transform: uppercase;
+  padding: 14px 40px; border: none; border-radius: 4px;
+  background: linear-gradient(135deg, var(--accent-cyan), rgba(0,245,255,0.6));
+  color: var(--bg-deep); cursor: pointer;
+  box-shadow: var(--shadow-cyan), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: all 0.2s; position: relative; overflow: hidden;
+}
+.btn-primary::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent, rgba(255,255,255,0.15), transparent);
+  transform: translateX(-100%); transition: transform 0.4s;
+}
+.btn-primary:hover::before { transform: translateX(100%); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(0,245,255,0.6); }
+.btn-primary:active { transform: translateY(0); }
+
+/* ── SCORE SCREEN ── */
+#scoreScreen { gap: 16px; }
+.score-title {
+  font-family: var(--font-display); font-size: clamp(20px,5vw,48px);
+  font-weight: 900; color: var(--accent-yellow);
+  text-shadow: 0 0 30px rgba(255,230,0,0.6);
+  letter-spacing: 4px;
+}
+.score-card {
+  width: min(500px, 90vw);
+  background: rgba(5,14,30,0.9); border: 1px solid rgba(255,230,0,0.3);
+  border-radius: 8px; padding: 20px;
+  box-shadow: 0 0 30px rgba(255,230,0,0.2);
+}
+.score-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-family: var(--font-mono); font-size: 13px;
+}
+.score-row:last-child { border-bottom: none; }
+.score-row .label { color: var(--text-dim); letter-spacing: 2px; }
+.score-row .value { color: var(--accent-cyan); font-weight: 700; }
+.leaderboard { width: min(500px, 90vw); margin-top: 8px; }
+.lb-title {
+  font-family: var(--font-display); font-size: 12px; letter-spacing: 4px;
+  color: var(--text-dim); margin-bottom: 8px; text-align: center;
+}
+.lb-row {
+  display: flex; justify-content: space-between;
+  padding: 6px 12px; background: rgba(0,245,255,0.03);
+  border: 1px solid rgba(0,245,255,0.08); border-radius: 4px; margin-bottom: 4px;
+  font-family: var(--font-mono); font-size: 12px;
+}
+.lb-row.highlight { background: rgba(255,230,0,0.08); border-color: rgba(255,230,0,0.3); color: var(--accent-yellow); }
+.lb-rank { color: var(--text-dim); width: 24px; }
+.lb-name { flex: 1; margin: 0 8px; color: var(--text-primary); }
+.lb-score { color: var(--accent-cyan); }
+
+/* ── MINIGAME PANEL ── */
+.minigame-container {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  padding: clamp(8px, 2vw, 16px);
+  gap: 12px;
+  overflow: hidden;
+}
+
+.minigame-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(5,14,30,0.8);
+  border: 1px solid var(--border-glow); border-radius: 6px;
+  flex: 0 0 auto;
+}
+.minigame-title {
+  font-family: var(--font-display); font-size: clamp(11px,2.5vw,16px);
+  font-weight: 700; color: var(--accent-cyan);
+  text-shadow: var(--shadow-cyan); letter-spacing: 3px;
+}
+.minigame-desc {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--text-dim); letter-spacing: 1px;
+}
+.progress-bar {
+  flex: 0 0 auto; height: 6px;
+  background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
+  box-shadow: 0 0 10px var(--accent-cyan);
+  transition: width 0.5s ease;
+}
+
+/* ── CI/CD PIPELINE ── */
+#ciScreen { background: radial-gradient(ellipse at 50% 0%, rgba(0,245,255,0.05) 0%, transparent 60%); }
+
+.pipeline-area {
+  flex: 1; display: flex; flex-direction: column; gap: 16px; overflow: hidden;
+}
+
+.pipeline-slots {
+  display: flex; gap: 8px; justify-content: center; align-items: center;
+  flex-wrap: wrap; flex: 0 0 auto; padding: 8px;
+}
+
+.pipeline-slot {
+  width: clamp(70px,11vw,110px); height: clamp(55px,9vw,80px);
+  background: rgba(0,245,255,0.03);
+  border: 2px dashed rgba(0,245,255,0.2);
+  border-radius: 8px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  transition: all 0.2s; position: relative;
+}
+.pipeline-slot.filled { border-style: solid; border-color: rgba(0,245,255,0.5); background: rgba(0,245,255,0.08); }
+.pipeline-slot.correct { border-color: var(--accent-green); background: rgba(0,255,136,0.1); box-shadow: 0 0 15px rgba(0,255,136,0.3); }
+.pipeline-slot.wrong { border-color: var(--accent-red); background: rgba(255,45,85,0.1); box-shadow: 0 0 15px rgba(255,45,85,0.3); animation: shake 0.4s; }
+.pipeline-slot.hover-target { border-color: var(--accent-cyan); background: rgba(0,245,255,0.15); transform: scale(1.05); }
+.slot-number {
+  position: absolute; top: 4px; left: 6px;
+  font-family: var(--font-mono); font-size: 9px; color: var(--text-dim);
+}
+.slot-label {
+  font-family: var(--font-mono); font-size: 9px; color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
+.pipeline-arrow {
+  color: var(--text-dim); font-size: clamp(12px,2vw,18px); 
+  flex: 0 0 auto; align-self: center;
+  animation: arrowPulse 1.5s infinite;
+}
+
+.pipeline-source {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  padding: 12px; background: rgba(5,14,30,0.6); border: 1px solid var(--border-glow); border-radius: 8px;
+  flex: 0 0 auto;
+}
+
+.pipe-card {
+  width: clamp(70px,11vw,110px); height: clamp(55px,9vw,80px);
+  background: rgba(7,18,36,0.9);
+  border: 1px solid rgba(0,245,255,0.3);
+  border-radius: 8px; cursor: grab; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  transition: all 0.2s; position: relative; overflow: hidden;
+  touch-action: none;
+}
+.pipe-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0.5;
+}
+.pipe-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-cyan); border-color: var(--accent-cyan); }
+.pipe-card.dragging { opacity: 0.4; transform: scale(0.95); }
+.pipe-card.placed { opacity: 0.3; cursor: not-allowed; }
+.pipe-card .icon { font-size: clamp(18px,3vw,28px); }
+.pipe-card .label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; color: var(--text-primary); text-align: center; }
+
+/* ── CLOUD ARCH ── */
+#cloudScreen { background: radial-gradient(ellipse at 30% 50%, rgba(0,255,136,0.04) 0%, transparent 60%); }
+
+.cloud-canvas-wrap {
+  flex: 1; position: relative; overflow: hidden;
+  background: rgba(5,14,30,0.4); border: 1px solid var(--border-glow); border-radius: 8px;
+  min-height: 200px;
+}
+#cloudCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.cloud-nodes-source {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  padding: 10px; background: rgba(5,14,30,0.6); border: 1px solid var(--border-glow); border-radius: 8px;
+  flex: 0 0 auto;
+}
+
+.cloud-node {
+  padding: clamp(6px,1vw,10px) clamp(10px,2vw,18px);
+  background: rgba(7,18,36,0.9); border: 1px solid rgba(0,255,136,0.3);
+  border-radius: 6px; cursor: grab; display: flex; align-items: center; gap: 6px;
+  touch-action: none; transition: all 0.2s;
+  font-family: var(--font-mono); font-size: clamp(9px,1.5vw,12px); color: var(--text-primary);
+}
+.cloud-node:hover { border-color: var(--accent-green); box-shadow: var(--shadow-green); transform: translateY(-2px); }
+.cloud-node.dragging { opacity: 0.4; }
+.cloud-node.placed { opacity: 0.25; cursor: default; }
+.cloud-node .node-icon { font-size: clamp(14px,2.5vw,20px); }
+
+.cloud-drop-zone {
+  position: absolute; border: 2px dashed rgba(0,255,136,0.25);
+  border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; cursor: default; transition: all 0.2s; background: rgba(0,255,136,0.02);
+  font-family: var(--font-mono); font-size: 9px; color: var(--text-dim);
+  text-align: center; padding: 4px;
+}
+.cloud-drop-zone.hover-target { border-color: var(--accent-green); background: rgba(0,255,136,0.1); transform: scale(1.05); }
+.cloud-drop-zone.filled { border-style: solid; border-color: rgba(0,255,136,0.5); }
+.cloud-drop-zone.correct { border-color: var(--accent-green); background: rgba(0,255,136,0.15); box-shadow: 0 0 20px rgba(0,255,136,0.3); }
+.cloud-drop-zone.wrong { border-color: var(--accent-red); background: rgba(255,45,85,0.1); animation: shake 0.4s; }
+.cloud-drop-zone .dz-icon { font-size: clamp(16px,3vw,24px); }
+.cloud-drop-zone .dz-label { font-size: 8px; color: var(--text-dim); letter-spacing: 1px; }
+
+/* ── KUBERNETES ── */
+#k8sScreen { background: radial-gradient(ellipse at 70% 50%, rgba(191,95,255,0.04) 0%, transparent 60%); }
+
+.k8s-grid {
+  flex: 1; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(80px,13vw,120px), 1fr));
+  gap: 8px; padding: 8px; overflow-y: auto;
+  background: rgba(5,14,30,0.4); border: 1px solid var(--border-glow); border-radius: 8px;
+}
+
+.pod {
+  height: clamp(75px,12vw,100px);
+  background: rgba(7,18,36,0.9); border: 1px solid rgba(191,95,255,0.3);
+  border-radius: 8px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  position: relative; overflow: hidden; transition: all 0.3s;
+  padding: 8px;
+}
+.pod::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(191,95,255,0.05) 0%, transparent 100%);
+}
+.pod.running { border-color: rgba(0,255,136,0.4); }
+.pod.running::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
+  animation: scanline 2s infinite linear;
+}
+.pod.crashed {
+  border-color: var(--accent-red); background: rgba(255,45,85,0.08);
+  animation: crashPulse 1s infinite;
+}
+.pod.warning { border-color: var(--accent-orange); animation: warnPulse 1.5s infinite; }
+.pod.fixing { border-color: var(--accent-yellow); animation: fixAnim 0.5s infinite; }
+.pod.fixed { border-color: var(--accent-green); animation: successFlash 0.5s; }
+.pod-icon { font-size: clamp(16px,3vw,24px); }
+.pod-name { font-family: var(--font-mono); font-size: 8px; color: var(--text-dim); text-align: center; }
+.pod-status {
+  font-family: var(--font-mono); font-size: 8px; letter-spacing: 1px;
+  padding: 2px 6px; border-radius: 10px;
+}
+.pod.running .pod-status { color: var(--accent-green); background: rgba(0,255,136,0.1); }
+.pod.crashed .pod-status { color: var(--accent-red); background: rgba(255,45,85,0.1); }
+.pod.warning .pod-status { color: var(--accent-orange); background: rgba(255,140,0,0.1); }
+.pod-cpu {
+  width: 80%; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px;
+}
+.pod-cpu-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+
+.fix-tools {
+  display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+  padding: 10px; background: rgba(5,14,30,0.6); border: 1px solid var(--border-glow); border-radius: 8px;
+  flex: 0 0 auto;
+}
+.fix-tool {
+  padding: clamp(6px,1vw,10px) clamp(10px,2vw,16px);
+  background: rgba(191,95,255,0.08); border: 1px solid rgba(191,95,255,0.4);
+  border-radius: 6px; cursor: grab; display: flex; align-items: center; gap: 6px;
+  touch-action: none; transition: all 0.2s;
+  font-family: var(--font-mono); font-size: clamp(9px,1.5vw,11px); color: var(--text-primary);
+}
+.fix-tool:hover { border-color: var(--accent-purple); box-shadow: 0 0 15px rgba(191,95,255,0.3); transform: translateY(-2px); }
+.fix-tool.dragging { opacity: 0.4; }
+
+/* ── INCIDENT RESPONSE ── */
+#incidentScreen { background: radial-gradient(ellipse at 50% 50%, rgba(255,45,85,0.05) 0%, transparent 60%); }
+
+.incidents-grid {
+  flex: 1; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(140px,22vw,200px), 1fr));
+  gap: 10px; padding: 8px; overflow-y: auto;
+  background: rgba(5,14,30,0.4); border: 1px solid var(--border-glow); border-radius: 8px;
+}
+
+.incident-card {
+  background: rgba(7,18,36,0.9);
+  border: 1px solid var(--accent-red);
+  border-radius: 8px; padding: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+  position: relative; overflow: hidden;
+  animation: incidentAlert 1.5s infinite;
+}
+.incident-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent-red), var(--accent-orange));
+}
+.incident-title {
+  font-family: var(--font-display); font-size: clamp(10px,1.8vw,13px);
+  font-weight: 700; color: var(--accent-red);
+  text-shadow: 0 0 10px rgba(255,45,85,0.5);
+  letter-spacing: 1px;
+}
+.incident-desc { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); line-height: 1.5; }
+.incident-severity {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 9px;
+}
+.severity-dot { width: 6px; height: 6px; border-radius: 50%; }
+.sev-critical { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+.sev-high { background: var(--accent-orange); box-shadow: 0 0 8px var(--accent-orange); }
+.sev-medium { background: var(--accent-yellow); box-shadow: 0 0 8px var(--accent-yellow); }
+.incident-drop {
+  min-height: 36px; border: 2px dashed rgba(255,45,85,0.3);
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 9px; color: rgba(255,45,85,0.4);
+  transition: all 0.2s; padding: 4px;
+}
+.incident-drop.hover-target { border-color: var(--accent-cyan); background: rgba(0,245,255,0.05); color: var(--accent-cyan); }
+.incident-drop.resolved { border-color: var(--accent-green); background: rgba(0,255,136,0.08); color: var(--accent-green); border-style: solid; }
+.incident-drop.wrong-fix { border-color: var(--accent-red); background: rgba(255,45,85,0.1); animation: shake 0.4s; }
+.incident-timer {
+  width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;
+}
+.incident-timer-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent-green), var(--accent-yellow), var(--accent-red));
+  transition: width 0.1s linear;
+}
+
+.fixes-toolbar {
+  display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+  padding: 10px; background: rgba(5,14,30,0.6); border: 1px solid var(--border-glow); border-radius: 8px;
+  flex: 0 0 auto;
+}
+.fix-btn {
+  padding: clamp(6px,1vw,10px) clamp(10px,2vw,16px);
+  background: rgba(0,245,255,0.05); border: 1px solid rgba(0,245,255,0.3);
+  border-radius: 6px; cursor: grab; display: flex; align-items: center; gap: 6px;
+  touch-action: none; transition: all 0.2s;
+  font-family: var(--font-mono); font-size: clamp(9px,1.5vw,11px); color: var(--accent-cyan);
+  white-space: nowrap;
+}
+.fix-btn:hover { border-color: var(--accent-cyan); background: rgba(0,245,255,0.12); transform: translateY(-2px); box-shadow: var(--shadow-cyan); }
+.fix-btn.dragging { opacity: 0.4; }
+
+/* ── DRAG GHOST ── */
+#dragGhost {
+  position: fixed; pointer-events: none; z-index: 9000;
+  transform: translate(-50%, -50%) scale(1.1) rotate(-3deg);
+  opacity: 0.9; display: none;
+  filter: drop-shadow(0 8px 20px rgba(0,245,255,0.6));
+  transition: transform 0.1s;
+}
+
+/* ── NOTIFICATIONS ── */
+#notifications {
+  position: fixed; top: 80px; right: 16px; z-index: 8000;
+  display: flex; flex-direction: column; gap: 6px; pointer-events: none;
+  max-width: 280px;
+}
+.notification {
+  padding: 10px 14px; border-radius: 6px;
+  font-family: var(--font-mono); font-size: 11px;
+  display: flex; align-items: center; gap: 8px;
+  animation: slideInRight 0.3s ease, fadeOut 0.5s 2s forwards;
+  border-left: 3px solid;
+}
+.notification.success { background: rgba(0,255,136,0.12); border-color: var(--accent-green); color: var(--accent-green); box-shadow: 0 4px 20px rgba(0,255,136,0.2); }
+.notification.error { background: rgba(255,45,85,0.12); border-color: var(--accent-red); color: var(--accent-red); box-shadow: 0 4px 20px rgba(255,45,85,0.2); }
+.notification.warning { background: rgba(255,140,0,0.12); border-color: var(--accent-orange); color: var(--accent-orange); }
+.notification.info { background: rgba(0,245,255,0.08); border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+/* ── BOSS ALERT ── */
+#bossAlert {
+  position: fixed; inset: 0; z-index: 7000;
+  background: rgba(255,45,85,0.15); backdrop-filter: blur(4px);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px;
+}
+#bossAlert.active { display: flex; animation: bossFlash 0.1s infinite; }
+.boss-text {
+  font-family: var(--font-display); font-size: clamp(24px,6vw,60px);
+  font-weight: 900; color: var(--accent-red);
+  text-shadow: 0 0 40px rgba(255,45,85,0.8);
+  letter-spacing: 6px; text-align: center;
+}
+.boss-sub { font-family: var(--font-mono); font-size: clamp(12px,2vw,16px); color: var(--text-primary); letter-spacing: 2px; }
+
+/* ── COMBO POPUP ── */
+.combo-popup {
+  position: fixed; pointer-events: none; z-index: 8500;
+  font-family: var(--font-display); font-weight: 900;
+  text-shadow: 0 0 20px currentColor;
+  animation: comboPop 0.8s ease-out forwards;
+  white-space: nowrap;
+}
+
+/* ── FLOATING SCORE ── */
+.score-float {
+  position: fixed; pointer-events: none; z-index: 8500;
+  font-family: var(--font-display); font-weight: 700;
+  animation: scoreFloat 1.2s ease-out forwards;
+  white-space: nowrap;
+}
+
+/* ── TRANSITION OVERLAY ── */
+#transition {
+  position: fixed; inset: 0; z-index: 6000;
+  background: var(--bg-deep);
+  display: none; align-items: center; justify-content: center;
+  flex-direction: column; gap: 16px;
+}
+#transition.active { display: flex; }
+.trans-text {
+  font-family: var(--font-display); font-size: clamp(16px,4vw,36px);
+  font-weight: 900; color: var(--accent-cyan);
+  text-shadow: var(--shadow-cyan); letter-spacing: 6px;
+  animation: glitch 0.5s infinite;
+}
+.trans-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+.trans-bar-fill { height: 100%; background: var(--accent-cyan); animation: loadBar 0.8s ease-in-out forwards; }
+
+/* ── KEYFRAMES ── */
+@keyframes glitch {
+  0%,90%,100% { text-shadow: 0 0 40px rgba(0,245,255,0.8), 0 0 80px rgba(0,245,255,0.4); transform: none; }
+  92% { text-shadow: 4px 0 var(--accent-red), -4px 0 var(--accent-green); transform: skewX(-2deg); }
+  94% { text-shadow: -4px 0 var(--accent-red), 4px 0 var(--accent-green); transform: skewX(2deg); }
+  96% { text-shadow: 2px 2px var(--accent-purple), -2px -2px var(--accent-cyan); }
+}
+@keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.6; transform:scale(0.8); } }
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+@keyframes fadeIn { to { opacity:1; } }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+@keyframes arrowPulse { 0%,100%{opacity:0.4} 50%{opacity:1; color:var(--accent-cyan)} }
+@keyframes scanline { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+@keyframes crashPulse { 0%,100%{box-shadow:0 0 10px rgba(255,45,85,0.3)} 50%{box-shadow:0 0 25px rgba(255,45,85,0.7)} }
+@keyframes warnPulse { 0%,100%{box-shadow:0 0 10px rgba(255,140,0,0.3)} 50%{box-shadow:0 0 20px rgba(255,140,0,0.6)} }
+@keyframes fixAnim { 0%,100%{border-color:var(--accent-yellow)} 50%{border-color:var(--accent-cyan)} }
+@keyframes successFlash { 0%{background:rgba(0,255,136,0.4)} 100%{background:rgba(0,255,136,0.1)} }
+@keyframes incidentAlert { 0%,100%{box-shadow:0 0 10px rgba(255,45,85,0.2)} 50%{box-shadow:0 0 20px rgba(255,45,85,0.5)} }
+@keyframes slideInRight { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+@keyframes fadeOut { to{opacity:0;transform:translateX(20px)} }
+@keyframes bossFlash { 0%,100%{background:rgba(255,45,85,0.15)} 50%{background:rgba(255,45,85,0.25)} }
+@keyframes comboPop { 0%{transform:scale(0.5);opacity:1} 60%{transform:scale(1.3);opacity:1} 100%{transform:scale(1) translateY(-60px);opacity:0} }
+@keyframes scoreFloat { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-80px)} }
+@keyframes loadBar { from{width:0} to{width:100%} }
+@keyframes flowPulse { 0%,100%{stroke-dashoffset:20} }
+@keyframes neonFlicker { 0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.3} 94%{opacity:1} 96%{opacity:0.5} 97%{opacity:1} }
+
+.neon-flicker { animation: neonFlicker 6s infinite; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.3); border-radius: 2px; }
+
+/* Mobile tweaks */
+@media (max-width: 480px) {
+  .pipeline-slots { gap: 4px; }
+  .pipeline-source { gap: 4px; }
+  .hud-metric { min-width: 44px; padding: 3px 6px; }
+}
+</style>
 </head>
 <body>
 
-    <div id="hud">
-        <div class="hud-group">
-            <div class="hud-item">
-                <span class="hud-label">Stage</span>
-                <span class="hud-value" id="val-stage" style="color: var(--neon-blue)">INTRO</span>
-            </div>
-            <div class="hud-item" style="margin-left: 10px;">
-                <span class="hud-label">Score</span>
-                <span class="hud-value" id="val-score">0</span>
-            </div>
-            <div class="hud-item" style="margin-left: 10px;">
-                <span class="hud-label">Multiplier</span>
-                <span class="hud-value" id="val-combo">x1</span>
-            </div>
+<canvas id="particleCanvas"></canvas>
+<div id="dragGhost"></div>
+<div id="notifications"></div>
+<div id="bossAlert"><div class="boss-text">⚠ CRITICAL OUTAGE ⚠</div><div class="boss-sub">PRODUCTION IS DOWN</div></div>
+<div id="transition"><div class="trans-text" id="transText">LOADING</div><div class="trans-bar"><div class="trans-bar-fill"></div></div></div>
+
+<div id="gameWrapper">
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-metrics">
+      <div class="hud-metric">
+        <div class="hud-metric-label">SCORE</div>
+        <div class="hud-metric-value" id="hudScore">0</div>
+      </div>
+      <div class="hud-metric">
+        <div class="hud-metric-label">COMBO</div>
+        <div class="hud-metric-value combo" id="hudCombo">x1</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div class="hud-title neon-flicker">DEVOPS RUSH</div>
+      <div class="stage-badge"><div class="stage-dot"></div><span id="stageName">STANDBY</span></div>
+    </div>
+    <div class="hud-metrics right">
+      <div class="hud-metric">
+        <div class="hud-metric-label">HEALTH</div>
+        <div class="hud-metric-value health" id="hudHealth">100%</div>
+        <div class="health-bar-wrap"><div class="health-bar-fill" id="healthBar" style="width:100%"></div></div>
+      </div>
+      <div class="hud-metric">
+        <div class="hud-metric-label">TIME</div>
+        <div class="hud-metric-value timer" id="hudTimer">60</div>
+      </div>
+      <div class="hud-metric">
+        <div class="hud-metric-label">LVL</div>
+        <div class="hud-metric-value" id="hudLevel">1</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME AREA -->
+  <div id="gameArea">
+
+    <!-- INTRO -->
+    <div class="screen active" id="introScreen">
+      <div class="intro-logo">DEVOPS<br>RUSH</div>
+      <div class="intro-sub">PRODUCTION OPERATIONS SIMULATOR</div>
+      <div class="intro-terminal" id="introTerminal">
+        <div class="terminal-line" style="animation-delay:0.2s">$ initializing production environment...</div>
+        <div class="terminal-line" style="animation-delay:0.7s">$ loading kubernetes clusters... <span style="color:var(--accent-green)">OK</span></div>
+        <div class="terminal-line" style="animation-delay:1.2s">$ connecting to AWS... <span style="color:var(--accent-green)">OK</span></div>
+        <div class="terminal-line" style="animation-delay:1.7s">$ monitoring systems active... <span style="color:var(--accent-green)">OK</span></div>
+        <div class="terminal-line" style="animation-delay:2.2s" id="alertLine" style="color:var(--accent-red)">$ WARNING: 14 incidents queued. Operator required.</div>
+        <div class="terminal-line" style="animation-delay:2.8s">$ <span style="color:var(--accent-cyan)">Are you ready, Engineer?</span></div>
+      </div>
+      <button class="btn-primary" id="startBtn">DEPLOY ENGINEER</button>
+    </div>
+
+    <!-- CI/CD -->
+    <div class="screen" id="ciScreen">
+      <div class="minigame-container">
+        <div class="minigame-header">
+          <div><div class="minigame-title">CI/CD PIPELINE</div><div class="minigame-desc">Drag components into correct pipeline order</div></div>
+          <div style="text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--text-dim)"><span id="ciCompleted">0</span>/3 pipelines</div>
         </div>
-        <div class="hud-group">
-            <div class="hud-item">
-                <span class="hud-label">Time / Wait</span>
-                <span class="hud-value" id="val-time">--</span>
-            </div>
-            <div class="hud-item" style="margin-left: 10px;">
-                <span class="hud-label">System Health</span>
-                <div class="health-bar-bg"><div class="health-bar-fill" id="val-health-bar"></div></div>
-            </div>
+        <div class="progress-bar"><div class="progress-fill" id="ciProgress" style="width:0%"></div></div>
+        <div class="pipeline-area" id="pipelineArea">
+          <div class="pipeline-slots" id="pipelineSlots"></div>
+          <div id="pipelineConnector" style="display:flex;align-items:center;justify-content:center;padding:4px 0;flex:0 0 auto"></div>
+          <div class="pipeline-source" id="pipelineSource"></div>
         </div>
+      </div>
     </div>
 
-    <div id="screen-INTRO" class="screen active">
-        <h1 class="title">DevOps Rush</h1>
-        <p class="subtitle">You are the Lead Cloud Engineer. Production is unstable. Architect systems, deploy code, and mitigate disasters before system health reaches 0%.</p>
-        <button class="btn" onclick="Game.changeState('CI_PIPELINE')">Initialize Shift</button>
-        
-        <div class="leaderboard" style="margin-top: 40px;">
-            <h3 style="color: var(--neon-yellow); margin-bottom: 10px; text-align: center; text-transform: uppercase;">Top Engineers</h3>
-            <div id="lb-content">No data.</div>
+    <!-- CLOUD ARCH -->
+    <div class="screen" id="cloudScreen">
+      <div class="minigame-container">
+        <div class="minigame-header">
+          <div><div class="minigame-title">CLOUD ARCHITECTURE</div><div class="minigame-desc">Assemble the correct cloud network topology</div></div>
+          <div style="text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--text-dim)"><span id="cloudCompleted">0</span>/3 rounds</div>
         </div>
+        <div class="progress-bar"><div class="progress-fill" id="cloudProgress" style="width:0%"></div></div>
+        <div class="cloud-canvas-wrap" id="cloudCanvasWrap">
+          <canvas id="cloudCanvas"></canvas>
+          <div id="cloudDropZones"></div>
+        </div>
+        <div class="cloud-nodes-source" id="cloudSource"></div>
+      </div>
     </div>
 
-    <div id="screen-CI_PIPELINE" class="screen">
-        <div class="instruction">TASK: Assemble the CI/CD Pipeline in correct order.</div>
-        <div class="pipeline-track" id="ci-track">
-            </div>
-        <div class="tools-tray" id="ci-tray"></div>
+    <!-- KUBERNETES -->
+    <div class="screen" id="k8sScreen">
+      <div class="minigame-container">
+        <div class="minigame-header">
+          <div><div class="minigame-title">KUBERNETES CLUSTER</div><div class="minigame-desc">Repair crashed pods — drag fix tools onto affected pods</div></div>
+          <div style="text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--text-dim)">Fixed: <span id="k8sFixed">0</span></div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="k8sProgress" style="width:0%"></div></div>
+        <div class="k8s-grid" id="k8sGrid"></div>
+        <div class="fix-tools" id="fixTools"></div>
+      </div>
     </div>
 
-    <div id="screen-CLOUD_ARCHITECTURE" class="screen">
-        <div class="instruction">TASK: Architect the Cloud Network Flow.</div>
-        <div class="arch-grid" id="arch-track">
-            </div>
-        <div class="tools-tray" id="arch-tray"></div>
+    <!-- INCIDENT RESPONSE -->
+    <div class="screen" id="incidentScreen">
+      <div class="minigame-container">
+        <div class="minigame-header">
+          <div><div class="minigame-title">INCIDENT RESPONSE</div><div class="minigame-desc">Drag correct fix to each production incident</div></div>
+          <div style="text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--text-dim)">Resolved: <span id="incResolved">0</span></div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="incProgress" style="width:0%"></div></div>
+        <div class="incidents-grid" id="incidentsGrid"></div>
+        <div class="fixes-toolbar" id="fixesToolbar"></div>
+      </div>
     </div>
 
-    <div id="screen-KUBERNETES_CLUSTER" class="screen">
-        <div class="instruction">TASK: Drag corrective actions to crashing pods! Survive 30s.</div>
-        <div class="k8s-grid" id="k8s-grid"></div>
-        <div class="tools-tray" id="k8s-tray"></div>
+    <!-- SCORE -->
+    <div class="screen" id="scoreScreen">
+      <div class="score-title">MISSION COMPLETE</div>
+      <div class="score-card" id="scoreCard">
+        <div class="score-row"><span class="label">FINAL SCORE</span><span class="value" id="finalScore" style="font-size:20px;color:var(--accent-yellow)">0</span></div>
+        <div class="score-row"><span class="label">PIPELINE OPS</span><span class="value" id="scoreCI">0</span></div>
+        <div class="score-row"><span class="label">CLOUD BUILDS</span><span class="value" id="scoreCloud">0</span></div>
+        <div class="score-row"><span class="label">PODS FIXED</span><span class="value" id="scoreK8s">0</span></div>
+        <div class="score-row"><span class="label">INCIDENTS RESOLVED</span><span class="value" id="scoreInc">0</span></div>
+        <div class="score-row"><span class="label">MAX COMBO</span><span class="value" id="scoreCombo">x1</span></div>
+        <div class="score-row"><span class="label">SYSTEM HEALTH</span><span class="value" id="scoreHealth">100%</span></div>
+      </div>
+      <div class="leaderboard" id="leaderboard"></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+        <button class="btn-primary" id="restartBtn">RESTART MISSION</button>
+      </div>
     </div>
 
-    <div id="screen-INCIDENT_RESPONSE" class="screen">
-        <div class="instruction" style="color: var(--neon-red)">CRITICAL: Multiple incidents detected! Resolve quickly. Survive 30s.</div>
-        <div class="terminal-window" id="incident-terminal"></div>
-        <div class="tools-tray" id="incident-tray"></div>
-    </div>
+  </div>
+</div>
 
-    <div id="screen-SCORE_SCREEN" class="screen">
-        <h1 class="title" id="end-title">Shift Ended</h1>
-        <p class="subtitle" id="end-subtitle">Production stabilized... for now.</p>
-        <h2 style="color: var(--neon-blue); font-size: 3rem; margin: 20px 0;" id="final-score">0</h2>
-        <button class="btn" onclick="Game.init()">Start Next Shift</button>
-    </div>
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════
+//  DEVOPS RUSH  — Game Engine v2.0
+// ═══════════════════════════════════════════════════════════════
 
-    <script>
-        // --- GLOBAL GAME STATE ---
-        const Game = {
-            state: 'INTRO',
-            score: 0,
-            health: 100,
-            combo: 1,
-            stageTimer: 0,
-            difficulty: 1,
-            lastFrameTime: 0,
-            animFrame: null,
+// ── CONSTANTS ──────────────────────────────────────────────────
+const STATES = { INTRO:'INTRO', CI:'CI_PIPELINE', CLOUD:'CLOUD_ARCHITECTURE', K8S:'KUBERNETES_CLUSTER', INCIDENT:'INCIDENT_RESPONSE', SCORE:'SCORE_SCREEN' };
+const PIPE_ORDER = ['GIT','BUILD','TEST','DOCKER','REGISTRY','DEPLOY'];
+const PIPE_META = {
+  GIT:    { icon:'📁', color:'#f34f29', label:'Git' },
+  BUILD:  { icon:'⚙️',  color:'#0099cc', label:'Build' },
+  TEST:   { icon:'🧪', color:'#9b59b6', label:'Test' },
+  DOCKER: { icon:'🐳', color:'#0db7ed', label:'Docker' },
+  REGISTRY:{ icon:'📦', color:'#ff8c00', label:'Registry' },
+  DEPLOY: { icon:'🚀', color:'#00ff88', label:'Deploy' }
+};
+const CLOUD_ORDER = ['INTERNET','CLOUDFRONT','LOADBALANCER','K8S_CLUSTER','DATABASE','CACHE'];
+const CLOUD_META = {
+  INTERNET:    { icon:'🌐', label:'Internet',       color:'#00f5ff' },
+  CLOUDFRONT:  { icon:'☁️',  label:'CloudFront',    color:'#ff8c00' },
+  LOADBALANCER:{ icon:'⚖️',  label:'Load Balancer', color:'#9b59b6' },
+  K8S_CLUSTER: { icon:'⎈',  label:'K8s Cluster',   color:'#0db7ed' },
+  DATABASE:    { icon:'🗄️',  label:'Database',      color:'#00ff88' },
+  CACHE:       { icon:'⚡',  label:'Cache',         color:'#ffe600' }
+};
+const INCIDENTS = [
+  { id:'CPU',    title:'CPU SPIKE',     desc:'CPU at 98% — containers throttling', icon:'🔥', severity:'critical', fix:'AUTOSCALE' },
+  { id:'MEM',    title:'MEMORY LEAK',   desc:'Heap growing 200MB/min — OOM risk',  icon:'💾', severity:'critical', fix:'RESTART' },
+  { id:'DISK',   title:'DISK FULL',     desc:'/var/log at 100% — writes failing',  icon:'💿', severity:'high',     fix:'CLEANLOGS' },
+  { id:'DDOS',   title:'DDoS ATTACK',   desc:'12k req/s from 847 IPs detected',    icon:'⚔️',  severity:'critical', fix:'WAF' },
+  { id:'LAT',    title:'HIGH LATENCY',  desc:'p99 latency > 8s — SLO breached',   icon:'⏱️',  severity:'high',     fix:'CACHE' },
+  { id:'DB',     title:'DB CONN FAIL',  desc:'Connection pool exhausted — timeout',icon:'🗄️',  severity:'critical', fix:'RECONNECTDB' },
+  { id:'SSL',    title:'SSL CERT EXP',  desc:'Certificate expires in 2 hours',     icon:'🔒', severity:'high',     fix:'ROTATE' },
+  { id:'NET',    title:'NETWORK PART',  desc:'AZ-2 isolated — failover needed',    icon:'📡', severity:'critical', fix:'FAILOVER' },
+];
+const FIXES = [
+  { id:'AUTOSCALE',  icon:'📈', label:'AutoScale',    color:'#00f5ff' },
+  { id:'RESTART',    icon:'🔄', label:'Restart',      color:'#9b59b6' },
+  { id:'CLEANLOGS',  icon:'🧹', label:'Clean Logs',   color:'#ff8c00' },
+  { id:'WAF',        icon:'🛡️',  label:'Enable WAF',   color:'#ff2d55' },
+  { id:'CACHE',      icon:'⚡', label:'Enable Cache', color:'#ffe600' },
+  { id:'RECONNECTDB',icon:'🔗', label:'Reconnect DB', color:'#00ff88' },
+  { id:'ROTATE',     icon:'🔑', label:'Rotate Cert',  color:'#bf5fff' },
+  { id:'FAILOVER',   icon:'🌐', label:'Failover AZ',  color:'#0db7ed' },
+];
+const POD_NAMES = ['api-gateway','auth-svc','payment-svc','user-svc','order-svc','notify-svc','search-svc','cache-proxy','metrics-agent','log-forwarder','config-svc','scheduler','worker-1','worker-2','gateway-v2'];
+const FIX_TOOLS_K8S = [
+  { id:'RESTART_POD', icon:'🔄', label:'Restart Pod' },
+  { id:'SCALE_DEPLOY',icon:'📈', label:'Scale Deploy' },
+  { id:'REDEPLOY',    icon:'🚀', label:'Redeploy Svc' },
+  { id:'ROLLBACK',    icon:'⏪', label:'Roll Back' },
+];
 
-            init() {
-                this.score = 0;
-                this.health = 100;
-                this.combo = 1;
-                this.difficulty = 1;
-                UI.updateHUD();
-                UI.loadLeaderboard();
-                this.changeState('INTRO');
-                if(!this.animFrame) this.animFrame = requestAnimationFrame(t => this.loop(t));
-            },
+// ── STATE ──────────────────────────────────────────────────────
+const G = {
+  state: STATES.INTRO,
+  score: 0, health: 100, combo: 1, maxCombo: 1,
+  level: 1, timer: 0, timerActive: false,
+  stageScores: { CI:0, CLOUD:0, K8S:0, INC:0 },
+  drag: null, // { el, type, data, ghostEl }
+  ci: { slots:[], completed:0 },
+  cloud: { drops:[], completed:0 },
+  k8s: { pods:[], fixed:0 },
+  inc: { incidents:[], resolved:0 },
+  particles: [], raf: null,
+  chaosTimer: 0, bossActive: false,
+};
 
-            changeState(newState) {
-                if (Stages[this.state] && Stages[this.state].exit) Stages[this.state].exit();
-                this.state = newState;
-                document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
-                document.getElementById(`screen-${newState}`).classList.add('active');
-                
-                let displayTitle = newState.replace('_', ' ');
-                if(newState === 'SCORE_SCREEN') displayTitle = 'DEBRIEF';
-                document.getElementById('val-stage').innerText = displayTitle;
-                
-                if (Stages[newState] && Stages[newState].enter) Stages[newState].enter();
-            },
+// ── PARTICLE SYSTEM ────────────────────────────────────────────
+const canvas = document.getElementById('particleCanvas');
+const ctx = canvas.getContext('2d');
 
-            loop(timestamp) {
-                const dt = (timestamp - this.lastFrameTime) / 1000; // Delta time in seconds
-                this.lastFrameTime = timestamp;
+function resizeCanvas() {
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
-                if (dt < 0.1) { // Cap dt to avoid massive jumps
-                    if (Stages[this.state] && Stages[this.state].update) {
-                        Stages[this.state].update(dt);
-                    }
-                    Particles.update(dt);
-                }
-                
-                this.animFrame = requestAnimationFrame(t => this.loop(t));
-            },
+function spawnParticles(x, y, color = '#00f5ff', count = 18, type = 'burst') {
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i / count) + (Math.random() - 0.5) * 0.4;
+    const speed = 2 + Math.random() * 5;
+    G.particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1, decay: 0.015 + Math.random() * 0.02,
+      size: 2 + Math.random() * 4,
+      color, type,
+      glow: Math.random() > 0.5
+    });
+  }
+}
 
-            addScore(points) {
-                this.score += points * this.combo;
-                this.combo++;
-                UI.updateHUD();
-                UI.floatText(`+${points * this.combo}`, varColors.blue);
-            },
+function spawnExplosion(x, y, color = '#00f5ff') {
+  spawnParticles(x, y, color, 30, 'burst');
+  // Ring
+  for(let i = 0; i < 12; i++) {
+    const angle = Math.PI * 2 * i / 12;
+    G.particles.push({ x, y, vx: Math.cos(angle)*1.5, vy: Math.sin(angle)*1.5, life:1, decay:0.03, size:1.5, color, type:'ring', glow:true });
+  }
+}
 
-            takeDamage(amount, reason) {
-                this.health -= amount;
-                this.combo = 1;
-                if(this.health < 0) this.health = 0;
-                UI.updateHUD();
-                UI.floatText(`-${amount} HP!`, varColors.red);
-                
-                // Screen shake effect
-                document.body.style.transform = `translate(${Math.random()*10-5}px, ${Math.random()*10-5}px)`;
-                setTimeout(() => document.body.style.transform = 'none', 100);
+function spawnTrail(x, y, color) {
+  G.particles.push({ x, y, vx:(Math.random()-0.5)*1.5, vy:-1-Math.random()*2, life:0.8, decay:0.05, size:2+Math.random()*2, color, type:'trail', glow:true });
+}
 
-                if (this.health <= 0 && this.state !== 'SCORE_SCREEN') {
-                    this.changeState('SCORE_SCREEN');
-                }
-            },
+function updateParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  G.particles = G.particles.filter(p => p.life > 0);
+  for(const p of G.particles) {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.08; // gravity
+    p.vx *= 0.98; p.life -= p.decay;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life);
+    if (p.glow) { ctx.shadowColor = p.color; ctx.shadowBlur = 12; }
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    if (p.type === 'ring') { ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.strokeStyle = p.color; ctx.lineWidth = 1.5; ctx.stroke(); }
+    else { const r = Math.max(0, p.size * p.life); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.fill(); }
+    ctx.restore();
+  }
+}
 
-            saveScore() {
-                let scores = JSON.parse(localStorage.getItem('devopsRushScores') || '[]');
-                scores.push(this.score);
-                scores.sort((a,b) => b-a);
-                scores = scores.slice(0, 5);
-                localStorage.setItem('devopsRushScores', JSON.stringify(scores));
-            }
-        };
+// ── GAME LOOP ──────────────────────────────────────────────────
+let lastTime = 0;
+function gameLoop(ts) {
+  const dt = Math.min((ts - lastTime) / 1000, 0.1);
+  lastTime = ts;
+  updateParticles();
+  if (G.timerActive) {
+    G.timer -= dt;
+    if (G.timer <= 0) { G.timer = 0; onTimerEnd(); }
+    updateHUD();
+  }
+  if (G.state === STATES.K8S) updateK8S(dt);
+  if (G.state === STATES.INCIDENT) updateIncidents(dt);
+  // Chaos
+  if (G.timerActive && G.state !== STATES.INTRO && G.state !== STATES.SCORE) {
+    G.chaosTimer += dt;
+    if (G.chaosTimer > Math.max(8 - G.level, 3)) { G.chaosTimer = 0; triggerChaos(); }
+  }
+  G.raf = requestAnimationFrame(gameLoop);
+}
 
-        // --- CONSTANTS & HELPERS ---
-        const varColors = {
-            blue: '#00f3ff', green: '#39ff14', red: '#ff003c', yellow: '#ffea00'
-        };
+// ── HUD ────────────────────────────────────────────────────────
+function updateHUD() {
+  document.getElementById('hudScore').textContent = G.score.toLocaleString();
+  document.getElementById('hudCombo').textContent = `x${G.combo}`;
+  const h = Math.max(0, Math.round(G.health));
+  document.getElementById('hudHealth').textContent = `${h}%`;
+  document.getElementById('hudHealth').className = 'hud-metric-value health' + (h < 30 ? ' danger' : '');
+  document.getElementById('healthBar').style.width = `${h}%`;
+  const hb = document.getElementById('healthBar');
+  hb.style.background = h > 60 ? 'var(--accent-green)' : h > 30 ? 'var(--accent-orange)' : 'var(--accent-red)';
+  document.getElementById('hudTimer').textContent = Math.ceil(G.timer);
+  document.getElementById('hudTimer').style.color = G.timer < 10 ? 'var(--accent-red)' : 'var(--accent-yellow)';
+  document.getElementById('hudLevel').textContent = G.level;
+}
 
-        const Utils = {
-            randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; },
-            shuffle(array) {
-                for (let i = array.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [array[i], array[j]] = [array[j], array[i]];
-                }
-                return array;
-            },
-            createDraggable(id, label, color) {
-                const el = document.createElement('div');
-                el.className = 'draggable';
-                el.id = `drag-${id}`;
-                el.dataset.id = id;
-                el.innerText = label;
-                if(color) { el.style.borderColor = color; el.style.color = color; }
-                return el;
-            },
-            createDropzone(id, expectedId) {
-                const el = document.createElement('div');
-                el.className = 'dropzone';
-                el.dataset.expected = expectedId;
-                el.id = `drop-${id}`;
-                return el;
-            }
-        };
+function setStage(name) { document.getElementById('stageName').textContent = name; }
 
-        // --- UI MANAGER ---
-        const UI = {
-            updateHUD() {
-                document.getElementById('val-score').innerText = Game.score;
-                document.getElementById('val-combo').innerText = `x${Game.combo}`;
-                const hb = document.getElementById('val-health-bar');
-                hb.style.width = `${Game.health}%`;
-                hb.style.backgroundColor = Game.health > 50 ? varColors.green : (Game.health > 25 ? varColors.yellow : varColors.red);
-            },
-            setTime(seconds) {
-                document.getElementById('val-time').innerText = Math.ceil(seconds) + 's';
-            },
-            floatText(text, color, x = window.innerWidth/2, y = window.innerHeight/2) {
-                const el = document.createElement('div');
-                el.className = 'floating-text';
-                el.innerText = text;
-                el.style.color = color;
-                el.style.left = `${x}px`;
-                el.style.top = `${y}px`;
-                document.body.appendChild(el);
-                setTimeout(() => el.remove(), 1000);
-            },
-            loadLeaderboard() {
-                const scores = JSON.parse(localStorage.getItem('devopsRushScores') || '[]');
-                const lb = document.getElementById('lb-content');
-                if(scores.length === 0) { lb.innerHTML = 'No data.'; return; }
-                let html = '';
-                scores.forEach((s, i) => {
-                    html += `<div class="lb-row"><span class="lb-rank">#${i+1}</span><span class="lb-score">${s}</span></div>`;
-                });
-                lb.innerHTML = html;
-            }
-        };
+// ── STATE MACHINE ──────────────────────────────────────────────
+function transition(toState, label) {
+  G.timerActive = false;
+  const overlay = document.getElementById('transition');
+  document.getElementById('transText').textContent = label || toState;
+  overlay.classList.add('active');
+  setTimeout(() => {
+    overlay.classList.remove('active');
+    enterState(toState);
+  }, 900);
+}
 
-        // --- PARTICLE SYSTEM ---
-        const Particles = {
-            list: [],
-            createExplosion(x, y, color, count = 15) {
-                for(let i=0; i<count; i++) {
-                    const el = document.createElement('div');
-                    el.className = 'particle';
-                    const size = Utils.randomInt(4, 10);
-                    el.style.width = `${size}px`;
-                    el.style.height = `${size}px`;
-                    el.style.backgroundColor = color;
-                    el.style.boxShadow = `0 0 10px ${color}`;
-                    el.style.left = `${x}px`;
-                    el.style.top = `${y}px`;
-                    document.body.appendChild(el);
+function enterState(state) {
+  G.state = state;
+  // hide all screens
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const screenMap = {
+    [STATES.INTRO]: 'introScreen', [STATES.CI]: 'ciScreen',
+    [STATES.CLOUD]: 'cloudScreen', [STATES.K8S]: 'k8sScreen',
+    [STATES.INCIDENT]: 'incidentScreen', [STATES.SCORE]: 'scoreScreen'
+  };
+  const scr = document.getElementById(screenMap[state]);
+  if (scr) scr.classList.add('active');
 
-                    const angle = Math.random() * Math.PI * 2;
-                    const speed = Utils.randomInt(50, 200);
-                    this.list.push({
-                        el, x, y,
-                        vx: Math.cos(angle) * speed,
-                        vy: Math.sin(angle) * speed,
-                        life: 1.0
-                    });
-                }
-            },
-            update(dt) {
-                for(let i = this.list.length - 1; i >= 0; i--) {
-                    let p = this.list[i];
-                    p.life -= dt * 1.5;
-                    if(p.life <= 0) {
-                        p.el.remove();
-                        this.list.splice(i, 1);
-                    } else {
-                        p.x += p.vx * dt;
-                        p.y += p.vy * dt;
-                        p.el.style.left = `${p.x}px`;
-                        p.el.style.top = `${p.y}px`;
-                        p.el.style.opacity = p.life;
-                    }
-                }
-            }
-        };
+  if (state === STATES.CI) { setStage('CI/CD PIPELINE'); setupCI(); startTimer(60 + G.level * 10); }
+  if (state === STATES.CLOUD) { setStage('CLOUD ARCH'); setupCloud(); startTimer(60 + G.level * 8); }
+  if (state === STATES.K8S) { setStage('KUBERNETES'); setupK8S(); startTimer(60 + G.level * 8); }
+  if (state === STATES.INCIDENT) { setStage('INCIDENT RESP'); setupIncidents(); startTimer(60 + G.level * 8); }
+  if (state === STATES.SCORE) { setStage('SCORE'); showScore(); }
+}
 
-        // --- DRAG & DROP MANAGER ---
-        const DragManager = {
-            activeDrag: null,
-            offsetX: 0, offsetY: 0,
-            origParent: null,
-            onDropCallback: null,
+function startTimer(t) { G.timer = t; G.timerActive = true; }
 
-            init(dropCallback) {
-                this.onDropCallback = dropCallback;
-                document.addEventListener('pointerdown', this.onDown.bind(this));
-                document.addEventListener('pointermove', this.onMove.bind(this));
-                document.addEventListener('pointerup', this.onUp.bind(this));
-            },
-            
-            clear() {
-                if(this.activeDrag) {
-                    this.activeDrag.classList.remove('dragging');
-                    this.activeDrag = null;
-                }
-            },
+function onTimerEnd() {
+  G.timerActive = false;
+  if (G.state === STATES.CI) transition(STATES.CLOUD, 'CLOUD ARCH');
+  else if (G.state === STATES.CLOUD) transition(STATES.K8S, 'K8S CLUSTER');
+  else if (G.state === STATES.K8S) transition(STATES.INCIDENT, 'INCIDENT RESP');
+  else if (G.state === STATES.INCIDENT) transition(STATES.SCORE, 'MISSION COMPLETE');
+}
 
-            onDown(e) {
-                if(e.target.classList.contains('draggable')) {
-                    this.activeDrag = e.target;
-                    this.origParent = this.activeDrag.parentElement;
-                    const rect = this.activeDrag.getBoundingClientRect();
-                    this.offsetX = e.clientX - rect.left;
-                    this.offsetY = e.clientY - rect.top;
-                    
-                    // Move to body for absolute positioning
-                    const origX = rect.left;
-                    const origY = rect.top;
-                    this.activeDrag.style.left = origX + 'px';
-                    this.activeDrag.style.top = origY + 'px';
-                    this.activeDrag.style.width = rect.width + 'px'; // Fix width
-                    document.body.appendChild(this.activeDrag);
-                    
-                    this.activeDrag.classList.add('dragging');
-                    this.activeDrag.setPointerCapture(e.pointerId);
-                }
-            },
+// ── SCORE ──────────────────────────────────────────────────────
+function addScore(pts, x, y, color = '#00f5ff') {
+  const actual = Math.round(pts * G.combo);
+  G.score += actual;
+  G.combo = Math.min(G.combo + 0.5, 8);
+  G.maxCombo = Math.max(G.maxCombo, Math.round(G.combo));
+  spawnExplosion(x, y, color);
+  showScoreFloat(`+${actual}`, x, y, color);
+  if (G.combo >= 3) showComboPopup(x, y);
+  updateHUD();
+}
 
-            onMove(e) {
-                if(!this.activeDrag) return;
-                this.activeDrag.style.left = (e.clientX - this.offsetX) + 'px';
-                this.activeDrag.style.top = (e.clientY - this.offsetY) + 'px';
-                
-                // Hover effect
-                document.querySelectorAll('.dropzone').forEach(dz => dz.classList.remove('hover'));
-                const dropTarget = this.getDropTarget(e.clientX, e.clientY);
-                if(dropTarget) dropTarget.classList.add('hover');
-            },
+function loseHealth(amt) {
+  G.health = Math.max(0, G.health - amt);
+  G.combo = Math.max(1, G.combo - 1);
+  document.getElementById('gameArea').style.animation = '';
+  document.getElementById('gameArea').offsetWidth;
+  document.getElementById('gameArea').style.animation = 'shake 0.4s';
+  notify('⚠ Health -' + amt + '%', 'error');
+  updateHUD();
+  if (G.health <= 0) { transition(STATES.SCORE, 'SYSTEM FAILURE'); }
+}
 
-            onUp(e) {
-                if(!this.activeDrag) return;
-                this.activeDrag.releasePointerCapture(e.pointerId);
-                this.activeDrag.classList.remove('dragging');
-                
-                const dropTarget = this.getDropTarget(e.clientX, e.clientY);
-                document.querySelectorAll('.dropzone').forEach(dz => dz.classList.remove('hover'));
+function showScoreFloat(text, x, y, color) {
+  const el = document.createElement('div');
+  el.className = 'score-float';
+  el.style.cssText = `left:${x}px;top:${y}px;color:${color};font-size:${18+G.combo*2}px;`;
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1200);
+}
 
-                if(dropTarget && !dropTarget.classList.contains('filled')) {
-                    // Execute Callback
-                    if(this.onDropCallback) {
-                        const success = this.onDropCallback(this.activeDrag, dropTarget);
-                        if(success) {
-                            // Snap to target
-                            this.activeDrag.style.position = 'static';
-                            this.activeDrag.style.width = '100%';
-                            this.activeDrag.style.height = '100%';
-                            dropTarget.appendChild(this.activeDrag);
-                            dropTarget.classList.add('filled');
-                            this.activeDrag = null;
-                            return;
-                        }
-                    }
-                }
-                
-                // Return to tray
-                this.activeDrag.style.position = 'static';
-                this.activeDrag.style.width = 'auto';
-                this.origParent.appendChild(this.activeDrag);
-                this.activeDrag = null;
-            },
+function showComboPopup(x, y) {
+  const el = document.createElement('div');
+  el.className = 'combo-popup';
+  el.style.cssText = `left:${x-60}px;top:${y-40}px;color:var(--accent-purple);font-size:${22+G.combo*3}px;`;
+  el.textContent = `x${Math.round(G.combo)} COMBO!`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 800);
+}
 
-            getDropTarget(x, y) {
-                // Hide active element temporarily to find element underneath
-                this.activeDrag.style.display = 'none';
-                const el = document.elementFromPoint(x, y);
-                this.activeDrag.style.display = 'flex';
-                if(!el) return null;
-                return el.closest('.dropzone');
-            }
-        };
+// ── NOTIFICATIONS ──────────────────────────────────────────────
+function notify(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `notification ${type}`;
+  el.textContent = msg;
+  document.getElementById('notifications').prepend(el);
+  setTimeout(() => el.remove(), 2600);
+}
 
-        // --- STAGES LOGIC ---
-        const Stages = {};
+// ── DRAG SYSTEM ────────────────────────────────────────────────
+let ghostEl = null;
 
-        // 0. INTRO
-        Stages['INTRO'] = {}; // Handled by Game.init() buttons
+function initDrag(el, type, data) {
+  el.addEventListener('pointerdown', e => startDrag(e, el, type, data));
+}
 
-        // 1. CI PIPELINE
-        Stages['CI_PIPELINE'] = {
-            sequence: ['git', 'build', 'test', 'docker', 'registry', 'deploy'],
-            labels: ['Git Push', 'Build', 'Unit Test', 'Dockerize', 'Registry', 'Deploy Prod'],
-            filledCount: 0,
-            
-            enter() {
-                this.filledCount = 0;
-                const track = document.getElementById('ci-track');
-                const tray = document.getElementById('ci-tray');
-                track.innerHTML = ''; tray.innerHTML = '';
+function startDrag(e, el, type, data) {
+  if (el.classList.contains('placed') || el.classList.contains('dragging')) return;
+  e.preventDefault();
+  el.setPointerCapture(e.pointerId);
 
-                // Create Track
-                this.sequence.forEach((id, index) => {
-                    const dz = Utils.createDropzone(index, id);
-                    dz.classList.add('pipe-zone');
-                    track.appendChild(dz);
-                    if(index < this.sequence.length - 1) {
-                        const arrow = document.createElement('div');
-                        arrow.className = 'pipe-arrow'; arrow.innerText = '➔';
-                        track.appendChild(arrow);
-                    }
-                });
+  const rect = el.getBoundingClientRect();
+  ghostEl = el.cloneNode(true);
+  ghostEl.id = 'dragGhostEl';
+  ghostEl.style.cssText = `
+    position:fixed;pointer-events:none;z-index:9000;
+    width:${rect.width}px;height:${rect.height}px;
+    opacity:0.95;transform:scale(1.1) rotate(-3deg);
+    filter:drop-shadow(0 8px 20px rgba(0,245,255,0.7));
+    transition:none;
+  `;
+  document.body.appendChild(ghostEl);
+  positionGhost(e);
+  el.classList.add('dragging');
 
-                // Create Draggables
-                let items = this.sequence.map((id, i) => ({id, lbl: this.labels[i]}));
-                Utils.shuffle(items).forEach(item => {
-                    tray.appendChild(Utils.createDraggable(item.id, item.lbl));
-                });
+  G.drag = { el, type, data };
 
-                DragManager.init(this.handleDrop.bind(this));
-            },
-            
-            handleDrop(dragEl, dropEl) {
-                const expected = dropEl.dataset.expected;
-                const actual = dragEl.dataset.id;
-                
-                if(expected === actual) {
-                    const rect = dropEl.getBoundingClientRect();
-                    Particles.createExplosion(rect.left + rect.width/2, rect.top + rect.height/2, varColors.green);
-                    Game.addScore(100);
-                    this.filledCount++;
-                    if(this.filledCount === this.sequence.length) {
-                        setTimeout(() => Game.changeState('CLOUD_ARCHITECTURE'), 1000);
-                    }
-                    return true;
-                } else {
-                    Game.takeDamage(10, 'Pipeline Broken');
-                    return false;
-                }
-            },
-            exit() { DragManager.clear(); }
-        };
+  el.addEventListener('pointermove', onDragMove);
+  el.addEventListener('pointerup', onDragEnd);
+  el.addEventListener('pointercancel', onDragCancel);
+}
 
-        // 2. CLOUD ARCHITECTURE
-        Stages['CLOUD_ARCHITECTURE'] = {
-            nodes: [
-                {id: 'internet', lbl: 'Internet', row: 1, col: 2, static: true},
-                {id: 'cloudfront', lbl: 'CDN', row: 2, col: 2},
-                {id: 'alb', lbl: 'Load Balancer', row: 3, col: 2},
-                {id: 'k8s', lbl: 'K8s Cluster', row: 4, col: 2},
-                {id: 'db', lbl: 'Database', row: 5, col: 1},
-                {id: 'cache', lbl: 'Redis Cache', row: 5, col: 3}
-            ],
-            filledCount: 0,
+function positionGhost(e) {
+  if (!ghostEl) return;
+  const rect = ghostEl.getBoundingClientRect();
+  ghostEl.style.left = (e.clientX - rect.width/2) + 'px';
+  ghostEl.style.top  = (e.clientY - rect.height/2) + 'px';
+  spawnTrail(e.clientX, e.clientY, '#00f5ff');
+}
 
-            enter() {
-                this.filledCount = 0;
-                const track = document.getElementById('arch-track');
-                const tray = document.getElementById('arch-tray');
-                track.innerHTML = ''; tray.innerHTML = '';
-                
-                // Adjust Grid logic for tree
-                track.style.gridTemplateColumns = 'repeat(3, 1fr)';
-                track.style.gridTemplateRows = 'repeat(5, 1fr)';
+function onDragMove(e) {
+  e.preventDefault();
+  positionGhost(e);
+  // Highlight drop targets
+  highlightDropTargets(e.clientX, e.clientY);
+}
 
-                let draggables = [];
+function onDragEnd(e) {
+  e.preventDefault();
+  const target = findDropTarget(e.clientX, e.clientY);
+  if (target) {
+    handleDrop(G.drag, target, e.clientX, e.clientY);
+  }
+  cleanupDrag();
+}
 
-                this.nodes.forEach(n => {
-                    const container = document.createElement('div');
-                    container.style.gridRow = n.row;
-                    container.style.gridColumn = n.col;
-                    container.className = 'arch-zone';
+function onDragCancel() { cleanupDrag(); }
 
-                    if(n.static) {
-                        const el = Utils.createDraggable('static', n.lbl, varColors.green);
-                        el.style.position = 'relative'; el.style.width='100%'; el.style.height='100%';
-                        el.style.cursor = 'default';
-                        container.appendChild(el);
-                    } else {
-                        const dz = Utils.createDropzone(`arch-${n.id}`, n.id);
-                        dz.style.width = '100%'; dz.style.height = '100%';
-                        container.appendChild(dz);
-                        draggables.push({id: n.id, lbl: n.lbl});
-                    }
-                    track.appendChild(container);
-                });
+function cleanupDrag() {
+  if (G.drag && G.drag.el) G.drag.el.classList.remove('dragging');
+  if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+  G.drag = null;
+  clearDropHighlights();
+}
 
-                Utils.shuffle(draggables).forEach(item => {
-                    tray.appendChild(Utils.createDraggable(item.id, item.lbl));
-                });
+function highlightDropTargets(x, y) {
+  clearDropHighlights();
+  const targets = getDropTargets();
+  for (const t of targets) {
+    const r = t.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+      t.classList.add('hover-target');
+    }
+  }
+}
 
-                DragManager.init(this.handleDrop.bind(this));
-            },
+function clearDropHighlights() {
+  document.querySelectorAll('.hover-target').forEach(el => el.classList.remove('hover-target'));
+}
 
-            handleDrop(dragEl, dropEl) {
-                if(dropEl.dataset.expected === dragEl.dataset.id) {
-                    const rect = dropEl.getBoundingClientRect();
-                    Particles.createExplosion(rect.left + rect.width/2, rect.top + rect.height/2, varColors.blue);
-                    Game.addScore(150);
-                    this.filledCount++;
-                    if(this.filledCount === this.nodes.length - 1) { // Exclude static
-                        setTimeout(() => Game.changeState('KUBERNETES_CLUSTER'), 1000);
-                    }
-                    return true;
-                } else {
-                    Game.takeDamage(15, 'Architecture Flaw');
-                    return false;
-                }
-            },
-            exit() { DragManager.clear(); }
-        };
+function findDropTarget(x, y) {
+  for (const t of getDropTargets()) {
+    const r = t.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return t;
+  }
+  return null;
+}
 
-        // 3. KUBERNETES CLUSTER
-        Stages['KUBERNETES_CLUSTER'] = {
-            timer: 30,
-            pods: [],
-            eventTimer: 0,
-            fixes: [
-                {id: 'restart', lbl: 'Restart Pod', err: 'CrashLoopBackOff'},
-                {id: 'scale', lbl: 'Scale Deploy', err: 'HighLoad'},
-                {id: 'redeploy', lbl: 'Redeploy', err: 'ImagePullError'},
-                {id: 'rollback', lbl: 'Roll Back', err: 'BadUpdate'}
-            ],
+function getDropTargets() {
+  const lists = [
+    '.pipeline-slot:not(.filled)',
+    '.cloud-drop-zone:not(.filled)',
+    '.pod.crashed,.pod.warning',
+    '.incident-drop:not(.resolved)'
+  ];
+  return [...document.querySelectorAll(lists.join(','))];
+}
 
-            enter() {
-                this.timer = 30;
-                this.eventTimer = 2; // initial delay
-                const grid = document.getElementById('k8s-grid');
-                const tray = document.getElementById('k8s-tray');
-                grid.innerHTML = ''; tray.innerHTML = '';
-                this.pods = [];
+// ── CI/CD MINIGAME ─────────────────────────────────────────────
+function setupCI() {
+  G.ci = { slots: new Array(6).fill(null), completed: 0, round: 0 };
+  renderCI();
+  document.getElementById('ciCompleted').textContent = '0';
+  document.getElementById('ciProgress').style.width = '0%';
+}
 
-                for(let i=0; i<6; i++) {
-                    const pod = document.createElement('div');
-                    pod.className = 'pod';
-                    pod.innerHTML = `<div class="pod-title">Pod-${Utils.randomInt(1000,9999)}</div><div class="pod-status">Running</div>`;
-                    
-                    const dz = Utils.createDropzone(`pod-${i}`, 'none');
-                    dz.style.position = 'absolute'; dz.style.width='100%'; dz.style.height='100%';
-                    dz.style.border = 'none'; dz.style.background = 'transparent';
-                    pod.appendChild(dz);
-                    
-                    grid.appendChild(pod);
-                    this.pods.push({el: pod, dz: dz, state: 'healthy', errType: null, timeToDie: 0});
-                }
+function renderCI() {
+  const slotsEl = document.getElementById('pipelineSlots');
+  slotsEl.innerHTML = '';
+  // Connector SVG
+  const connector = document.getElementById('pipelineConnector');
+  connector.innerHTML = PIPE_ORDER.map((_,i) => i < PIPE_ORDER.length-1 ? '<span class="pipeline-arrow">→</span>' : '').join('').replace(/<\/span><span/g, '</span><span style="display:none"></span><span');
+  connector.innerHTML = '<span style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);letter-spacing:2px">DROP PIPELINE STAGES IN ORDER</span>';
 
-                this.fixes.forEach(f => {
-                    tray.appendChild(Utils.createDraggable(f.id, f.lbl, varColors.blue));
-                });
+  PIPE_ORDER.forEach((_, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'pipeline-slot';
+    slot.dataset.slot = i;
+    const num = document.createElement('div');
+    num.className = 'slot-number';
+    num.textContent = i+1;
+    slot.appendChild(num);
+    const label = document.createElement('div');
+    label.className = 'slot-label';
+    label.textContent = `STEP ${i+1}`;
+    slot.appendChild(label);
+    if (i < PIPE_ORDER.length - 1) {
+      const arr = document.createElement('span');
+      arr.textContent = '→';
+      arr.style.cssText = 'position:absolute;right:-12px;color:var(--text-dim);font-size:12px;z-index:1;';
+      slot.appendChild(arr);
+    }
+    slotsEl.appendChild(slot);
+  });
 
-                DragManager.init(this.handleDrop.bind(this));
-            },
+  // Source cards (shuffled)
+  const shuffled = [...PIPE_ORDER].sort(() => Math.random() - 0.5);
+  const src = document.getElementById('pipelineSource');
+  src.innerHTML = '';
+  shuffled.forEach(key => {
+    const m = PIPE_META[key];
+    const card = document.createElement('div');
+    card.className = 'pipe-card';
+    card.dataset.pipe = key;
+    card.style.color = m.color;
+    card.innerHTML = `<div class="icon">${m.icon}</div><div class="label">${m.label}</div>`;
+    initDrag(card, 'pipe', { key });
+    src.appendChild(card);
+  });
+  document.getElementById('ciCompleted').textContent = G.ci.completed;
+}
 
-            update(dt) {
-                this.timer -= dt;
-                UI.setTime(this.timer);
-                if(this.timer <= 0) {
-                    Game.changeState('INCIDENT_RESPONSE');
-                    return;
-                }
+function handleDrop(drag, target, x, y) {
+  if (!drag) return;
+  if (drag.type === 'pipe' && target.classList.contains('pipeline-slot')) handlePipeDrop(drag, target, x, y);
+  else if (drag.type === 'cloud' && target.classList.contains('cloud-drop-zone')) handleCloudDrop(drag, target, x, y);
+  else if (drag.type === 'k8s-fix' && (target.classList.contains('pod'))) handleK8sDrop(drag, target, x, y);
+  else if (drag.type === 'incident-fix' && target.classList.contains('incident-drop')) handleIncidentDrop(drag, target, x, y);
+}
 
-                this.eventTimer -= dt;
-                if(this.eventTimer <= 0) {
-                    this.crashRandomPod();
-                    this.eventTimer = Utils.randomInt(2, 4) - (Game.difficulty * 0.2); // gets faster
-                }
+function handlePipeDrop(drag, slot, x, y) {
+  const slotIdx = parseInt(slot.dataset.slot);
+  const key = drag.data.key;
+  const correct = PIPE_ORDER[slotIdx] === key;
 
-                // Check pod death timers
-                this.pods.forEach(p => {
-                    if(p.state === 'crash') {
-                        p.timeToDie -= dt;
-                        if(p.timeToDie <= 0) {
-                            Game.takeDamage(10, 'Pod Died');
-                            this.healPod(p); // reset after damage to prevent spam
-                        }
-                    }
-                });
-            },
+  if (correct) {
+    // Place it
+    drag.el.classList.add('placed');
+    slot.classList.add('filled', 'correct');
+    slot.innerHTML = '';
+    const m = PIPE_META[key];
+    slot.innerHTML = `<div class="icon" style="font-size:20px">${m.icon}</div><div class="slot-label" style="color:${m.color}">${m.label}</div>`;
+    addScore(150, x, y, m.color);
+    notify(`✓ ${m.label} placed correctly!`, 'success');
 
-            crashRandomPod() {
-                const healthy = this.pods.filter(p => p.state === 'healthy');
-                if(healthy.length === 0) return;
-                const p = healthy[Utils.randomInt(0, healthy.length-1)];
-                const fix = this.fixes[Utils.randomInt(0, this.fixes.length-1)];
-                
-                p.state = 'crash';
-                p.errType = fix.id;
-                p.timeToDie = 6; // 6 seconds to fix
-                p.el.classList.add('crash');
-                p.el.querySelector('.pod-status').innerText = fix.err;
-                p.dz.dataset.expected = fix.id; // Tell dropzone what to expect
-            },
+    // Check if pipeline complete
+    const filledSlots = document.querySelectorAll('.pipeline-slot.correct').length;
+    document.getElementById('ciProgress').style.width = `${(filledSlots/6)*100}%`;
 
-            healPod(p) {
-                p.state = 'healthy';
-                p.errType = null;
-                p.el.classList.remove('crash');
-                p.el.querySelector('.pod-status').innerText = 'Running';
-                p.dz.dataset.expected = 'none';
-            },
+    if (filledSlots === 6) {
+      G.ci.completed++;
+      G.stageScores.CI += 1000;
+      document.getElementById('ciCompleted').textContent = G.ci.completed;
+      notify('🚀 Pipeline complete! +1000pts', 'success');
+      setTimeout(() => {
+        if (G.ci.completed < 3) renderCI();
+        else { G.timerActive = false; transition(STATES.CLOUD, 'CLOUD ARCH'); }
+      }, 800);
+    }
+  } else {
+    slot.classList.add('wrong');
+    setTimeout(() => slot.classList.remove('wrong'), 500);
+    drag.el.classList.remove('dragging');
+    loseHealth(8);
+    notify(`✗ Wrong order! ${PIPE_META[key].label} doesn't belong here.`, 'error');
+  }
+}
 
-            handleDrop(dragEl, dropEl) {
-                const podIndex = parseInt(dropEl.id.split('-')[1]);
-                const p = this.pods[podIndex];
-                
-                if(p.state === 'crash' && dropEl.dataset.expected === dragEl.dataset.id) {
-                    const rect = p.el.getBoundingClientRect();
-                    Particles.createExplosion(rect.left + rect.width/2, rect.top + rect.height/2, varColors.green);
-                    Game.addScore(50);
-                    this.healPod(p);
-                    return false; // Return false so tool goes back to tray (reusable)
-                } else {
-                    Game.takeDamage(5, 'Wrong Fix');
-                    return false;
-                }
-            },
-            exit() { DragManager.clear(); }
-        };
+// ── CLOUD ARCH ─────────────────────────────────────────────────
+let cloudLineAnim = 0;
 
-        // 4. INCIDENT RESPONSE
-        Stages['INCIDENT_RESPONSE'] = {
-            timer: 30,
-            eventTimer: 0,
-            alerts: [],
-            incidentMap: [
-                {id: 'autoscale', label: 'AutoScale', alert: 'CPU Spike > 95%'},
-                {id: 'restart', label: 'Restart Node', alert: 'Memory Leak OOM'},
-                {id: 'clean', label: 'Clean Logs', alert: 'Disk Full 100%'},
-                {id: 'waf', label: 'Enable WAF', alert: 'DDoS Attack'},
-                {id: 'cache', label: 'Enable Cache', alert: 'High DB Latency'},
-                {id: 'reconnect', label: 'Reconnect DB', alert: 'DB Connection Drop'}
-            ],
+function setupCloud() {
+  G.cloud = { drops: new Array(6).fill(null), completed: 0 };
+  document.getElementById('cloudCompleted').textContent = '0';
+  document.getElementById('cloudProgress').style.width = '0%';
+  renderCloud();
+}
 
-            enter() {
-                this.timer = 30;
-                this.eventTimer = 1;
-                this.alerts = [];
-                document.getElementById('incident-terminal').innerHTML = '';
-                const tray = document.getElementById('incident-tray');
-                tray.innerHTML = '';
+function renderCloud() {
+  const wrap = document.getElementById('cloudCanvasWrap');
+  const cc = document.getElementById('cloudCanvas');
+  const dzContainer = document.getElementById('cloudDropZones');
+  dzContainer.innerHTML = '';
 
-                this.incidentMap.forEach(i => {
-                    tray.appendChild(Utils.createDraggable(i.id, i.label, varColors.red));
-                });
+  const W = wrap.clientWidth || 400;
+  const H = wrap.clientHeight || 260;
+  cc.width = W; cc.height = H;
 
-                DragManager.init(this.handleDrop.bind(this));
-            },
+  // Layout positions for 6 zones
+  const positions = [
+    { x:0.5, y:0.08, w:0.18, h:0.16 }, // Internet — top center
+    { x:0.5, y:0.28, w:0.18, h:0.16 }, // CloudFront
+    { x:0.5, y:0.48, w:0.18, h:0.16 }, // LB
+    { x:0.5, y:0.68, w:0.18, h:0.16 }, // K8s
+    { x:0.22,y:0.68, w:0.18, h:0.16 }, // DB  (left)
+    { x:0.78,y:0.68, w:0.18, h:0.16 }, // Cache (right)
+  ];
 
-            update(dt) {
-                this.timer -= dt;
-                UI.setTime(this.timer);
-                if(this.timer <= 0) {
-                    Game.changeState('SCORE_SCREEN');
-                    return;
-                }
+  CLOUD_ORDER.forEach((key, i) => {
+    const p = positions[i];
+    const m = CLOUD_META[key];
+    const dz = document.createElement('div');
+    dz.className = 'cloud-drop-zone';
+    dz.dataset.zone = i;
+    dz.dataset.key = key;
+    dz.style.cssText = `left:${(p.x - p.w/2)*100}%;top:${(p.y)*100}%;width:${p.w*100}%;height:${p.h*100}%;border-color:${m.color}33;`;
+    dz.innerHTML = `<div class="dz-icon" style="font-size:clamp(14px,3vw,22px)">${m.icon}</div><div class="dz-label" style="color:${m.color}88">${m.label}</div>`;
+    dzContainer.appendChild(dz);
+  });
 
-                this.eventTimer -= dt;
-                if(this.eventTimer <= 0) {
-                    this.spawnAlert();
-                    this.eventTimer = Math.max(0.8, 2 - (Game.difficulty * 0.3));
-                    Game.difficulty += 0.1; // Increase global diff
-                }
+  // Animated canvas connections
+  animateCloudCanvas(cc, positions, CLOUD_META);
 
-                // Check alert timeouts
-                for(let i = this.alerts.length -1; i>=0; i--) {
-                    let a = this.alerts[i];
-                    a.life -= dt;
-                    if(a.life <= 0) {
-                        Game.takeDamage(15, 'Unresolved Incident');
-                        a.el.remove();
-                        this.alerts.splice(i, 1);
-                    } else {
-                        // Visual indicator of time running out (fade opacity of target)
-                        a.dz.style.borderColor = `rgba(255, 0, 60, ${a.life/6})`;
-                    }
-                }
-            },
+  // Source nodes (shuffled)
+  const shuffled = [...CLOUD_ORDER].sort(() => Math.random() - 0.5);
+  const src = document.getElementById('cloudSource');
+  src.innerHTML = '';
+  shuffled.forEach(key => {
+    const m = CLOUD_META[key];
+    const node = document.createElement('div');
+    node.className = 'cloud-node';
+    node.dataset.key = key;
+    node.style.borderColor = m.color + '55';
+    node.innerHTML = `<span class="node-icon">${m.icon}</span>${m.label}`;
+    initDrag(node, 'cloud', { key });
+    src.appendChild(node);
+  });
+  document.getElementById('cloudCompleted').textContent = G.cloud.completed;
+}
 
-            spawnAlert() {
-                const term = document.getElementById('incident-terminal');
-                const inc = this.incidentMap[Utils.randomInt(0, this.incidentMap.length-1)];
-                
-                const row = document.createElement('div');
-                row.className = 'alert-row';
-                
-                const txt = document.createElement('span');
-                txt.className = 'alert-text';
-                txt.innerText = `[WARN] ${inc.alert}`;
-                
-                const dz = Utils.createDropzone(`alert-${Date.now()}`, inc.id);
-                dz.className = 'alert-target';
-                dz.innerText = 'Drop Fix';
-                
-                row.appendChild(txt);
-                row.appendChild(dz);
-                term.appendChild(row);
+function animateCloudCanvas(cc, positions, meta) {
+  const ctx2 = cc.getContext('2d');
+  const W = cc.width, H = cc.height;
+  let offset = 0;
+  const connections = [[0,1],[1,2],[2,3],[3,4],[3,5]];
+  const keys = Object.keys(meta);
 
-                // Auto scroll to bottom
-                term.scrollTop = term.scrollHeight;
+  function draw() {
+    if (cc.width !== W) return;
+    ctx2.clearRect(0,0,W,H);
+    offset = (offset + 0.5) % 20;
 
-                this.alerts.push({ el: row, dz: dz, expected: inc.id, life: 6 });
-                
-                if(this.alerts.length > 5) { // Terminal overflow
-                    Game.takeDamage(20, 'Terminal Overflow');
-                    const old = this.alerts.shift();
-                    old.el.remove();
-                }
-            },
+    connections.forEach(([a,b]) => {
+      const pa = positions[a], pb = positions[b];
+      const x1 = pa.x * W, y1 = (pa.y + pa.h/2) * H;
+      const x2 = pb.x * W, y2 = (pb.y) * H;
+      const key = keys[a];
+      const color = meta[key]?.color || '#00f5ff';
+      ctx2.save();
+      ctx2.strokeStyle = color + '44';
+      ctx2.lineWidth = 1.5;
+      ctx2.setLineDash([4, 8]);
+      ctx2.lineDashOffset = -offset;
+      ctx2.beginPath();
+      ctx2.moveTo(x1, y1);
+      ctx2.lineTo(x2, y2);
+      ctx2.stroke();
+      // Glow
+      ctx2.shadowColor = color;
+      ctx2.shadowBlur = 8;
+      ctx2.strokeStyle = color + '88';
+      ctx2.lineWidth = 1;
+      ctx2.beginPath();
+      ctx2.moveTo(x1, y1);
+      ctx2.lineTo(x2, y2);
+      ctx2.stroke();
+      ctx2.restore();
+    });
 
-            handleDrop(dragEl, dropEl) {
-                if(dropEl.classList.contains('alert-target')) {
-                    const alertObj = this.alerts.find(a => a.dz === dropEl);
-                    if(alertObj && alertObj.expected === dragEl.dataset.id) {
-                        const rect = dropEl.getBoundingClientRect();
-                        Particles.createExplosion(rect.left + rect.width/2, rect.top + rect.height/2, varColors.yellow);
-                        Game.addScore(100);
-                        
-                        alertObj.el.remove();
-                        this.alerts = this.alerts.filter(a => a !== alertObj);
-                        return false; // return to tray
-                    } else {
-                        Game.takeDamage(10, 'Wrong Command');
-                        return false;
-                    }
-                }
-                return false;
-            },
-            exit() { DragManager.clear(); }
-        };
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
 
-        // 5. SCORE SCREEN
-        Stages['SCORE_SCREEN'] = {
-            enter() {
-                document.getElementById('final-score').innerText = Game.score;
-                if(Game.health <= 0) {
-                    document.getElementById('end-title').innerText = "System Failure";
-                    document.getElementById('end-title').style.color = varColors.red;
-                    document.getElementById('end-subtitle').innerText = "Production is completely down.";
-                } else {
-                    document.getElementById('end-title').innerText = "Shift Survived";
-                    document.getElementById('end-title').style.color = varColors.green;
-                    document.getElementById('end-subtitle').innerText = "Excellent incident management.";
-                }
-                Game.saveScore();
-            }
-        };
+function handleCloudDrop(drag, zone, x, y) {
+  const zoneKey = zone.dataset.key;
+  const dragKey = drag.data.key;
+  const m = CLOUD_META[dragKey];
 
-        // Initialize Game
-        window.onload = () => {
-            UI.loadLeaderboard();
-        };
+  if (zoneKey === dragKey) {
+    drag.el.classList.add('placed');
+    zone.classList.add('filled', 'correct');
+    zone.style.borderColor = m.color;
+    zone.style.background = m.color + '18';
+    zone.innerHTML = `<div class="dz-icon" style="font-size:clamp(14px,3vw,22px)">${m.icon}</div><div style="font-family:var(--font-mono);font-size:8px;color:${m.color};font-weight:700">${m.label}</div>`;
+    addScore(200, x, y, m.color);
+    notify(`✓ ${m.label} placed!`, 'success');
 
-    </script>
+    const filled = document.querySelectorAll('.cloud-drop-zone.correct').length;
+    document.getElementById('cloudProgress').style.width = `${(filled/6)*100}%`;
+
+    if (filled === 6) {
+      G.cloud.completed++;
+      G.stageScores.CLOUD += 1200;
+      document.getElementById('cloudCompleted').textContent = G.cloud.completed;
+      notify('☁️ Architecture complete! +1200pts', 'success');
+      spawnExplosion(x, y, '#00ff88');
+      setTimeout(() => {
+        if (G.cloud.completed < 3) renderCloud();
+        else { G.timerActive = false; transition(STATES.K8S, 'K8S CLUSTER'); }
+      }, 800);
+    }
+  } else {
+    zone.classList.add('wrong');
+    setTimeout(() => zone.classList.remove('wrong'), 500);
+    loseHealth(10);
+    notify(`✗ Wrong service! ${m.label} doesn't go there.`, 'error');
+  }
+}
+
+// ── KUBERNETES ─────────────────────────────────────────────────
+function setupK8S() {
+  const podCount = 8 + G.level * 2;
+  G.k8s.pods = [];
+  G.k8s.fixed = 0;
+
+  for (let i = 0; i < Math.min(podCount, 16); i++) {
+    const name = POD_NAMES[i % POD_NAMES.length];
+    const status = Math.random() > 0.6 ? 'running' : (Math.random() > 0.5 ? 'crashed' : 'warning');
+    G.k8s.pods.push({
+      id: i, name, status, cpu: Math.random() * 80 + 10,
+      crashTimer: status !== 'running' ? 15 + Math.random() * 10 : Infinity,
+      fixable: status !== 'running',
+      autocrash: Math.random() > 0.7
+    });
+  }
+  renderK8S();
+  updateK8SProgress();
+}
+
+function renderK8S() {
+  const grid = document.getElementById('k8sGrid');
+  grid.innerHTML = '';
+  G.k8s.pods.forEach(pod => {
+    const el = document.createElement('div');
+    el.className = `pod ${pod.status}`;
+    el.dataset.podId = pod.id;
+    const icons = { running:'🟢', crashed:'🔴', warning:'🟡', fixing:'🔵', fixed:'✅' };
+    const cpu = Math.round(pod.cpu);
+    const cpuColor = cpu > 80 ? 'var(--accent-red)' : cpu > 60 ? 'var(--accent-orange)' : 'var(--accent-green)';
+    el.innerHTML = `
+      <div class="pod-icon">${icons[pod.status] || '⚪'}</div>
+      <div class="pod-name">${pod.name}</div>
+      <div class="pod-status">${pod.status.toUpperCase()}</div>
+      <div class="pod-cpu"><div class="pod-cpu-fill" style="width:${cpu}%;background:${cpuColor}"></div></div>`;
+    grid.appendChild(el);
+  });
+
+  // Fix tools
+  const ft = document.getElementById('fixTools');
+  ft.innerHTML = '';
+  FIX_TOOLS_K8S.forEach(tool => {
+    const el = document.createElement('div');
+    el.className = 'fix-tool';
+    el.dataset.fix = tool.id;
+    el.innerHTML = `<span style="font-size:16px">${tool.icon}</span><span>${tool.label}</span>`;
+    initDrag(el, 'k8s-fix', { fix: tool.id, icon: tool.icon, label: tool.label });
+    ft.appendChild(el);
+  });
+}
+
+function updateK8S(dt) {
+  let needsRender = false;
+  G.k8s.pods.forEach(pod => {
+    if (pod.status === 'running' && pod.autocrash) {
+      pod.crashTimer -= dt;
+      if (pod.crashTimer <= 0) {
+        pod.status = Math.random() > 0.5 ? 'crashed' : 'warning';
+        pod.crashTimer = 15 + Math.random() * 10;
+        pod.fixable = true;
+        loseHealth(3);
+        notify(`⚠ Pod ${pod.name} just crashed!`, 'warning');
+        needsRender = true;
+      }
+    }
+    if (pod.cpu !== undefined && pod.status === 'running') {
+      pod.cpu += (Math.random() - 0.5) * 5;
+      pod.cpu = Math.max(5, Math.min(99, pod.cpu));
+    }
+  });
+  if (needsRender) renderK8S();
+}
+
+function handleK8sDrop(drag, podEl, x, y) {
+  const podId = parseInt(podEl.dataset.podId);
+  const pod = G.k8s.pods.find(p => p.id === podId);
+  if (!pod || pod.status === 'running') return;
+
+  // Any fix tool works on crashed/warning pods
+  pod.status = 'fixing';
+  podEl.className = 'pod fixing';
+  addScore(300, x, y, '#bf5fff');
+  notify(`⚙ Applying ${drag.data.label}...`, 'info');
+
+  setTimeout(() => {
+    pod.status = 'running';
+    pod.fixable = false;
+    pod.cpu = 20 + Math.random() * 30;
+    pod.autocrash = Math.random() > 0.5;
+    pod.crashTimer = 15 + Math.random() * 15;
+    G.k8s.fixed++;
+    G.stageScores.K8S += 300;
+    addScore(200, x, y + 30, '#00ff88');
+    notify(`✅ ${pod.name} restored!`, 'success');
+    renderK8S();
+    updateK8SProgress();
+    spawnExplosion(x, y, '#00ff88');
+  }, 800);
+}
+
+function updateK8SProgress() {
+  const total = G.k8s.pods.filter(p => !p.autocrash || p.status !== 'running').length;
+  const pct = Math.min(100, (G.k8s.fixed / Math.max(1, G.k8s.pods.filter(p => p.fixable || p.status !== 'running').length + G.k8s.fixed)) * 100);
+  document.getElementById('k8sProgress').style.width = `${pct}%`;
+  document.getElementById('k8sFixed').textContent = G.k8s.fixed;
+}
+
+// ── INCIDENT RESPONSE ──────────────────────────────────────────
+function setupIncidents() {
+  const count = 3 + Math.min(G.level, 5);
+  const pool = [...INCIDENTS].sort(() => Math.random() - 0.5).slice(0, count);
+  G.inc.incidents = pool.map((inc, i) => ({
+    ...inc, timer: 30 + Math.random() * 30, resolved: false, id: `inc_${i}`
+  }));
+  G.inc.resolved = 0;
+  renderIncidents();
+}
+
+function renderIncidents() {
+  const grid = document.getElementById('incidentsGrid');
+  grid.innerHTML = '';
+  G.inc.incidents.forEach(inc => {
+    const el = document.createElement('div');
+    el.className = 'incident-card';
+    el.dataset.incId = inc.id;
+    const sevColors = { critical: 'var(--accent-red)', high: 'var(--accent-orange)', medium: 'var(--accent-yellow)' };
+    el.innerHTML = `
+      <div class="incident-title">${inc.icon} ${inc.title}</div>
+      <div class="incident-desc">${inc.desc}</div>
+      <div class="incident-severity"><div class="severity-dot sev-${inc.severity}"></div><span style="color:${sevColors[inc.severity]};font-family:var(--font-mono);font-size:9px;letter-spacing:1px">${inc.severity.toUpperCase()}</span></div>
+      <div class="incident-drop ${inc.resolved ? 'resolved' : ''}" data-inc-id="${inc.id}">${inc.resolved ? '✅ RESOLVED' : 'DROP FIX HERE'}</div>
+      <div class="incident-timer"><div class="incident-timer-fill" id="itf_${inc.id}" style="width:100%"></div></div>`;
+    if (inc.resolved) el.style.opacity = '0.5';
+    grid.appendChild(el);
+  });
+
+  // Fixes toolbar
+  const tb = document.getElementById('fixesToolbar');
+  tb.innerHTML = '';
+  FIXES.forEach(fix => {
+    const el = document.createElement('div');
+    el.className = 'fix-btn';
+    el.dataset.fix = fix.id;
+    el.style.color = fix.color;
+    el.innerHTML = `<span style="font-size:16px">${fix.icon}</span><span>${fix.label}</span>`;
+    initDrag(el, 'incident-fix', fix);
+    tb.appendChild(el);
+  });
+  document.getElementById('incResolved').textContent = G.inc.resolved;
+}
+
+function updateIncidents(dt) {
+  let changed = false;
+  G.inc.incidents.forEach(inc => {
+    if (inc.resolved) return;
+    inc.timer -= dt;
+    const pct = Math.max(0, (inc.timer / 60) * 100);
+    const bar = document.getElementById(`itf_${inc.id}`);
+    if (bar) bar.style.width = `${pct}%`;
+    if (inc.timer <= 0) {
+      loseHealth(15);
+      inc.resolved = true; // expired
+      inc.expired = true;
+      notify(`💥 ${inc.title} expired! -15 health`, 'error');
+      changed = true;
+    }
+  });
+  if (changed) renderIncidents();
+  const pct = (G.inc.resolved / Math.max(1, G.inc.incidents.length)) * 100;
+  document.getElementById('incProgress').style.width = `${pct}%`;
+  document.getElementById('incResolved').textContent = G.inc.resolved;
+}
+
+function handleIncidentDrop(drag, dropZone, x, y) {
+  const incId = dropZone.dataset.incId;
+  const inc = G.inc.incidents.find(i => i.id === incId);
+  if (!inc || inc.resolved) return;
+
+  const fixId = drag.data.id;
+  if (fixId === inc.fix) {
+    inc.resolved = true;
+    G.inc.resolved++;
+    G.stageScores.INC += 400;
+    dropZone.className = 'incident-drop resolved';
+    dropZone.textContent = '✅ RESOLVED';
+    const card = dropZone.closest('.incident-card');
+    if (card) { card.style.animation = 'none'; card.style.borderColor = 'var(--accent-green)'; card.style.opacity = '0.6'; }
+    addScore(400, x, y, '#00ff88');
+    notify(`✅ ${inc.title} resolved with ${drag.data.label}!`, 'success');
+    spawnExplosion(x, y, '#00ff88');
+    document.getElementById('incResolved').textContent = G.inc.resolved;
+
+    if (G.inc.incidents.every(i => i.resolved)) {
+      notify('🎉 All incidents resolved!', 'success');
+      G.timerActive = false;
+      setTimeout(() => transition(STATES.SCORE, 'MISSION COMPLETE'), 800);
+    }
+  } else {
+    dropZone.classList.add('wrong-fix');
+    setTimeout(() => dropZone.classList.remove('wrong-fix'), 500);
+    loseHealth(12);
+    notify(`✗ Wrong fix! ${drag.data.label} won't fix ${inc.title}.`, 'error');
+  }
+}
+
+// ── CHAOS ENGINE ────────────────────────────────────────────────
+function triggerChaos() {
+  const events = [
+    () => { loseHealth(5); notify('⚡ Random spike! -5 health', 'warning'); },
+    () => { G.combo = Math.max(1, G.combo - 1); notify('🌩 Chaos reset combo!', 'warning'); updateHUD(); },
+    () => {
+      if (G.state === STATES.K8S && G.k8s.pods.length) {
+        const running = G.k8s.pods.filter(p => p.status === 'running');
+        if (running.length > 0) {
+          const pod = running[Math.floor(Math.random() * running.length)];
+          pod.status = 'crashed'; pod.fixable = true;
+          loseHealth(4); renderK8S();
+          notify(`💥 Pod ${pod.name} crashed!`, 'error');
+        }
+      }
+    },
+    () => { if (G.level >= 3) { document.getElementById('bossAlert').classList.add('active'); setTimeout(() => document.getElementById('bossAlert').classList.remove('active'), 1500); loseHealth(10); notify('🚨 BOSS INCIDENT! -10 health', 'error'); } },
+  ];
+  const e = events[Math.floor(Math.random() * events.length)];
+  e();
+}
+
+// ── SCORE SCREEN ────────────────────────────────────────────────
+function showScore() {
+  document.getElementById('finalScore').textContent = G.score.toLocaleString();
+  document.getElementById('scoreCI').textContent = G.stageScores.CI.toLocaleString();
+  document.getElementById('scoreCloud').textContent = G.stageScores.CLOUD.toLocaleString();
+  document.getElementById('scoreK8s').textContent = G.stageScores.K8S.toLocaleString();
+  document.getElementById('scoreInc').textContent = G.stageScores.INC.toLocaleString();
+  document.getElementById('scoreCombo').textContent = `x${G.maxCombo}`;
+  document.getElementById('scoreHealth').textContent = `${Math.round(G.health)}%`;
+
+  saveScore();
+  renderLeaderboard();
+  spawnExplosion(window.innerWidth/2, window.innerHeight/2, '#ffe600');
+  setTimeout(() => spawnExplosion(window.innerWidth/2, window.innerHeight/2, '#00ff88'), 200);
+  setTimeout(() => spawnExplosion(window.innerWidth/2, window.innerHeight/2, '#bf5fff'), 400);
+}
+
+function saveScore() {
+  try {
+    const lb = JSON.parse(localStorage.getItem('devopsRushLB') || '[]');
+    lb.push({ score: G.score, date: new Date().toLocaleDateString(), health: Math.round(G.health) });
+    lb.sort((a,b) => b.score - a.score);
+    lb.splice(10);
+    localStorage.setItem('devopsRushLB', JSON.stringify(lb));
+  } catch(e) {}
+}
+
+function renderLeaderboard() {
+  try {
+    const lb = JSON.parse(localStorage.getItem('devopsRushLB') || '[]');
+    const el = document.getElementById('leaderboard');
+    if (!lb.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="lb-title">TOP ENGINEERS — LOCAL LEADERBOARD</div>` +
+      lb.slice(0,8).map((entry, i) => `
+        <div class="lb-row ${entry.score === G.score && i === lb.findIndex(e => e.score === G.score) ? 'highlight' : ''}">
+          <span class="lb-rank">#${i+1}</span>
+          <span class="lb-name">ENGINEER_${(entry.score % 999).toString().padStart(3,'0')}</span>
+          <span class="lb-score">${entry.score.toLocaleString()}</span>
+          <span style="color:var(--text-dim);font-family:var(--font-mono);font-size:10px;margin-left:8px">${entry.date}</span>
+        </div>`).join('');
+  } catch(e) {}
+}
+
+// ── INIT ────────────────────────────────────────────────────────
+function init() {
+  G.raf = requestAnimationFrame(gameLoop);
+
+  document.getElementById('startBtn').addEventListener('click', () => {
+    G.score = 0; G.health = 100; G.combo = 1; G.maxCombo = 1; G.level = 1; G.chaosTimer = 0;
+    G.stageScores = { CI:0, CLOUD:0, K8S:0, INC:0 };
+    updateHUD();
+    transition(STATES.CI, 'CI/CD PIPELINE');
+  });
+
+  document.getElementById('restartBtn').addEventListener('click', () => {
+    G.score = 0; G.health = 100; G.combo = 1; G.maxCombo = 1; G.level = 1; G.chaosTimer = 0;
+    G.stageScores = { CI:0, CLOUD:0, K8S:0, INC:0 };
+    updateHUD();
+    transition(STATES.CI, 'CI/CD PIPELINE');
+  });
+
+  // Level up every 90 seconds of play
+  setInterval(() => {
+    if (G.timerActive) { G.level = Math.min(G.level + 1, 10); updateHUD(); notify(`⬆ Level ${G.level}!`, 'info'); }
+  }, 90000);
+}
+
+init();
+</script>
 </body>
 </html>
