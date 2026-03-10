@@ -1,376 +1,398 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Defend Production: Shadow Dragon</title>
-    <style>
-        :root {
-            --bg: #09090b; --panel: #18181b; --border: #27272a; --text: #e4e4e7;
-            --good: #10b981; --vuln: #ef4444; --boss: #7f1d1d;
-            --path: #1f2937; --waf: #8b5cf6; --asg: #3b82f6; --ult: #fbbf24;
-        }
+<meta charset="UTF-8">
+<title>DevOps Rush</title>
 
-        body {
-            background-color: var(--bg); color: var(--text);
-            font-family: "Courier New", Courier, monospace;
-            margin: 0; padding: 0; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; height: 100vh; overflow: hidden;
-            touch-action: none; user-select: none; -webkit-user-select: none;
-        }
+<style>
 
-        /* Screen Shake Animation */
-        @keyframes brutalShake {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            20% { transform: translate(-3px, 2px) rotate(-1deg); }
-            40% { transform: translate(3px, -2px) rotate(1deg); }
-            60% { transform: translate(-3px, -2px) rotate(0deg); }
-            80% { transform: translate(3px, 2px) rotate(-1deg); }
-            100% { transform: translate(0, 0) rotate(0deg); }
-        }
-        .shake { animation: brutalShake 0.3s cubic-bezier(.36,.07,.19,.97) both infinite; border-color: var(--vuln) !important; box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); }
+body{
+margin:0;
+font-family:monospace;
+background:#0f172a;
+color:white;
+overflow:hidden;
+}
 
-        .hud { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 600px; padding: 15px; box-sizing: border-box; background: var(--panel); border-bottom: 2px solid var(--border); z-index: 50;}
-        .stat-box { display: flex; flex-direction: column; align-items: center; }
-        .stat-label { font-size: 0.7rem; color: #a1a1aa; text-transform: uppercase; font-weight: bold; margin-bottom: 4px;}
-        .stat-value { font-size: 1.4rem; font-weight: bold; text-shadow: 0 0 10px currentColor;}
-        
-        .db-health-container { width: 150px; height: 14px; background: var(--bg); border: 2px solid var(--border); border-radius: 8px; overflow: hidden;}
-        .db-health-fill { width: 100%; height: 100%; background: var(--good); transition: width 0.2s, background-color 0.2s; box-shadow: 0 0 10px var(--good);}
+#hud{
+position:fixed;
+top:0;
+width:100%;
+height:60px;
+background:#020617;
+display:flex;
+justify-content:space-around;
+align-items:center;
+z-index:100;
+border-bottom:2px solid #334155;
+}
 
-        .game-area { position: relative; width: 100%; max-width: 600px; height: 450px; background: #050505; border-bottom: 2px solid var(--border); overflow: hidden; }
-        .grid-bg { position: absolute; width: 100%; height: 100%; background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 50px 50px; pointer-events: none;}
-        
-        .path { position: absolute; background: var(--path); border: 1px dashed #3f3f46; box-sizing: border-box; box-shadow: inset 0 0 20px rgba(0,0,0,0.8);}
-        .database { position: absolute; width: 60px; height: 60px; border-radius: 8px; background: var(--panel); border: 2px solid var(--good); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; color: var(--text); box-shadow: 0 0 20px var(--good); z-index: 5;}
-        
-        /* Entities */
-        .packet { position: absolute; border-radius: 50%; transform: translate(-50%, -50%); z-index: 10; }
-        .packet.user { width: 12px; height: 12px; background: var(--good); box-shadow: 0 0 10px var(--good); }
-        .packet.ddos { width: 16px; height: 16px; background: var(--vuln); box-shadow: 0 0 12px var(--vuln); }
-        
-        /* The Shadow Dragon Boss */
-        .packet.dragon { 
-            width: 45px; height: 45px; background: #000; border: 3px solid var(--vuln); 
-            box-shadow: 0 0 30px var(--boss), inset 0 0 15px var(--vuln); 
-            z-index: 20; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .packet.dragon::after { content: "☠️"; font-size: 1.5rem; }
+#game{
+position:absolute;
+top:60px;
+bottom:0;
+width:100%;
+overflow:hidden;
+}
 
-        .tower { position: absolute; width: 40px; height: 40px; border-radius: 8px; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; color: #fff; z-index: 15; box-shadow: 0 4px 15px rgba(0,0,0,0.8); border: 2px solid; background: rgba(0,0,0,0.8);}
-        .tower.waf { border-color: var(--waf); color: var(--waf); box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);}
-        .tower.asg { border-color: var(--asg); color: var(--asg); box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);}
-        .laser { position: absolute; transform-origin: 0 0; z-index: 12; pointer-events: none; height: 3px; border-radius: 2px;}
+.zone{
+border:2px dashed #64748b;
+border-radius:10px;
+padding:10px;
+text-align:center;
+}
 
-        /* Controls & Shop */
-        .controls { display: flex; gap: 10px; padding: 15px; width: 100%; max-width: 600px; justify-content: space-between; background: var(--panel); align-items: center; box-sizing: border-box;}
-        .shop-item { background: var(--bg); border: 2px solid var(--border); color: var(--text); padding: 10px; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; width: 80px; transition: 0.2s;}
-        .shop-item.selected { border-color: #fff; background: #27272a; transform: translateY(-3px); box-shadow: 0 4px 15px rgba(255,255,255,0.1);}
-        .shop-item.disabled { opacity: 0.3; cursor: not-allowed; }
-        
-        /* The Ultimate Button */
-        .btn-ult { background: transparent; border: 2px solid var(--border); color: #52525b; padding: 10px 20px; font-size: 1rem; border-radius: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; transition: 0.3s; cursor: not-allowed; }
-        .btn-ult.ready { border-color: var(--ult); color: var(--ult); background: rgba(251, 191, 36, 0.1); box-shadow: 0 0 20px rgba(251, 191, 36, 0.4); cursor: pointer; animation: pulseUlt 1s infinite;}
-        @keyframes pulseUlt { 0% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.4); } 50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.8); } 100% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.4); } }
+.item{
+background:#1e293b;
+padding:12px;
+border-radius:8px;
+position:absolute;
+cursor:pointer;
+touch-action:none;
+}
 
-        .float-txt { position: absolute; font-weight: bold; font-size: 1rem; pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 100; text-shadow: 0 2px 4px rgba(0,0,0,0.8);}
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-30px) scale(1.2); } }
+.center{
+text-align:center;
+padding-top:120px;
+}
 
-        .overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; padding: 20px; box-sizing: border-box; text-align: center; backdrop-filter: blur(4px);}
-        .overlay h1 { color: var(--ult); font-size: 2.5rem; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 3px; text-shadow: 0 0 20px var(--ult);}
-        .btn-start { background: var(--good); color: #000; border: none; padding: 15px 40px; font-size: 1.2rem; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 20px; box-shadow: 0 0 20px var(--good);}
-        .btn-start:hover { background: #34d399; }
-    </style>
+button{
+padding:12px 24px;
+background:#3b82f6;
+border:none;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+.alert{
+background:#7f1d1d;
+}
+
+.fix{
+background:#065f46;
+}
+
+</style>
 </head>
+
 <body>
 
-    <div class="hud">
-        <div class="stat-box">
-            <span class="stat-label">System Health</span>
-            <div class="db-health-container"><div class="db-health-fill" id="hp-fill"></div></div>
-        </div>
-        <div class="stat-box">
-            <span class="stat-label">Incoming Wave</span>
-            <span class="stat-value" id="time-val" style="color: var(--asg)">30s</span>
-        </div>
-        <div class="stat-box">
-            <span class="stat-label">Credits</span>
-            <span class="stat-value" id="budget-val" style="color: var(--good)">$400</span>
-        </div>
-    </div>
+<div id="hud">
+<div>Stage: <span id="stage">INIT</span></div>
+<div>Score: <span id="score">0</span></div>
+<div>Health: <span id="health">100</span></div>
+<div>Time: <span id="time">0</span></div>
+</div>
 
-    <div class="game-area" id="game-area">
-        <div class="grid-bg"></div>
-        <div class="database" id="database">RDS<br>CORE</div>
-    </div>
+<div id="game"></div>
 
-    <div class="controls">
-        <div class="shop-item" id="shop-asg" onclick="selectTower('asg')">
-            <span style="color: var(--asg); font-weight: bold;">ASG</span><span style="font-size: 0.7rem; color: #a1a1aa;">$100</span>
-        </div>
-        <div class="shop-item" id="shop-waf" onclick="selectTower('waf')">
-            <span style="color: var(--waf); font-weight: bold;">WAF</span><span style="font-size: 0.7rem; color: #a1a1aa;">$200</span>
-        </div>
-        <button class="btn-ult" id="btn-ult" onclick="fireUltimate()">K8s Strike</button>
-    </div>
+<script>
 
-    <div class="overlay" id="start-overlay">
-        <h1>Defend The Realm</h1>
-        <p style="color: #a1a1aa; max-width: 400px; line-height: 1.6; margin-bottom: 20px;">
-            You are the Cyber-Knight. Build <strong>ASGs</strong> to process green users (earns $). Build <strong>WAFs</strong> to destroy red DDoS bots. <br><br>
-            Survive until the <strong>Shadow Dragon</strong> appears, then unleash your Ultimate.
-        </p>
-        <button class="btn-start" onclick="startGame()">Engage</button>
-    </div>
+const GameState={
+INIT:"INIT",
+BUILD:"BUILD",
+DEPLOY:"DEPLOY",
+INCIDENT:"INCIDENT",
+SCORE:"SCORE"
+}
 
-    <script>
-        const gameArea = document.getElementById('game-area');
-        const hpFill = document.getElementById('hp-fill');
-        const dbEl = document.getElementById('database');
-        
-        let state = {
-            hp: 100, budget: 400, timeLeft: 30, isPlaying: false,
-            spawnRate: 1200, bossActive: false, ultReady: false
-        };
+let state=GameState.INIT
+let score=0
+let health=100
+let timer=60
+let dragItem=null
 
-        // Serpentine Path
-        const pathPoints = [
-            {x: 25, y: -20}, {x: 25, y: 75}, {x: 525, y: 75}, 
-            {x: 525, y: 225}, {x: 75, y: 225}, {x: 75, y: 375}, {x: 450, y: 375}
-        ];
+const game=document.getElementById("game")
 
-        const tConfig = {
-            asg: { cost: 100, range: 100, fireRate: 300, damage: 50, target: 'user', color: 'var(--asg)' },
-            waf: { cost: 200, range: 150, fireRate: 400, damage: 80, target: 'ddos', color: 'var(--waf)' }
-        };
+function updateHUD(){
+document.getElementById("stage").innerText=state
+document.getElementById("score").innerText=score
+document.getElementById("health").innerText=health
+document.getElementById("time").innerText=timer
+}
 
-        let packets = [], towers = [], lasers = [];
-        let lastTime = 0, spawnT = 0, secT = 0, selectedTower = null, animId;
+function clearGame(){
+game.innerHTML=""
+}
 
-        function initMap() {
-            for(let i=0; i<pathPoints.length-1; i++) {
-                const p1 = pathPoints[i], p2 = pathPoints[i+1];
-                const seg = document.createElement('div'); seg.className = 'path';
-                seg.style.width = `${Math.abs(p2.x-p1.x)+40}px`; seg.style.height = `${Math.abs(p2.y-p1.y)+40}px`;
-                seg.style.left = `${Math.min(p1.x,p2.x)-20}px`; seg.style.top = `${Math.min(p1.y,p2.y)-20}px`;
-                gameArea.appendChild(seg);
-            }
-            dbEl.style.left = `${pathPoints[pathPoints.length-1].x - 30}px`;
-            dbEl.style.top = `${pathPoints[pathPoints.length-1].y - 30}px`;
-        }
+function startTimer(){
+timer=30
+let t=setInterval(()=>{
+timer--
+updateHUD()
+if(timer<=0){
+clearInterval(t)
+nextStage()
+}
+},1000)
+}
 
-        function startGame() {
-            document.getElementById('start-overlay').style.display = 'none';
-            initMap(); state.isPlaying = true; lastTime = performance.now();
-            updateUI(); gameLoop(lastTime);
-        }
+function nextStage(){
 
-        function gameLoop(time) {
-            if(!state.isPlaying) return;
-            const dt = time - lastTime; lastTime = time;
-            spawnT += dt; secT += dt;
+if(state===GameState.BUILD){
+state=GameState.DEPLOY
+deployGame()
+return
+}
 
-            // 1 Sec Tick
-            if(secT >= 1000) {
-                secT = 0; state.timeLeft--;
-                if(state.timeLeft === 12 && !state.bossActive) spawnBoss(); // BOSS SPAWN
-                if(state.timeLeft <= 0 && !state.bossActive) return winGame();
-                updateUI();
-            }
+if(state===GameState.DEPLOY){
+state=GameState.INCIDENT
+incidentGame()
+return
+}
 
-            // Spawning
-            if(spawnT >= state.spawnRate && !state.bossActive) {
-                spawnT = 0;
-                if(state.timeLeft < 20) state.spawnRate = 600; // Speed up
-                const isDdos = Math.random() < 0.4;
-                spawnPacket(isDdos ? 'ddos' : 'user', isDdos ? 150 : 50, isDdos ? 0.08 : 0.05);
-            }
+if(state===GameState.INCIDENT){
+state=GameState.SCORE
+scoreScreen()
+}
 
-            // Move Packets
-            for(let i = packets.length-1; i>=0; i--) {
-                let p = packets[i];
-                const target = pathPoints[p.pathIdx+1];
-                if(!target) {
-                    hitBase(p); p.el.remove(); packets.splice(i, 1); continue;
-                }
-                const dist = Math.hypot(target.x - p.x, target.y - p.y);
-                const move = p.speed * dt;
-                if(move >= dist) { p.x = target.x; p.y = target.y; p.idx++; p.pathIdx++; }
-                else { p.x += ((target.x - p.x)/dist)*move; p.y += ((target.y - p.y)/dist)*move; }
-                p.el.style.left = `${p.x}px`; p.el.style.top = `${p.y}px`;
-            }
+}
 
-            // Towers Fire
-            towers.forEach(t => {
-                t.cd -= dt;
-                if(t.cd <= 0) {
-                    let target = packets.find(p => (t.type==='waf' ? p.type!=='user' : p.type==='user') && Math.hypot(p.x-t.x, p.y-t.y) < tConfig[t.type].range);
-                    if(target) {
-                        t.cd = tConfig[t.type].fireRate;
-                        target.hp -= tConfig[t.type].damage;
-                        drawLaser(t.x, t.y, target.x, target.y, tConfig[t.type].color);
-                        if(target.hp <= 0) killPacket(target);
-                    }
-                }
-            });
+function initGame(){
 
-            // Cleanup Lasers
-            for(let i=lasers.length-1; i>=0; i--) {
-                lasers[i].life -= dt;
-                if(lasers[i].life<=0) { lasers[i].el.remove(); lasers.splice(i,1); }
-                else lasers[i].el.style.opacity = lasers[i].life/100;
-            }
+clearGame()
 
-            animId = requestAnimationFrame(gameLoop);
-        }
+let div=document.createElement("div")
+div.className="center"
+div.innerHTML=`
+<h1>🚀 DevOps Rush</h1>
+<p>Survive CI/CD pipeline chaos</p>
+<button onclick="startGame()">Start</button>
+`
 
-        // --- Mechanics ---
-        function spawnPacket(type, hp, speed) {
-            const el = document.createElement('div'); el.className = `packet ${type}`;
-            gameArea.appendChild(el);
-            packets.push({el, type, hp, maxHp: hp, speed, x: pathPoints[0].x, y: pathPoints[0].y, pathIdx: 0});
-        }
+game.appendChild(div)
 
-        function spawnBoss() {
-            state.bossActive = true;
-            floatTxt("⚠️ SHADOW DRAGON DETECTED ⚠️", "var(--ult)", 300, 225);
-            if(navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
-            
-            // Screen tint
-            gameArea.style.boxShadow = "inset 0 0 100px rgba(239, 68, 68, 0.3)";
-            
-            // Enable Ultimate
-            setTimeout(() => {
-                state.ultReady = true;
-                const btn = document.getElementById('btn-ult');
-                btn.classList.add('ready'); btn.innerText = "UNLEASH ULTIMATE";
-            }, 3000);
+}
 
-            // Massive HP, slow moving
-            spawnPacket('dragon', 8000, 0.02); 
-        }
+function startGame(){
+state=GameState.BUILD
+score=0
+health=100
+buildGame()
+}
 
-        function hitBase(p) {
-            if(p.type === 'dragon') state.hp = 0;
-            else if(p.type === 'ddos') state.hp -= 25;
-            else state.hp -= 5; // Unprocessed users hurt slightly
-            
-            // JUICE: Screen Shake
-            gameArea.classList.remove('shake');
-            void gameArea.offsetWidth; // trigger reflow
-            gameArea.classList.add('shake');
-            setTimeout(() => gameArea.classList.remove('shake'), 300);
-            
-            if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
-            floatTxt("CRITICAL HIT!", "var(--vuln)", p.x, p.y-30);
-            
-            updateUI();
-            if(state.hp <= 0) loseGame();
-        }
+function buildGame(){
 
-        function killPacket(p) {
-            if(p.type === 'user') { state.budget += 20; floatTxt("+$20", "var(--good)", p.x, p.y); }
-            else if(p.type === 'dragon') winGame(); // Killed Boss
-            else { floatTxt("DESTROYED", "var(--waf)", p.x, p.y); }
-            
-            // Small particle pop effect (Visual Juice)
-            p.el.style.transform = "translate(-50%, -50%) scale(2)";
-            p.el.style.opacity = "0";
-            setTimeout(() => p.el.remove(), 200);
-            
-            packets.splice(packets.indexOf(p), 1);
-            updateUI();
-        }
+clearGame()
+updateHUD()
+startTimer()
 
-        function fireUltimate() {
-            if(!state.ultReady || !state.isPlaying) return;
-            state.ultReady = false;
-            document.getElementById('btn-ult').classList.remove('ready');
-            
-            if(navigator.vibrate) navigator.vibrate([500]);
-            gameArea.classList.add('shake');
-            
-            // Nuke everything on screen
-            packets.forEach(p => {
-                drawLaser(300, 450, p.x, p.y, 'var(--ult)'); // Shoot from bottom
-                p.hp -= 10000;
-                if(p.hp <= 0) killPacket(p);
-            });
-            setTimeout(() => gameArea.classList.remove('shake'), 500);
-        }
+let stages=["Code","Build","Test","Artifact"]
 
-        function drawLaser(x1, y1, x2, y2, color) {
-            const el = document.createElement('div'); el.className = 'laser';
-            el.style.width = `${Math.hypot(x2-x1, y2-y1)}px`;
-            el.style.background = color; el.style.boxShadow = `0 0 10px ${color}`;
-            el.style.left = `${x1}px`; el.style.top = `${y1}px`;
-            el.style.transform = `rotate(${Math.atan2(y2-y1, x2-x1)*180/Math.PI}deg)`;
-            gameArea.appendChild(el); lasers.push({el, life: 100});
-        }
+stages.forEach((s,i)=>{
+let zone=document.createElement("div")
+zone.className="zone"
+zone.style.position="absolute"
+zone.style.left=(i*25)+"%"
+zone.style.top="40%"
+zone.style.width="24%"
+zone.style.height="120px"
+zone.innerHTML=s
+zone.dataset.name=s
+game.appendChild(zone)
+})
 
-        // --- Building ---
-        function selectTower(type) {
-            if(state.budget < tConfig[type].cost) return;
-            selectedTower = type;
-            document.querySelectorAll('.shop-item').forEach(el => el.classList.remove('selected'));
-            document.getElementById(`shop-${type}`).classList.add('selected');
-        }
+let items=["Code","Build","Test","Artifact"]
 
-        gameArea.addEventListener('pointerdown', (e) => {
-            if(!state.isPlaying || !selectedTower) return;
-            if(state.budget < tConfig[selectedTower].cost) return;
-            
-            const rect = gameArea.getBoundingClientRect();
-            const x = Math.round((e.clientX - rect.left)/50)*50;
-            const y = Math.round((e.clientY - rect.top)/50)*50;
-            if(x<25 || x>rect.width-25 || y<25 || y>rect.height-25) return;
+items.sort(()=>Math.random()-0.5)
 
-            state.budget -= tConfig[selectedTower].cost;
-            const el = document.createElement('div'); el.className = `tower ${selectedTower}`;
-            el.innerText = selectedTower.toUpperCase();
-            el.style.left = `${x}px`; el.style.top = `${y}px`;
-            gameArea.appendChild(el);
-            
-            towers.push({el, type: selectedTower, x, y, cd: 0});
-            selectedTower = null; document.querySelectorAll('.shop-item').forEach(i => i.classList.remove('selected'));
-            updateUI();
-        });
+items.forEach((it,i)=>{
+let el=document.createElement("div")
+el.className="item"
+el.innerText=it
+el.style.left=(50+Math.random()*200)+"px"
+el.style.top=(80+Math.random()*200)+"px"
+enableDrag(el)
+game.appendChild(el)
+})
 
-        // --- UI & State Mgmt ---
-        function updateUI() {
-            document.getElementById('time-val').innerText = state.bossActive ? "BOSS" : `${state.timeLeft}s`;
-            document.getElementById('budget-val').innerText = `$${state.budget}`;
-            hpFill.style.width = `${Math.max(0, state.hp)}%`;
-            if(state.hp < 30) { hpFill.style.background = 'var(--vuln)'; hpFill.style.boxShadow = '0 0 15px var(--vuln)'; }
-            else if(state.hp < 60) { hpFill.style.background = 'var(--bug)'; hpFill.style.boxShadow = 'none'; }
-            
-            ['asg', 'waf'].forEach(t => {
-                const el = document.getElementById(`shop-${t}`);
-                if(state.budget < tConfig[t].cost) el.classList.add('disabled');
-                else el.classList.remove('disabled');
-            });
-        }
+}
 
-        function floatTxt(msg, color, x, y) {
-            const el = document.createElement('div'); el.className = 'float-txt';
-            el.innerText = msg; el.style.color = color; el.style.left = `${x-30}px`; el.style.top = `${y}px`;
-            gameArea.appendChild(el); setTimeout(() => el.remove(), 800);
-        }
+function deployGame(){
 
-        function loseGame() {
-            state.isPlaying = false; cancelAnimationFrame(animId);
-            const ov = document.getElementById('start-overlay');
-            ov.innerHTML = `<h1 style="color:var(--vuln)">Realm Fallen</h1><p style="color:#a1a1aa">The Shadow Dragon breached the Database. Production is offline.</p><button class="btn-start" style="background:var(--vuln)" onclick="location.reload()">Respawn</button>`;
-            ov.style.display = 'flex';
-        }
+clearGame()
+updateHUD()
+startTimer()
 
-        function winGame() {
-            state.isPlaying = false; cancelAnimationFrame(animId);
-            const ov = document.getElementById('start-overlay');
-            ov.innerHTML = `<h1 style="color:var(--good)">Victory</h1><p style="color:#a1a1aa">You defeated the Shadow Dragon and kept the realm online. You are a true Cyber-Knight.</p><button class="btn-start" onclick="location.reload()">Play Again</button>`;
-            ov.style.display = 'flex';
-        }
-    </script>
+let zones=["LoadBalancer","App","Database"]
+
+zones.forEach((z,i)=>{
+let zone=document.createElement("div")
+zone.className="zone"
+zone.style.position="absolute"
+zone.style.left="35%"
+zone.style.top=(100+i*120)+"px"
+zone.style.width="30%"
+zone.style.height="100px"
+zone.innerHTML=z
+zone.dataset.name=z
+game.appendChild(zone)
+})
+
+let items=["LoadBalancer","App","Database"]
+
+items.sort(()=>Math.random()-0.5)
+
+items.forEach((it,i)=>{
+let el=document.createElement("div")
+el.className="item"
+el.innerText=it
+el.style.left=(20+Math.random()*300)+"px"
+el.style.top=(80+Math.random()*200)+"px"
+enableDrag(el)
+game.appendChild(el)
+})
+
+}
+
+function incidentGame(){
+
+clearGame()
+updateHUD()
+startTimer()
+
+spawnIncident()
+
+setInterval(spawnIncident,4000)
+
+}
+
+function spawnIncident(){
+
+if(state!==GameState.INCIDENT)return
+
+let issues=[
+{problem:"High CPU",fix:"Scale"},
+{problem:"Pod Crash",fix:"Restart"},
+{problem:"Disk Full",fix:"Clean Logs"},
+{problem:"Latency",fix:"Cache"}
+]
+
+let i=issues[Math.floor(Math.random()*issues.length)]
+
+let alert=document.createElement("div")
+alert.className="item alert"
+alert.innerText=i.problem
+alert.dataset.fix=i.fix
+alert.style.left=(Math.random()*window.innerWidth)+"px"
+alert.style.top=(100+Math.random()*300)+"px"
+game.appendChild(alert)
+
+let fix=document.createElement("div")
+fix.className="item fix"
+fix.innerText=i.fix
+fix.style.left=(Math.random()*window.innerWidth)+"px"
+fix.style.top=(300+Math.random()*200)+"px"
+enableDrag(fix)
+game.appendChild(fix)
+
+}
+
+function enableDrag(el){
+
+el.addEventListener("pointerdown",e=>{
+dragItem=el
+})
+
+window.addEventListener("pointermove",e=>{
+if(!dragItem)return
+dragItem.style.left=(e.clientX-40)+"px"
+dragItem.style.top=(e.clientY-20)+"px"
+})
+
+window.addEventListener("pointerup",e=>{
+if(!dragItem)return
+checkDrop(dragItem)
+dragItem=null
+})
+
+}
+
+function checkDrop(el){
+
+let zones=document.querySelectorAll(".zone")
+
+zones.forEach(z=>{
+
+let r=z.getBoundingClientRect()
+let e=el.getBoundingClientRect()
+
+if(
+e.left<r.right &&
+e.right>r.left &&
+e.top<r.bottom &&
+e.bottom>r.top
+){
+
+if(el.innerText===z.dataset.name){
+score+=10
+el.remove()
+}
+else{
+health-=10
+}
+
+updateHUD()
+
+}
+
+})
+
+if(state===GameState.INCIDENT){
+
+let alerts=document.querySelectorAll(".alert")
+
+alerts.forEach(a=>{
+
+let r=a.getBoundingClientRect()
+let e=el.getBoundingClientRect()
+
+if(
+e.left<r.right &&
+e.right>r.left &&
+e.top<r.bottom &&
+e.bottom>r.top
+){
+
+if(el.innerText===a.dataset.fix){
+score+=20
+a.remove()
+el.remove()
+}
+else{
+health-=10
+}
+
+updateHUD()
+
+}
+
+})
+
+}
+
+}
+
+function scoreScreen(){
+
+clearGame()
+
+let div=document.createElement("div")
+div.className="center"
+div.innerHTML=`
+<h1>Game Complete</h1>
+<h2>Score: ${score}</h2>
+<button onclick="startGame()">Play Again</button>
+`
+
+game.appendChild(div)
+
+}
+
+initGame()
+
+</script>
+
 </body>
 </html>
