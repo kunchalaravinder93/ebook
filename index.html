@@ -2,793 +2,360 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>DevOps Rush — Production Operations Simulator</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>DevOps Rush v3</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600;700&display=swap');
+:root{--bg:#020812;--panel:#050e1e;--card:#071224;--cyan:#00f5ff;--green:#00ff88;--red:#ff2d55;--orange:#ff8c00;--purple:#bf5fff;--yellow:#ffe600;--dim:#4a7fa8;--text:#e8f4ff;--mono:'Share Tech Mono',monospace;--display:'Orbitron',monospace;--body:'Exo 2',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--body);user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px),repeating-linear-gradient(90deg,rgba(0,245,255,0.05) 0,rgba(0,245,255,0.05) 1px,transparent 1px,transparent 60px),repeating-linear-gradient(0deg,rgba(0,245,255,0.05) 0,rgba(0,245,255,0.05) 1px,transparent 1px,transparent 60px)}
+body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;background:radial-gradient(ellipse at 50% 0%,rgba(0,245,255,0.06) 0%,transparent 70%),radial-gradient(ellipse at 0% 100%,rgba(0,255,136,0.04) 0%,transparent 50%),radial-gradient(ellipse at 100% 100%,rgba(191,95,255,0.04) 0%,transparent 50%)}
+#pCanvas{position:fixed;inset:0;z-index:1;pointer-events:none}
+#wrap{position:relative;z-index:10;width:100%;height:100%;display:flex;flex-direction:column}
 
-:root {
-  --bg-deep: #020812;
-  --bg-panel: #050e1e;
-  --bg-card: #071224;
-  --accent-cyan: #00f5ff;
-  --accent-green: #00ff88;
-  --accent-red: #ff2d55;
-  --accent-orange: #ff8c00;
-  --accent-purple: #bf5fff;
-  --accent-yellow: #ffe600;
-  --text-primary: #e8f4ff;
-  --text-dim: #4a7fa8;
-  --border-glow: rgba(0,245,255,0.3);
-  --shadow-cyan: 0 0 20px rgba(0,245,255,0.4);
-  --shadow-green: 0 0 20px rgba(0,255,136,0.4);
-  --shadow-red: 0 0 20px rgba(255,45,85,0.4);
-  --grid-line: rgba(0,245,255,0.06);
-  --font-mono: 'Share Tech Mono', monospace;
-  --font-display: 'Orbitron', monospace;
-  --font-body: 'Exo 2', sans-serif;
-}
+/* HUD */
+#hud{flex:0 0 auto;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:7px 14px;background:linear-gradient(180deg,rgba(2,8,18,.98),rgba(5,14,30,.95));border-bottom:1px solid rgba(0,245,255,.3);box-shadow:0 4px 30px rgba(0,0,0,.8),inset 0 -1px 0 rgba(0,245,255,.3);gap:10px;min-height:60px}
+.hm{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.hm.r{justify-content:flex-end}
+.hv{display:flex;flex-direction:column;align-items:center;padding:4px 9px;background:rgba(0,245,255,.04);border:1px solid rgba(0,245,255,.15);border-radius:4px;min-width:54px;position:relative;overflow:hidden}
+.hv::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.5}
+.hvl{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:2px}
+.hvv{font-family:var(--display);font-size:clamp(11px,1.8vw,14px);font-weight:700;color:var(--cyan);text-shadow:0 0 10px currentColor;line-height:1.2}
+.hvv.gr{color:var(--green)}.hvv.dg{color:var(--red);animation:blink .5s infinite}.hvv.co{color:var(--purple)}.hvv.ti{color:var(--yellow)}
+.hbar{width:100%;height:4px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:2px}
+.hbf{height:100%;border-radius:2px;transition:width .3s,background .3s;background:var(--green);box-shadow:0 0 8px currentColor}
+.htitle{font-family:var(--display);font-size:clamp(10px,2vw,14px);font-weight:900;color:var(--cyan);text-shadow:0 0 20px rgba(0,245,255,.4);letter-spacing:3px;text-align:center}
+.sbadge{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:2px;padding:3px 10px;background:rgba(0,245,255,.06);border:1px solid rgba(0,245,255,.2);border-radius:20px}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite}
+#sndBtn{position:fixed;top:8px;right:12px;z-index:9990;background:rgba(5,14,30,.9);border:1px solid rgba(0,245,255,.3);color:var(--cyan);font-family:var(--mono);font-size:10px;padding:4px 9px;border-radius:4px;cursor:pointer;transition:all .2s}
+#sndBtn:hover{background:rgba(0,245,255,.1)}
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* SCREENS */
+#area{flex:1 1 auto;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.scr{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px}
+.scr.on{display:flex}
 
-html, body {
-  width: 100%; height: 100%;
-  overflow: hidden;
-  background: var(--bg-deep);
-  color: var(--text-primary);
-  font-family: var(--font-body);
-  -webkit-user-select: none; user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
+/* INTRO */
+#introScr{background:radial-gradient(ellipse at 50% 30%,rgba(0,245,255,.08),transparent 70%)}
+.logo{font-family:var(--display);font-size:clamp(28px,8vw,68px);font-weight:900;color:var(--cyan);text-shadow:0 0 40px rgba(0,245,255,.8),0 0 80px rgba(0,245,255,.4);letter-spacing:8px;text-align:center;animation:glitch 4s infinite;line-height:1}
+.sub{font-family:var(--mono);font-size:clamp(8px,1.8vw,12px);color:var(--dim);letter-spacing:4px;margin:10px 0 20px;text-align:center}
+.iterm{width:min(500px,90vw);background:rgba(5,14,30,.9);border:1px solid rgba(0,245,255,.3);border-radius:8px;padding:14px;margin-bottom:20px;font-family:var(--mono);font-size:12px;color:var(--green);line-height:1.6;box-shadow:0 0 20px rgba(0,245,255,.4)}
+.tl{opacity:0;animation:fin .3s forwards}
+.btn{font-family:var(--display);font-size:clamp(11px,2.5vw,15px);font-weight:700;letter-spacing:4px;padding:12px 36px;border:none;border-radius:4px;background:linear-gradient(135deg,var(--cyan),rgba(0,245,255,.6));color:var(--bg);cursor:pointer;box-shadow:0 0 20px rgba(0,245,255,.4),inset 0 1px 0 rgba(255,255,255,.2);transition:all .2s;position:relative;overflow:hidden}
+.btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,rgba(255,255,255,.15),transparent);transform:translateX(-100%);transition:transform .4s}
+.btn:hover::before{transform:translateX(100%)}.btn:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(0,245,255,.6)}.btn:active{transform:translateY(0)}
 
-/* ── SCANLINES & GRID OVERLAY ── */
-body::before {
-  content: '';
-  position: fixed; inset: 0; z-index: 9999;
-  pointer-events: none;
-  background:
-    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px),
-    repeating-linear-gradient(90deg, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 60px),
-    repeating-linear-gradient(0deg, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 60px);
-}
+/* SCORE SCREEN */
+#scoreScr{gap:10px;overflow-y:auto;padding:14px}
+.stitle{font-family:var(--display);font-size:clamp(18px,5vw,44px);font-weight:900;color:var(--yellow);text-shadow:0 0 30px rgba(255,230,0,.6);letter-spacing:4px}
+.scard{width:min(540px,96vw);background:rgba(5,14,30,.9);border:1px solid rgba(255,230,0,.3);border-radius:8px;padding:18px;box-shadow:0 0 30px rgba(255,230,0,.2)}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-family:var(--mono);font-size:12px}
+.srow:last-child{border-bottom:none}.srow .sl{color:var(--dim);letter-spacing:2px}.srow .sv{color:var(--cyan);font-weight:700}
+.lbwrap{width:min(540px,96vw);margin-top:8px}
+.lbt{font-family:var(--display);font-size:11px;letter-spacing:4px;color:var(--dim);margin-bottom:7px;text-align:center}
+.lbr{display:flex;justify-content:space-between;padding:5px 10px;background:rgba(0,245,255,.03);border:1px solid rgba(0,245,255,.08);border-radius:4px;margin-bottom:4px;font-family:var(--mono);font-size:11px}
+.lbr.hi{background:rgba(255,230,0,.08);border-color:rgba(255,230,0,.3);color:var(--yellow)}
 
-body::after {
-  content: '';
-  position: fixed; inset: 0; z-index: 9998; pointer-events: none;
-  background: radial-gradient(ellipse at 50% 0%, rgba(0,245,255,0.06) 0%, transparent 70%),
-              radial-gradient(ellipse at 0% 100%, rgba(0,255,136,0.04) 0%, transparent 50%),
-              radial-gradient(ellipse at 100% 100%, rgba(191,95,255,0.04) 0%, transparent 50%);
-}
+/* DEBRIEF */
+.dbs{width:min(540px,96vw);background:rgba(5,14,30,.9);border:1px solid rgba(0,245,255,.2);border-radius:8px;padding:14px;margin-top:8px}
+.dbt{font-family:var(--display);font-size:12px;font-weight:700;color:var(--cyan);letter-spacing:3px;margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid rgba(0,245,255,.15)}
+.dbi{margin-bottom:10px;padding:9px;background:rgba(0,0,0,.3);border-radius:6px;border-left:3px solid var(--cyan)}
+.dbi.gr{border-left-color:var(--green)}.dbi.re{border-left-color:var(--red)}.dbi.pu{border-left-color:var(--purple)}.dbi.ye{border-left-color:var(--yellow)}
+.dbq{font-family:var(--display);font-size:9px;color:var(--yellow);letter-spacing:1px;margin-bottom:3px}
+.dbto{font-family:var(--mono);font-size:11px;color:var(--text);font-weight:700;margin-bottom:3px}
+.dbex{font-family:var(--body);font-size:11px;color:var(--dim);line-height:1.6}
+.dbtip{font-family:var(--mono);font-size:10px;color:var(--green);margin-top:4px;padding:4px 8px;background:rgba(0,255,136,.06);border-radius:4px}
 
-/* ── CANVAS ── */
-#particleCanvas {
-  position: fixed; inset: 0; z-index: 1; pointer-events: none;
-}
+/* MINIGAME */
+.mgc{width:100%;height:100%;display:flex;flex-direction:column;padding:clamp(7px,2vw,13px);gap:9px;overflow:hidden}
+.mgh{display:flex;align-items:flex-start;justify-content:space-between;padding:9px 13px;background:rgba(5,14,30,.8);border:1px solid rgba(0,245,255,.3);border-radius:6px;flex:0 0 auto;gap:8px}
+.mgt{font-family:var(--display);font-size:clamp(10px,2.5vw,15px);font-weight:700;color:var(--cyan);text-shadow:0 0 20px rgba(0,245,255,.4);letter-spacing:3px}
+.mgd{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:1px;margin-top:2px}
+.scbadge{font-family:var(--mono);font-size:9px;color:var(--orange);background:rgba(255,140,0,.1);border:1px solid rgba(255,140,0,.3);border-radius:4px;padding:2px 7px;margin-top:4px;letter-spacing:1px;display:inline-block}
+.pbar{flex:0 0 auto;height:5px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
+.pfill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--cyan),var(--green));box-shadow:0 0 10px var(--cyan);transition:width .5s}
+.hbtn{font-family:var(--mono);font-size:9px;color:var(--yellow);background:rgba(255,230,0,.08);border:1px solid rgba(255,230,0,.3);border-radius:4px;padding:4px 9px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.hbtn:hover{background:rgba(255,230,0,.18);box-shadow:0 0 12px rgba(255,230,0,.3)}
+.hpanel{background:rgba(5,14,30,.96);border:1px solid rgba(255,230,0,.4);border-radius:8px;padding:11px 13px;flex:0 0 auto;display:none;animation:sld .3s ease}
+.hpanel.vis{display:block}
+.hptitle{font-family:var(--display);font-size:10px;color:var(--yellow);letter-spacing:2px;margin-bottom:7px}
+.hpc{font-family:var(--mono);font-size:11px;color:var(--text);line-height:1.7}
+.hpiq{font-family:var(--mono);font-size:10px;color:var(--purple);margin-top:6px;padding:5px 9px;background:rgba(191,95,255,.06);border-radius:4px;border-left:2px solid var(--purple)}
 
-/* ── GAME WRAPPER ── */
-#gameWrapper {
-  position: relative; z-index: 10;
-  width: 100%; height: 100%;
-  display: flex; flex-direction: column;
-}
+/* CI */
+#ciScr{background:radial-gradient(ellipse at 50% 0%,rgba(0,245,255,.05),transparent 60%)}
+.parea{flex:1;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.pslots{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap;flex:0 0 auto;padding:7px}
+.pslot{width:clamp(65px,10vw,100px);height:clamp(52px,8vw,75px);background:rgba(0,245,255,.03);border:2px dashed rgba(0,245,255,.2);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:all .2s;position:relative}
+.pslot.fil{border-style:solid;border-color:rgba(0,245,255,.5);background:rgba(0,245,255,.08)}.pslot.ok{border-color:var(--green);background:rgba(0,255,136,.1);box-shadow:0 0 15px rgba(0,255,136,.3)}.pslot.bad{border-color:var(--red);animation:shk .4s}.pslot.hov{border-color:var(--cyan);background:rgba(0,245,255,.15);transform:scale(1.05)}
+.snum{position:absolute;top:3px;left:5px;font-family:var(--mono);font-size:8px;color:var(--dim)}
+.slbl{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:1px}
+.psrc{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;padding:9px;background:rgba(5,14,30,.6);border:1px solid rgba(0,245,255,.3);border-radius:8px;flex:0 0 auto}
+.pcard{width:clamp(65px,10vw,100px);height:clamp(52px,8vw,75px);background:rgba(7,18,36,.9);border:1px solid rgba(0,245,255,.3);border-radius:8px;cursor:grab;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:all .2s;position:relative;overflow:hidden;touch-action:none}
+.pcard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,currentColor,transparent);opacity:.5}
+.pcard:hover{transform:translateY(-3px);box-shadow:0 0 20px rgba(0,245,255,.4);border-color:var(--cyan)}.pcard.drg{opacity:.4;transform:scale(.95)}.pcard.plcd{opacity:.3;cursor:not-allowed}
+.pcard .ic{font-size:clamp(16px,2.8vw,24px)}.pcard .lb{font-family:var(--mono);font-size:8px;letter-spacing:1px;color:var(--text);text-align:center}
 
-/* ── HUD ── */
-#hud {
-  flex: 0 0 auto;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  padding: 8px 16px;
-  background: linear-gradient(180deg, rgba(2,8,18,0.98) 0%, rgba(5,14,30,0.95) 100%);
-  border-bottom: 1px solid var(--border-glow);
-  box-shadow: 0 4px 30px rgba(0,0,0,0.8), inset 0 -1px 0 var(--border-glow);
-  gap: 12px;
-  min-height: 64px;
-}
+/* CLOUD */
+#cloudScr{background:radial-gradient(ellipse at 30% 50%,rgba(0,255,136,.04),transparent 60%)}
+.ccwrap{flex:1;position:relative;overflow:hidden;background:rgba(5,14,30,.4);border:1px solid rgba(0,245,255,.3);border-radius:8px;min-height:170px}
+#ccanv{position:absolute;inset:0;width:100%;height:100%}
+.cnsrc{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;padding:9px;background:rgba(5,14,30,.6);border:1px solid rgba(0,245,255,.3);border-radius:8px;flex:0 0 auto}
+.cnode{padding:clamp(5px,1vw,8px) clamp(8px,1.5vw,14px);background:rgba(7,18,36,.9);border:1px solid rgba(0,255,136,.3);border-radius:6px;cursor:grab;display:flex;align-items:center;gap:5px;touch-action:none;transition:all .2s;font-family:var(--mono);font-size:clamp(9px,1.4vw,11px);color:var(--text)}
+.cnode:hover{border-color:var(--green);box-shadow:0 0 20px rgba(0,255,136,.4);transform:translateY(-2px)}.cnode.drg{opacity:.4}.cnode.plcd{opacity:.25;cursor:default}
+.cdz{position:absolute;border:2px dashed rgba(0,255,136,.25);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:all .2s;background:rgba(0,255,136,.02);font-family:var(--mono);font-size:8px;color:var(--dim);text-align:center;padding:3px}
+.cdz.hov{border-color:var(--green);background:rgba(0,255,136,.1);transform:scale(1.05)}.cdz.fil{border-style:solid;border-color:rgba(0,255,136,.5)}.cdz.ok{border-color:var(--green);background:rgba(0,255,136,.15);box-shadow:0 0 20px rgba(0,255,136,.3)}.cdz.bad{border-color:var(--red);animation:shk .4s}
 
-.hud-title {
-  font-family: var(--font-display);
-  font-size: clamp(10px, 2vw, 14px);
-  font-weight: 900;
-  color: var(--accent-cyan);
-  text-shadow: var(--shadow-cyan);
-  letter-spacing: 3px;
-  text-align: center;
-}
+/* K8S */
+#k8sScr{background:radial-gradient(ellipse at 70% 50%,rgba(191,95,255,.04),transparent 60%)}
+.k8grid{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(78px,12vw,110px),1fr));gap:7px;padding:7px;overflow-y:auto;background:rgba(5,14,30,.4);border:1px solid rgba(0,245,255,.3);border-radius:8px}
+.pod{height:clamp(70px,11vw,92px);background:rgba(7,18,36,.9);border:1px solid rgba(191,95,255,.3);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;position:relative;overflow:hidden;transition:all .3s;padding:6px}
+.pod::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(191,95,255,.05),transparent)}
+.pod.run{border-color:rgba(0,255,136,.4)}.pod.run::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--green),transparent);animation:scan 2s infinite linear}
+.pod.crs{border-color:var(--red);background:rgba(255,45,85,.08);animation:cpls 1s infinite}.pod.wrn{border-color:var(--orange);animation:wpls 1.5s infinite}.pod.fix{border-color:var(--yellow);animation:fxa .5s infinite}
+.pico{font-size:clamp(14px,2.5vw,20px)}.pnm{font-family:var(--mono);font-size:7px;color:var(--dim);text-align:center}
+.pst{font-family:var(--mono);font-size:7px;letter-spacing:1px;padding:2px 5px;border-radius:10px}
+.pod.run .pst{color:var(--green);background:rgba(0,255,136,.1)}.pod.crs .pst{color:var(--red);background:rgba(255,45,85,.1)}.pod.wrn .pst{color:var(--orange);background:rgba(255,140,0,.1)}
+.pcpu{width:80%;height:2px;background:rgba(255,255,255,.1);border-radius:2px}.pcpuf{height:100%;border-radius:2px;transition:width .5s}
+.ftools{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;padding:9px;background:rgba(5,14,30,.6);border:1px solid rgba(0,245,255,.3);border-radius:8px;flex:0 0 auto}
+.ftool{padding:clamp(5px,.9vw,8px) clamp(8px,1.6vw,13px);background:rgba(191,95,255,.08);border:1px solid rgba(191,95,255,.4);border-radius:6px;cursor:grab;display:flex;align-items:center;gap:5px;touch-action:none;transition:all .2s;font-family:var(--mono);font-size:clamp(8px,1.4vw,10px);color:var(--text)}
+.ftool:hover{border-color:var(--purple);box-shadow:0 0 15px rgba(191,95,255,.3);transform:translateY(-2px)}.ftool.drg{opacity:.4}
 
-.hud-metrics {
-  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
-}
-.hud-metrics.right { justify-content: flex-end; }
+/* INCIDENT */
+#incScr{background:radial-gradient(ellipse at 50% 50%,rgba(255,45,85,.05),transparent 60%)}
+.igrid{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(135px,21vw,195px),1fr));gap:9px;padding:7px;overflow-y:auto;background:rgba(5,14,30,.4);border:1px solid rgba(0,245,255,.3);border-radius:8px}
+.icard{background:rgba(7,18,36,.9);border:1px solid var(--red);border-radius:8px;padding:11px;display:flex;flex-direction:column;gap:7px;position:relative;overflow:hidden;animation:ipls 1.5s infinite}
+.icard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--red),var(--orange))}
+.ititle{font-family:var(--display);font-size:clamp(9px,1.7vw,12px);font-weight:700;color:var(--red);text-shadow:0 0 10px rgba(255,45,85,.5);letter-spacing:1px}
+.idesc{font-family:var(--mono);font-size:8px;color:var(--dim);line-height:1.5}
+.isev{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:8px}
+.svd{width:5px;height:5px;border-radius:50%}.sc{background:var(--red);box-shadow:0 0 8px var(--red)}.sh{background:var(--orange);box-shadow:0 0 8px var(--orange)}.sm{background:var(--yellow);box-shadow:0 0 8px var(--yellow)}
+.idrop{min-height:32px;border:2px dashed rgba(255,45,85,.3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;color:rgba(255,45,85,.4);transition:all .2s;padding:4px;text-align:center}
+.idrop.hov{border-color:var(--cyan);background:rgba(0,245,255,.05);color:var(--cyan)}.idrop.res{border-color:var(--green);background:rgba(0,255,136,.08);color:var(--green);border-style:solid;font-size:7px}.idrop.bad{border-color:var(--red);animation:shk .4s}
+.itbar{width:100%;height:3px;background:rgba(255,255,255,.1);border-radius:2px}
+.itbf{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--green),var(--yellow),var(--red));transition:width .1s linear}
+.ftbar{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;padding:9px;background:rgba(5,14,30,.6);border:1px solid rgba(0,245,255,.3);border-radius:8px;flex:0 0 auto}
+.fbtn{padding:clamp(5px,.9vw,8px) clamp(8px,1.6vw,13px);background:rgba(0,245,255,.05);border:1px solid rgba(0,245,255,.3);border-radius:6px;cursor:grab;display:flex;align-items:center;gap:5px;touch-action:none;transition:all .2s;font-family:var(--mono);font-size:clamp(8px,1.4vw,10px);color:var(--cyan);white-space:nowrap}
+.fbtn:hover{border-color:var(--cyan);background:rgba(0,245,255,.12);transform:translateY(-2px);box-shadow:0 0 20px rgba(0,245,255,.4)}.fbtn.drg{opacity:.4}
 
-.hud-metric {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 4px 10px;
-  background: rgba(0,245,255,0.04);
-  border: 1px solid rgba(0,245,255,0.15);
-  border-radius: 4px;
-  min-width: 60px;
-  position: relative;
-  overflow: hidden;
-}
-.hud-metric::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
-  opacity: 0.5;
-}
-.hud-metric-label {
-  font-family: var(--font-mono);
-  font-size: 8px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase;
-}
-.hud-metric-value {
-  font-family: var(--font-display);
-  font-size: clamp(11px, 1.8vw, 14px); font-weight: 700;
-  color: var(--accent-cyan);
-  text-shadow: 0 0 10px currentColor;
-  line-height: 1.2;
-}
-.hud-metric-value.health { color: var(--accent-green); }
-.hud-metric-value.danger { color: var(--accent-red); animation: blink 0.5s infinite; }
-.hud-metric-value.combo { color: var(--accent-purple); }
-.hud-metric-value.timer { color: var(--accent-yellow); }
+/* NOTIFS */
+#notifs{position:fixed;top:70px;right:14px;z-index:8000;display:flex;flex-direction:column;gap:5px;pointer-events:none;max-width:270px}
+.notif{padding:9px 12px;border-radius:6px;font-family:var(--mono);font-size:11px;display:flex;align-items:center;gap:7px;animation:sin .3s ease,fout .5s 2.5s forwards;border-left:3px solid}
+.notif.ok{background:rgba(0,255,136,.12);border-color:var(--green);color:var(--green);box-shadow:0 4px 20px rgba(0,255,136,.2)}.notif.er{background:rgba(255,45,85,.12);border-color:var(--red);color:var(--red)}.notif.wa{background:rgba(255,140,0,.12);border-color:var(--orange);color:var(--orange)}.notif.in{background:rgba(0,245,255,.08);border-color:var(--cyan);color:var(--cyan)}
 
-/* ── HEALTH BAR ── */
-.health-bar-wrap {
-  width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 2px;
-}
-.health-bar-fill {
-  height: 100%; border-radius: 2px; transition: width 0.3s ease, background 0.3s;
-  background: var(--accent-green);
-  box-shadow: 0 0 8px currentColor;
-}
+/* BOSS */
+#boss{position:fixed;inset:0;z-index:7000;background:rgba(255,45,85,.15);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+#boss.on{display:flex;animation:bfl .1s infinite}
+.bst{font-family:var(--display);font-size:clamp(20px,5vw,54px);font-weight:900;color:var(--red);text-shadow:0 0 40px rgba(255,45,85,.8);letter-spacing:6px;text-align:center}
 
-/* ── STAGE INDICATOR ── */
-.stage-badge {
-  display: flex; align-items: center; gap: 8px;
-  font-family: var(--font-mono); font-size: 11px;
-  color: var(--accent-cyan); letter-spacing: 2px;
-  padding: 4px 12px; background: rgba(0,245,255,0.06);
-  border: 1px solid rgba(0,245,255,0.2); border-radius: 20px;
-}
-.stage-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); animation: pulse 1.5s infinite; }
+/* FLOATS */
+.cfloat{position:fixed;pointer-events:none;z-index:8500;font-family:var(--display);font-weight:900;text-shadow:0 0 20px currentColor;animation:cpop .8s ease-out forwards;white-space:nowrap}
+.sfloat{position:fixed;pointer-events:none;z-index:8500;font-family:var(--display);font-weight:700;animation:sflt 1.2s ease-out forwards;white-space:nowrap}
 
-/* ── MAIN GAME AREA ── */
-#gameArea {
-  flex: 1 1 auto;
-  position: relative;
-  overflow: hidden;
-  display: flex; flex-direction: column;
-}
+/* TRANSITION */
+#trans{position:fixed;inset:0;z-index:6000;background:var(--bg);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+#trans.on{display:flex}
+.trt{font-family:var(--display);font-size:clamp(14px,3.5vw,32px);font-weight:900;color:var(--cyan);text-shadow:0 0 40px rgba(0,245,255,.8);letter-spacing:6px;animation:glitch .5s infinite}
+.trb{width:200px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.trbf{height:100%;background:var(--cyan);animation:lbar .8s ease-in-out forwards}
+.trs{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:3px}
 
-/* ── SCREENS ── */
-.screen {
-  position: absolute; inset: 0;
-  display: none; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 20px;
-}
-.screen.active { display: flex; }
-
-/* ── INTRO SCREEN ── */
-#introScreen {
-  background: radial-gradient(ellipse at 50% 30%, rgba(0,245,255,0.08) 0%, transparent 70%);
-}
-
-.intro-logo {
-  font-family: var(--font-display);
-  font-size: clamp(28px, 8vw, 72px);
-  font-weight: 900;
-  color: var(--accent-cyan);
-  text-shadow: 0 0 40px rgba(0,245,255,0.8), 0 0 80px rgba(0,245,255,0.4);
-  letter-spacing: 8px;
-  text-align: center;
-  animation: glitch 4s infinite;
-  line-height: 1;
-}
-.intro-sub {
-  font-family: var(--font-mono); font-size: clamp(9px,2vw,13px);
-  color: var(--text-dim); letter-spacing: 4px; margin: 12px 0 40px;
-  text-align: center;
-}
-
-.intro-terminal {
-  width: min(500px, 90vw);
-  background: rgba(5,14,30,0.9);
-  border: 1px solid var(--border-glow);
-  border-radius: 8px; padding: 16px;
-  margin-bottom: 32px;
-  font-family: var(--font-mono); font-size: 12px;
-  color: var(--accent-green); line-height: 1.6;
-  box-shadow: var(--shadow-cyan);
-}
-.terminal-line { opacity: 0; animation: fadeIn 0.3s forwards; }
-
-.btn-primary {
-  font-family: var(--font-display); font-size: clamp(12px,2.5vw,16px);
-  font-weight: 700; letter-spacing: 4px; text-transform: uppercase;
-  padding: 14px 40px; border: none; border-radius: 4px;
-  background: linear-gradient(135deg, var(--accent-cyan), rgba(0,245,255,0.6));
-  color: var(--bg-deep); cursor: pointer;
-  box-shadow: var(--shadow-cyan), inset 0 1px 0 rgba(255,255,255,0.2);
-  transition: all 0.2s; position: relative; overflow: hidden;
-}
-.btn-primary::before {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(135deg, transparent, rgba(255,255,255,0.15), transparent);
-  transform: translateX(-100%); transition: transform 0.4s;
-}
-.btn-primary:hover::before { transform: translateX(100%); }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(0,245,255,0.6); }
-.btn-primary:active { transform: translateY(0); }
-
-/* ── SCORE SCREEN ── */
-#scoreScreen { gap: 16px; }
-.score-title {
-  font-family: var(--font-display); font-size: clamp(20px,5vw,48px);
-  font-weight: 900; color: var(--accent-yellow);
-  text-shadow: 0 0 30px rgba(255,230,0,0.6);
-  letter-spacing: 4px;
-}
-.score-card {
-  width: min(500px, 90vw);
-  background: rgba(5,14,30,0.9); border: 1px solid rgba(255,230,0,0.3);
-  border-radius: 8px; padding: 20px;
-  box-shadow: 0 0 30px rgba(255,230,0,0.2);
-}
-.score-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
-  font-family: var(--font-mono); font-size: 13px;
-}
-.score-row:last-child { border-bottom: none; }
-.score-row .label { color: var(--text-dim); letter-spacing: 2px; }
-.score-row .value { color: var(--accent-cyan); font-weight: 700; }
-.leaderboard { width: min(500px, 90vw); margin-top: 8px; }
-.lb-title {
-  font-family: var(--font-display); font-size: 12px; letter-spacing: 4px;
-  color: var(--text-dim); margin-bottom: 8px; text-align: center;
-}
-.lb-row {
-  display: flex; justify-content: space-between;
-  padding: 6px 12px; background: rgba(0,245,255,0.03);
-  border: 1px solid rgba(0,245,255,0.08); border-radius: 4px; margin-bottom: 4px;
-  font-family: var(--font-mono); font-size: 12px;
-}
-.lb-row.highlight { background: rgba(255,230,0,0.08); border-color: rgba(255,230,0,0.3); color: var(--accent-yellow); }
-.lb-rank { color: var(--text-dim); width: 24px; }
-.lb-name { flex: 1; margin: 0 8px; color: var(--text-primary); }
-.lb-score { color: var(--accent-cyan); }
-
-/* ── MINIGAME PANEL ── */
-.minigame-container {
-  width: 100%; height: 100%;
-  display: flex; flex-direction: column;
-  padding: clamp(8px, 2vw, 16px);
-  gap: 12px;
-  overflow: hidden;
-}
-
-.minigame-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 16px;
-  background: rgba(5,14,30,0.8);
-  border: 1px solid var(--border-glow); border-radius: 6px;
-  flex: 0 0 auto;
-}
-.minigame-title {
-  font-family: var(--font-display); font-size: clamp(11px,2.5vw,16px);
-  font-weight: 700; color: var(--accent-cyan);
-  text-shadow: var(--shadow-cyan); letter-spacing: 3px;
-}
-.minigame-desc {
-  font-family: var(--font-mono); font-size: 10px;
-  color: var(--text-dim); letter-spacing: 1px;
-}
-.progress-bar {
-  flex: 0 0 auto; height: 6px;
-  background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden;
-}
-.progress-fill {
-  height: 100%; border-radius: 3px;
-  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-green));
-  box-shadow: 0 0 10px var(--accent-cyan);
-  transition: width 0.5s ease;
-}
-
-/* ── CI/CD PIPELINE ── */
-#ciScreen { background: radial-gradient(ellipse at 50% 0%, rgba(0,245,255,0.05) 0%, transparent 60%); }
-
-.pipeline-area {
-  flex: 1; display: flex; flex-direction: column; gap: 16px; overflow: hidden;
-}
-
-.pipeline-slots {
-  display: flex; gap: 8px; justify-content: center; align-items: center;
-  flex-wrap: wrap; flex: 0 0 auto; padding: 8px;
-}
-
-.pipeline-slot {
-  width: clamp(70px,11vw,110px); height: clamp(55px,9vw,80px);
-  background: rgba(0,245,255,0.03);
-  border: 2px dashed rgba(0,245,255,0.2);
-  border-radius: 8px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 4px;
-  transition: all 0.2s; position: relative;
-}
-.pipeline-slot.filled { border-style: solid; border-color: rgba(0,245,255,0.5); background: rgba(0,245,255,0.08); }
-.pipeline-slot.correct { border-color: var(--accent-green); background: rgba(0,255,136,0.1); box-shadow: 0 0 15px rgba(0,255,136,0.3); }
-.pipeline-slot.wrong { border-color: var(--accent-red); background: rgba(255,45,85,0.1); box-shadow: 0 0 15px rgba(255,45,85,0.3); animation: shake 0.4s; }
-.pipeline-slot.hover-target { border-color: var(--accent-cyan); background: rgba(0,245,255,0.15); transform: scale(1.05); }
-.slot-number {
-  position: absolute; top: 4px; left: 6px;
-  font-family: var(--font-mono); font-size: 9px; color: var(--text-dim);
-}
-.slot-label {
-  font-family: var(--font-mono); font-size: 9px; color: var(--text-dim);
-  letter-spacing: 1px;
-}
-
-.pipeline-arrow {
-  color: var(--text-dim); font-size: clamp(12px,2vw,18px); 
-  flex: 0 0 auto; align-self: center;
-  animation: arrowPulse 1.5s infinite;
-}
-
-.pipeline-source {
-  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
-  padding: 12px; background: rgba(5,14,30,0.6); border: 1px solid var(--border-glow); border-radius: 8px;
-  flex: 0 0 auto;
-}
-
-.pipe-card {
-  width: clamp(70px,11vw,110px); height: clamp(55px,9vw,80px);
-  background: rgba(7,18,36,0.9);
-  border: 1px solid rgba(0,245,255,0.3);
-  border-radius: 8px; cursor: grab; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 4px;
-  transition: all 0.2s; position: relative; overflow: hidden;
-  touch-action: none;
-}
-.pipe-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, currentColor, transparent);
-  opacity: 0.5;
-}
-.pipe-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-cyan); border-color: var(--accent-cyan); }
-.pipe-card.dragging { opacity: 0.4; transform: scale(0.95); }
-.pipe-card.placed { opacity: 0.3; cursor: not-allowed; }
-.pipe-card .icon { font-size: clamp(18px,3vw,28px); }
-.pipe-card .label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; color: var(--text-primary); text-align: center; }
-
-/* ── CLOUD ARCH ── */
-#cloudScreen { background: radial-gradient(ellipse at 30% 50%, rgba(0,255,136,0.04) 0%, transparent 60%); }
-
-.cloud-canvas-wrap {
-  flex: 1; position: relative; overflow: hidden;
-  background: rgba(5,14,30,0.4); border: 1px solid var(--border-glow); border-radius: 8px;
-  min-height: 200px;
-}
-#cloudCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-
-.cloud-nodes-source {
-  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
-  padding: 10px; background: rgba(5,14,30,0.6); border: 1px solid var(--border-glow); border-radius: 8px;
-  flex: 0 0 auto;
-}
-
-.cloud-node {
-  padding: clamp(6px,1vw,10px) clamp(10px,2vw,18px);
-  background: rgba(7,18,36,0.9); border: 1px solid rgba(0,255,136,0.3);
-  border-radius: 6px; cursor: grab; display: flex; align-items: center; gap: 6px;
-  touch-action: none; transition: all 0.2s;
-  font-family: var(--font-mono); font-size: clamp(9px,1.5vw,12px); color: var(--text-primary);
-}
-.cloud-node:hover { border-color: var(--accent-green); box-shadow: var(--shadow-green); transform: translateY(-2px); }
-.cloud-node.dragging { opacity: 0.4; }
-.cloud-node.placed { opacity: 0.25; cursor: default; }
-.cloud-node .node-icon { font-size: clamp(14px,2.5vw,20px); }
-
-.cloud-drop-zone {
-  position: absolute; border: 2px dashed rgba(0,255,136,0.25);
-  border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 4px; cursor: default; transition: all 0.2s; background: rgba(0,255,136,0.02);
-  font-family: var(--font-mono); font-size: 9px; color: var(--text-dim);
-  text-align: center; padding: 4px;
-}
-.cloud-drop-zone.hover-target { border-color: var(--accent-green); background: rgba(0,255,136,0.1); transform: scale(1.05); }
-.cloud-drop-zone.filled { border-style: solid; border-color: rgba(0,255,136,0.5); }
-.cloud-drop-zone.correct { border-color: var(--accent-green); background: rgba(0,255,136,0.15); box-shadow: 0 0 20px rgba(0,255,136,0.3); }
-.cloud-drop-zone.wrong { border-color: var(--accent-red); background: rgba(255,45,85,0.1); animation: shake 0.4s; }
-.cloud-drop-zone .dz-icon { font-size: clamp(16px,3vw,24px); }
-.cloud-drop-zone .dz-label { font-size: 8px; color: var(--text-dim); letter-spacing: 1px; }
-
-/* ── KUBERNETES ── */
-#k8sScreen { background: radial-gradient(ellipse at 70% 50%, rgba(191,95,255,0.04) 0%, transparent 60%); }
-
-.k8s-grid {
-  flex: 1; display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(clamp(80px,13vw,120px), 1fr));
-  gap: 8px; padding: 8px; overflow-y: auto;
-  background: rgba(5,14,30,0.4); border: 1px solid var(--border-glow); border-radius: 8px;
-}
-
-.pod {
-  height: clamp(75px,12vw,100px);
-  background: rgba(7,18,36,0.9); border: 1px solid rgba(191,95,255,0.3);
-  border-radius: 8px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 4px;
-  position: relative; overflow: hidden; transition: all 0.3s;
-  padding: 8px;
-}
-.pod::before {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(135deg, rgba(191,95,255,0.05) 0%, transparent 100%);
-}
-.pod.running { border-color: rgba(0,255,136,0.4); }
-.pod.running::after {
-  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent-green), transparent);
-  animation: scanline 2s infinite linear;
-}
-.pod.crashed {
-  border-color: var(--accent-red); background: rgba(255,45,85,0.08);
-  animation: crashPulse 1s infinite;
-}
-.pod.warning { border-color: var(--accent-orange); animation: warnPulse 1.5s infinite; }
-.pod.fixing { border-color: var(--accent-yellow); animation: fixAnim 0.5s infinite; }
-.pod.fixed { border-color: var(--accent-green); animation: successFlash 0.5s; }
-.pod-icon { font-size: clamp(16px,3vw,24px); }
-.pod-name { font-family: var(--font-mono); font-size: 8px; color: var(--text-dim); text-align: center; }
-.pod-status {
-  font-family: var(--font-mono); font-size: 8px; letter-spacing: 1px;
-  padding: 2px 6px; border-radius: 10px;
-}
-.pod.running .pod-status { color: var(--accent-green); background: rgba(0,255,136,0.1); }
-.pod.crashed .pod-status { color: var(--accent-red); background: rgba(255,45,85,0.1); }
-.pod.warning .pod-status { color: var(--accent-orange); background: rgba(255,140,0,0.1); }
-.pod-cpu {
-  width: 80%; height: 3px; background: rgba(255,255,255,0.1); border-radius: 2px;
-}
-.pod-cpu-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
-
-.fix-tools {
-  display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
-  padding: 10px; background: rgba(5,14,30,0.6); border: 1px solid var(--border-glow); border-radius: 8px;
-  flex: 0 0 auto;
-}
-.fix-tool {
-  padding: clamp(6px,1vw,10px) clamp(10px,2vw,16px);
-  background: rgba(191,95,255,0.08); border: 1px solid rgba(191,95,255,0.4);
-  border-radius: 6px; cursor: grab; display: flex; align-items: center; gap: 6px;
-  touch-action: none; transition: all 0.2s;
-  font-family: var(--font-mono); font-size: clamp(9px,1.5vw,11px); color: var(--text-primary);
-}
-.fix-tool:hover { border-color: var(--accent-purple); box-shadow: 0 0 15px rgba(191,95,255,0.3); transform: translateY(-2px); }
-.fix-tool.dragging { opacity: 0.4; }
-
-/* ── INCIDENT RESPONSE ── */
-#incidentScreen { background: radial-gradient(ellipse at 50% 50%, rgba(255,45,85,0.05) 0%, transparent 60%); }
-
-.incidents-grid {
-  flex: 1; display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(clamp(140px,22vw,200px), 1fr));
-  gap: 10px; padding: 8px; overflow-y: auto;
-  background: rgba(5,14,30,0.4); border: 1px solid var(--border-glow); border-radius: 8px;
-}
-
-.incident-card {
-  background: rgba(7,18,36,0.9);
-  border: 1px solid var(--accent-red);
-  border-radius: 8px; padding: 12px;
-  display: flex; flex-direction: column; gap: 8px;
-  position: relative; overflow: hidden;
-  animation: incidentAlert 1.5s infinite;
-}
-.incident-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg, var(--accent-red), var(--accent-orange));
-}
-.incident-title {
-  font-family: var(--font-display); font-size: clamp(10px,1.8vw,13px);
-  font-weight: 700; color: var(--accent-red);
-  text-shadow: 0 0 10px rgba(255,45,85,0.5);
-  letter-spacing: 1px;
-}
-.incident-desc { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); line-height: 1.5; }
-.incident-severity {
-  display: flex; align-items: center; gap: 6px;
-  font-family: var(--font-mono); font-size: 9px;
-}
-.severity-dot { width: 6px; height: 6px; border-radius: 50%; }
-.sev-critical { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
-.sev-high { background: var(--accent-orange); box-shadow: 0 0 8px var(--accent-orange); }
-.sev-medium { background: var(--accent-yellow); box-shadow: 0 0 8px var(--accent-yellow); }
-.incident-drop {
-  min-height: 36px; border: 2px dashed rgba(255,45,85,0.3);
-  border-radius: 6px; display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-mono); font-size: 9px; color: rgba(255,45,85,0.4);
-  transition: all 0.2s; padding: 4px;
-}
-.incident-drop.hover-target { border-color: var(--accent-cyan); background: rgba(0,245,255,0.05); color: var(--accent-cyan); }
-.incident-drop.resolved { border-color: var(--accent-green); background: rgba(0,255,136,0.08); color: var(--accent-green); border-style: solid; }
-.incident-drop.wrong-fix { border-color: var(--accent-red); background: rgba(255,45,85,0.1); animation: shake 0.4s; }
-.incident-timer {
-  width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px;
-}
-.incident-timer-fill {
-  height: 100%; border-radius: 2px;
-  background: linear-gradient(90deg, var(--accent-green), var(--accent-yellow), var(--accent-red));
-  transition: width 0.1s linear;
-}
-
-.fixes-toolbar {
-  display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
-  padding: 10px; background: rgba(5,14,30,0.6); border: 1px solid var(--border-glow); border-radius: 8px;
-  flex: 0 0 auto;
-}
-.fix-btn {
-  padding: clamp(6px,1vw,10px) clamp(10px,2vw,16px);
-  background: rgba(0,245,255,0.05); border: 1px solid rgba(0,245,255,0.3);
-  border-radius: 6px; cursor: grab; display: flex; align-items: center; gap: 6px;
-  touch-action: none; transition: all 0.2s;
-  font-family: var(--font-mono); font-size: clamp(9px,1.5vw,11px); color: var(--accent-cyan);
-  white-space: nowrap;
-}
-.fix-btn:hover { border-color: var(--accent-cyan); background: rgba(0,245,255,0.12); transform: translateY(-2px); box-shadow: var(--shadow-cyan); }
-.fix-btn.dragging { opacity: 0.4; }
-
-/* ── DRAG GHOST ── */
-#dragGhost {
-  position: fixed; pointer-events: none; z-index: 9000;
-  transform: translate(-50%, -50%) scale(1.1) rotate(-3deg);
-  opacity: 0.9; display: none;
-  filter: drop-shadow(0 8px 20px rgba(0,245,255,0.6));
-  transition: transform 0.1s;
-}
-
-/* ── NOTIFICATIONS ── */
-#notifications {
-  position: fixed; top: 80px; right: 16px; z-index: 8000;
-  display: flex; flex-direction: column; gap: 6px; pointer-events: none;
-  max-width: 280px;
-}
-.notification {
-  padding: 10px 14px; border-radius: 6px;
-  font-family: var(--font-mono); font-size: 11px;
-  display: flex; align-items: center; gap: 8px;
-  animation: slideInRight 0.3s ease, fadeOut 0.5s 2s forwards;
-  border-left: 3px solid;
-}
-.notification.success { background: rgba(0,255,136,0.12); border-color: var(--accent-green); color: var(--accent-green); box-shadow: 0 4px 20px rgba(0,255,136,0.2); }
-.notification.error { background: rgba(255,45,85,0.12); border-color: var(--accent-red); color: var(--accent-red); box-shadow: 0 4px 20px rgba(255,45,85,0.2); }
-.notification.warning { background: rgba(255,140,0,0.12); border-color: var(--accent-orange); color: var(--accent-orange); }
-.notification.info { background: rgba(0,245,255,0.08); border-color: var(--accent-cyan); color: var(--accent-cyan); }
-
-/* ── BOSS ALERT ── */
-#bossAlert {
-  position: fixed; inset: 0; z-index: 7000;
-  background: rgba(255,45,85,0.15); backdrop-filter: blur(4px);
-  display: none; flex-direction: column; align-items: center; justify-content: center;
-  gap: 16px;
-}
-#bossAlert.active { display: flex; animation: bossFlash 0.1s infinite; }
-.boss-text {
-  font-family: var(--font-display); font-size: clamp(24px,6vw,60px);
-  font-weight: 900; color: var(--accent-red);
-  text-shadow: 0 0 40px rgba(255,45,85,0.8);
-  letter-spacing: 6px; text-align: center;
-}
-.boss-sub { font-family: var(--font-mono); font-size: clamp(12px,2vw,16px); color: var(--text-primary); letter-spacing: 2px; }
-
-/* ── COMBO POPUP ── */
-.combo-popup {
-  position: fixed; pointer-events: none; z-index: 8500;
-  font-family: var(--font-display); font-weight: 900;
-  text-shadow: 0 0 20px currentColor;
-  animation: comboPop 0.8s ease-out forwards;
-  white-space: nowrap;
-}
-
-/* ── FLOATING SCORE ── */
-.score-float {
-  position: fixed; pointer-events: none; z-index: 8500;
-  font-family: var(--font-display); font-weight: 700;
-  animation: scoreFloat 1.2s ease-out forwards;
-  white-space: nowrap;
-}
-
-/* ── TRANSITION OVERLAY ── */
-#transition {
-  position: fixed; inset: 0; z-index: 6000;
-  background: var(--bg-deep);
-  display: none; align-items: center; justify-content: center;
-  flex-direction: column; gap: 16px;
-}
-#transition.active { display: flex; }
-.trans-text {
-  font-family: var(--font-display); font-size: clamp(16px,4vw,36px);
-  font-weight: 900; color: var(--accent-cyan);
-  text-shadow: var(--shadow-cyan); letter-spacing: 6px;
-  animation: glitch 0.5s infinite;
-}
-.trans-bar { width: 200px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
-.trans-bar-fill { height: 100%; background: var(--accent-cyan); animation: loadBar 0.8s ease-in-out forwards; }
-
-/* ── KEYFRAMES ── */
-@keyframes glitch {
-  0%,90%,100% { text-shadow: 0 0 40px rgba(0,245,255,0.8), 0 0 80px rgba(0,245,255,0.4); transform: none; }
-  92% { text-shadow: 4px 0 var(--accent-red), -4px 0 var(--accent-green); transform: skewX(-2deg); }
-  94% { text-shadow: -4px 0 var(--accent-red), 4px 0 var(--accent-green); transform: skewX(2deg); }
-  96% { text-shadow: 2px 2px var(--accent-purple), -2px -2px var(--accent-cyan); }
-}
-@keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.6; transform:scale(0.8); } }
-@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
-@keyframes fadeIn { to { opacity:1; } }
-@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
-@keyframes arrowPulse { 0%,100%{opacity:0.4} 50%{opacity:1; color:var(--accent-cyan)} }
-@keyframes scanline { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
-@keyframes crashPulse { 0%,100%{box-shadow:0 0 10px rgba(255,45,85,0.3)} 50%{box-shadow:0 0 25px rgba(255,45,85,0.7)} }
-@keyframes warnPulse { 0%,100%{box-shadow:0 0 10px rgba(255,140,0,0.3)} 50%{box-shadow:0 0 20px rgba(255,140,0,0.6)} }
-@keyframes fixAnim { 0%,100%{border-color:var(--accent-yellow)} 50%{border-color:var(--accent-cyan)} }
-@keyframes successFlash { 0%{background:rgba(0,255,136,0.4)} 100%{background:rgba(0,255,136,0.1)} }
-@keyframes incidentAlert { 0%,100%{box-shadow:0 0 10px rgba(255,45,85,0.2)} 50%{box-shadow:0 0 20px rgba(255,45,85,0.5)} }
-@keyframes slideInRight { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
-@keyframes fadeOut { to{opacity:0;transform:translateX(20px)} }
-@keyframes bossFlash { 0%,100%{background:rgba(255,45,85,0.15)} 50%{background:rgba(255,45,85,0.25)} }
-@keyframes comboPop { 0%{transform:scale(0.5);opacity:1} 60%{transform:scale(1.3);opacity:1} 100%{transform:scale(1) translateY(-60px);opacity:0} }
-@keyframes scoreFloat { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-80px)} }
-@keyframes loadBar { from{width:0} to{width:100%} }
-@keyframes flowPulse { 0%,100%{stroke-dashoffset:20} }
-@keyframes neonFlicker { 0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.3} 94%{opacity:1} 96%{opacity:0.5} 97%{opacity:1} }
-
-.neon-flicker { animation: neonFlicker 6s infinite; }
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--bg-deep); }
-::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.3); border-radius: 2px; }
-
-/* Mobile tweaks */
-@media (max-width: 480px) {
-  .pipeline-slots { gap: 4px; }
-  .pipeline-source { gap: 4px; }
-  .hud-metric { min-width: 44px; padding: 3px 6px; }
-}
+@keyframes glitch{0%,90%,100%{text-shadow:0 0 40px rgba(0,245,255,.8),0 0 80px rgba(0,245,255,.4);transform:none}92%{text-shadow:4px 0 var(--red),-4px 0 var(--green);transform:skewX(-2deg)}94%{text-shadow:-4px 0 var(--red),4px 0 var(--green);transform:skewX(2deg)}96%{text-shadow:2px 2px var(--purple),-2px -2px var(--cyan)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.8)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes fin{to{opacity:1}}
+@keyframes shk{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+@keyframes scan{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+@keyframes cpls{0%,100%{box-shadow:0 0 10px rgba(255,45,85,.3)}50%{box-shadow:0 0 25px rgba(255,45,85,.7)}}
+@keyframes wpls{0%,100%{box-shadow:0 0 10px rgba(255,140,0,.3)}50%{box-shadow:0 0 20px rgba(255,140,0,.6)}}
+@keyframes fxa{0%,100%{border-color:var(--yellow)}50%{border-color:var(--cyan)}}
+@keyframes ipls{0%,100%{box-shadow:0 0 10px rgba(255,45,85,.2)}50%{box-shadow:0 0 20px rgba(255,45,85,.5)}}
+@keyframes sin{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes sld{from{transform:translateY(-8px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes fout{to{opacity:0;transform:translateX(18px)}}
+@keyframes bfl{0%,100%{background:rgba(255,45,85,.15)}50%{background:rgba(255,45,85,.28)}}
+@keyframes cpop{0%{transform:scale(.5);opacity:1}60%{transform:scale(1.3);opacity:1}100%{transform:scale(1) translateY(-60px);opacity:0}}
+@keyframes sflt{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-80px)}}
+@keyframes lbar{from{width:0}to{width:100%}}
+@keyframes nflk{0%,100%{opacity:1}92%{opacity:1}93%{opacity:.3}94%{opacity:1}96%{opacity:.5}97%{opacity:1}}
+.nflk{animation:nflk 6s infinite}
+::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:rgba(0,245,255,.3);border-radius:2px}
+@media(max-width:480px){.pslots{gap:3px}.psrc{gap:3px}.hv{min-width:42px;padding:3px 5px}}
 </style>
 </head>
 <body>
+<canvas id="pCanvas"></canvas>
+<button id="sndBtn">🔊 SFX ON</button>
+<div id="notifs"></div>
+<div id="boss"><div class="bst" id="bossT">⚠ CRITICAL OUTAGE ⚠</div><div style="font-family:var(--mono);font-size:14px;color:var(--text);letter-spacing:2px">PRODUCTION IS DOWN — FIX NOW!</div></div>
+<div id="trans">
+  <div class="trt" id="trtxt">LOADING</div>
+  <div class="trb"><div class="trbf" id="trbf"></div></div>
+  <div class="trs" id="trsub"></div>
+</div>
 
-<canvas id="particleCanvas"></canvas>
-<div id="dragGhost"></div>
-<div id="notifications"></div>
-<div id="bossAlert"><div class="boss-text">⚠ CRITICAL OUTAGE ⚠</div><div class="boss-sub">PRODUCTION IS DOWN</div></div>
-<div id="transition"><div class="trans-text" id="transText">LOADING</div><div class="trans-bar"><div class="trans-bar-fill"></div></div></div>
-
-<div id="gameWrapper">
-  <!-- HUD -->
+<div id="wrap">
   <div id="hud">
-    <div class="hud-metrics">
-      <div class="hud-metric">
-        <div class="hud-metric-label">SCORE</div>
-        <div class="hud-metric-value" id="hudScore">0</div>
-      </div>
-      <div class="hud-metric">
-        <div class="hud-metric-label">COMBO</div>
-        <div class="hud-metric-value combo" id="hudCombo">x1</div>
-      </div>
+    <div class="hm">
+      <div class="hv"><div class="hvl">SCORE</div><div class="hvv" id="hScore">0</div></div>
+      <div class="hv"><div class="hvl">COMBO</div><div class="hvv co" id="hCombo">x1</div></div>
     </div>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-      <div class="hud-title neon-flicker">DEVOPS RUSH</div>
-      <div class="stage-badge"><div class="stage-dot"></div><span id="stageName">STANDBY</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+      <div class="htitle nflk">DEVOPS RUSH</div>
+      <div class="sbadge"><div class="sdot"></div><span id="stageName">STANDBY</span></div>
     </div>
-    <div class="hud-metrics right">
-      <div class="hud-metric">
-        <div class="hud-metric-label">HEALTH</div>
-        <div class="hud-metric-value health" id="hudHealth">100%</div>
-        <div class="health-bar-wrap"><div class="health-bar-fill" id="healthBar" style="width:100%"></div></div>
-      </div>
-      <div class="hud-metric">
-        <div class="hud-metric-label">TIME</div>
-        <div class="hud-metric-value timer" id="hudTimer">60</div>
-      </div>
-      <div class="hud-metric">
-        <div class="hud-metric-label">LVL</div>
-        <div class="hud-metric-value" id="hudLevel">1</div>
-      </div>
+    <div class="hm r">
+      <div class="hv"><div class="hvl">HEALTH</div><div class="hvv gr" id="hHealth">100%</div><div class="hbar"><div class="hbf" id="hbf" style="width:100%"></div></div></div>
+      <div class="hv"><div class="hvl">TIME</div><div class="hvv ti" id="hTimer">60</div></div>
+      <div class="hv"><div class="hvl">LVL</div><div class="hvv" id="hLevel">1</div></div>
     </div>
   </div>
 
-  <!-- GAME AREA -->
-  <div id="gameArea">
+  <div id="area">
 
     <!-- INTRO -->
-    <div class="screen active" id="introScreen">
-      <div class="intro-logo">DEVOPS<br>RUSH</div>
-      <div class="intro-sub">PRODUCTION OPERATIONS SIMULATOR</div>
-      <div class="intro-terminal" id="introTerminal">
-        <div class="terminal-line" style="animation-delay:0.2s">$ initializing production environment...</div>
-        <div class="terminal-line" style="animation-delay:0.7s">$ loading kubernetes clusters... <span style="color:var(--accent-green)">OK</span></div>
-        <div class="terminal-line" style="animation-delay:1.2s">$ connecting to AWS... <span style="color:var(--accent-green)">OK</span></div>
-        <div class="terminal-line" style="animation-delay:1.7s">$ monitoring systems active... <span style="color:var(--accent-green)">OK</span></div>
-        <div class="terminal-line" style="animation-delay:2.2s" id="alertLine" style="color:var(--accent-red)">$ WARNING: 14 incidents queued. Operator required.</div>
-        <div class="terminal-line" style="animation-delay:2.8s">$ <span style="color:var(--accent-cyan)">Are you ready, Engineer?</span></div>
+    <div class="scr on" id="introScr">
+      <div class="logo">DEVOPS<br>RUSH</div>
+      <div class="sub">PRODUCTION OPERATIONS SIMULATOR · REAL INTERVIEW SCENARIOS</div>
+      <div class="iterm">
+        <div class="tl" style="animation-delay:.2s">$ initializing production environment...</div>
+        <div class="tl" style="animation-delay:.8s">$ kubernetes clusters ready... <span style="color:var(--green)">OK</span></div>
+        <div class="tl" style="animation-delay:1.3s">$ AWS us-east-1 connected... <span style="color:var(--green)">OK</span></div>
+        <div class="tl" style="animation-delay:1.9s">$ monitoring &amp; alerting active... <span style="color:var(--green)">OK</span></div>
+        <div class="tl" style="animation-delay:2.4s;color:var(--red)">$ WARNING: 14 production incidents queued. Senior engineer required.</div>
+        <div class="tl" style="animation-delay:3s">$ <span style="color:var(--cyan)">Interview mode: ON — real scenarios · press 💡 HINT anytime</span></div>
       </div>
-      <button class="btn-primary" id="startBtn">DEPLOY ENGINEER</button>
+      <button class="btn" id="startBtn">⚡ DEPLOY ENGINEER</button>
+      <div style="margin-top:14px;font-family:var(--mono);font-size:10px;color:var(--dim);text-align:center;max-width:420px;line-height:1.8">
+        4 STAGES: CI/CD PIPELINE · CLOUD ARCHITECTURE · KUBERNETES · INCIDENT RESPONSE<br>
+        <span style="color:var(--yellow)">💡 HINT button shows real interview Q&amp;As · Post-game debrief explains everything</span>
+      </div>
     </div>
 
     <!-- CI/CD -->
-    <div class="screen" id="ciScreen">
-      <div class="minigame-container">
-        <div class="minigame-header">
-          <div><div class="minigame-title">CI/CD PIPELINE</div><div class="minigame-desc">Drag components into correct pipeline order</div></div>
-          <div style="text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--text-dim)"><span id="ciCompleted">0</span>/3 pipelines</div>
+    <div class="scr" id="ciScr">
+      <div class="mgc">
+        <div class="mgh">
+          <div style="flex:1">
+            <div class="mgt">CI/CD PIPELINE</div>
+            <div class="mgd">Drag stages into the correct pipeline order</div>
+            <div class="scbadge" id="ciSc">📋 Loading scenario...</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--dim)"><span id="ciDone">0</span>/3 pipelines</div>
+            <button class="hbtn" onclick="toggleHint('ci')">💡 HINT</button>
+          </div>
         </div>
-        <div class="progress-bar"><div class="progress-fill" id="ciProgress" style="width:0%"></div></div>
-        <div class="pipeline-area" id="pipelineArea">
-          <div class="pipeline-slots" id="pipelineSlots"></div>
-          <div id="pipelineConnector" style="display:flex;align-items:center;justify-content:center;padding:4px 0;flex:0 0 auto"></div>
-          <div class="pipeline-source" id="pipelineSource"></div>
+        <div class="hpanel" id="hCI">
+          <div class="hptitle">📚 CI/CD — INTERVIEW KNOWLEDGE</div>
+          <div class="hpc" id="hCIc"></div>
+          <div class="hpiq" id="hCIq"></div>
+        </div>
+        <div class="pbar"><div class="pfill" id="ciProg" style="width:0%"></div></div>
+        <div class="parea">
+          <div class="pslots" id="ciSlots"></div>
+          <div style="flex:0 0 auto;text-align:center;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:2px;padding:2px 0">DROP STAGES IN ORDER →</div>
+          <div class="psrc" id="ciSrc"></div>
         </div>
       </div>
     </div>
 
-    <!-- CLOUD ARCH -->
-    <div class="screen" id="cloudScreen">
-      <div class="minigame-container">
-        <div class="minigame-header">
-          <div><div class="minigame-title">CLOUD ARCHITECTURE</div><div class="minigame-desc">Assemble the correct cloud network topology</div></div>
-          <div style="text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--text-dim)"><span id="cloudCompleted">0</span>/3 rounds</div>
+    <!-- CLOUD -->
+    <div class="scr" id="cloudScr">
+      <div class="mgc">
+        <div class="mgh">
+          <div style="flex:1">
+            <div class="mgt">CLOUD ARCHITECTURE</div>
+            <div class="mgd">Place services in the correct network topology</div>
+            <div class="scbadge" id="cloudSc">📋 Loading scenario...</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--dim)"><span id="cloudDone">0</span>/3 rounds</div>
+            <button class="hbtn" onclick="toggleHint('cloud')">💡 HINT</button>
+          </div>
         </div>
-        <div class="progress-bar"><div class="progress-fill" id="cloudProgress" style="width:0%"></div></div>
-        <div class="cloud-canvas-wrap" id="cloudCanvasWrap">
-          <canvas id="cloudCanvas"></canvas>
-          <div id="cloudDropZones"></div>
+        <div class="hpanel" id="hCloud">
+          <div class="hptitle">📚 CLOUD ARCH — INTERVIEW KNOWLEDGE</div>
+          <div class="hpc" id="hCloudc"></div>
+          <div class="hpiq" id="hCloudq"></div>
         </div>
-        <div class="cloud-nodes-source" id="cloudSource"></div>
+        <div class="pbar"><div class="pfill" id="cloudProg" style="width:0%"></div></div>
+        <div class="ccwrap" id="ccWrap"><canvas id="ccanv"></canvas><div id="cdzones"></div></div>
+        <div class="cnsrc" id="cloudSrc"></div>
       </div>
     </div>
 
-    <!-- KUBERNETES -->
-    <div class="screen" id="k8sScreen">
-      <div class="minigame-container">
-        <div class="minigame-header">
-          <div><div class="minigame-title">KUBERNETES CLUSTER</div><div class="minigame-desc">Repair crashed pods — drag fix tools onto affected pods</div></div>
-          <div style="text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--text-dim)">Fixed: <span id="k8sFixed">0</span></div>
+    <!-- K8S -->
+    <div class="scr" id="k8sScr">
+      <div class="mgc">
+        <div class="mgh">
+          <div style="flex:1">
+            <div class="mgt">KUBERNETES CLUSTER</div>
+            <div class="mgd">Drag fix tools onto crashed/warning pods</div>
+            <div class="scbadge" id="k8sSc">📋 Loading scenario...</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--dim)">Fixed: <span id="k8sFix">0</span></div>
+            <button class="hbtn" onclick="toggleHint('k8s')">💡 HINT</button>
+          </div>
         </div>
-        <div class="progress-bar"><div class="progress-fill" id="k8sProgress" style="width:0%"></div></div>
-        <div class="k8s-grid" id="k8sGrid"></div>
-        <div class="fix-tools" id="fixTools"></div>
+        <div class="hpanel" id="hK8s">
+          <div class="hptitle">📚 KUBERNETES — INTERVIEW KNOWLEDGE</div>
+          <div class="hpc" id="hK8sc"></div>
+          <div class="hpiq" id="hK8sq"></div>
+        </div>
+        <div class="pbar"><div class="pfill" id="k8sProg" style="width:0%"></div></div>
+        <div class="k8grid" id="k8Grid"></div>
+        <div class="ftools" id="ftools"></div>
       </div>
     </div>
 
-    <!-- INCIDENT RESPONSE -->
-    <div class="screen" id="incidentScreen">
-      <div class="minigame-container">
-        <div class="minigame-header">
-          <div><div class="minigame-title">INCIDENT RESPONSE</div><div class="minigame-desc">Drag correct fix to each production incident</div></div>
-          <div style="text-align:right;font-family:var(--font-mono);font-size:11px;color:var(--text-dim)">Resolved: <span id="incResolved">0</span></div>
+    <!-- INCIDENT -->
+    <div class="scr" id="incScr">
+      <div class="mgc">
+        <div class="mgh">
+          <div style="flex:1">
+            <div class="mgt">INCIDENT RESPONSE</div>
+            <div class="mgd">Drag the correct fix to each incident before it expires</div>
+            <div class="scbadge" id="incSc">📋 Loading scenario...</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+            <div style="font-family:var(--mono);font-size:10px;color:var(--dim)">Resolved: <span id="incRes">0</span></div>
+            <button class="hbtn" onclick="toggleHint('inc')">💡 HINT</button>
+          </div>
         </div>
-        <div class="progress-bar"><div class="progress-fill" id="incProgress" style="width:0%"></div></div>
-        <div class="incidents-grid" id="incidentsGrid"></div>
-        <div class="fixes-toolbar" id="fixesToolbar"></div>
+        <div class="hpanel" id="hInc">
+          <div class="hptitle">📚 INCIDENT RESPONSE — INTERVIEW KNOWLEDGE</div>
+          <div class="hpc" id="hIncc"></div>
+          <div class="hpiq" id="hIncq"></div>
+        </div>
+        <div class="pbar"><div class="pfill" id="incProg" style="width:0%"></div></div>
+        <div class="igrid" id="incGrid"></div>
+        <div class="ftbar" id="ftbar"></div>
       </div>
     </div>
 
     <!-- SCORE -->
-    <div class="screen" id="scoreScreen">
-      <div class="score-title">MISSION COMPLETE</div>
-      <div class="score-card" id="scoreCard">
-        <div class="score-row"><span class="label">FINAL SCORE</span><span class="value" id="finalScore" style="font-size:20px;color:var(--accent-yellow)">0</span></div>
-        <div class="score-row"><span class="label">PIPELINE OPS</span><span class="value" id="scoreCI">0</span></div>
-        <div class="score-row"><span class="label">CLOUD BUILDS</span><span class="value" id="scoreCloud">0</span></div>
-        <div class="score-row"><span class="label">PODS FIXED</span><span class="value" id="scoreK8s">0</span></div>
-        <div class="score-row"><span class="label">INCIDENTS RESOLVED</span><span class="value" id="scoreInc">0</span></div>
-        <div class="score-row"><span class="label">MAX COMBO</span><span class="value" id="scoreCombo">x1</span></div>
-        <div class="score-row"><span class="label">SYSTEM HEALTH</span><span class="value" id="scoreHealth">100%</span></div>
+    <div class="scr" id="scoreScr">
+      <div class="stitle" id="sTitleEl">MISSION COMPLETE</div>
+      <div class="scard">
+        <div class="srow"><span class="sl">FINAL SCORE</span><span class="sv" id="sFinal" style="font-size:19px;color:var(--yellow)">0</span></div>
+        <div class="srow"><span class="sl">PIPELINE OPS</span><span class="sv" id="sCI">0</span></div>
+        <div class="srow"><span class="sl">CLOUD BUILDS</span><span class="sv" id="sCloud">0</span></div>
+        <div class="srow"><span class="sl">PODS FIXED</span><span class="sv" id="sK8s">0</span></div>
+        <div class="srow"><span class="sl">INCIDENTS RESOLVED</span><span class="sv" id="sInc">0</span></div>
+        <div class="srow"><span class="sl">MAX COMBO</span><span class="sv" id="sCombo">x1</span></div>
+        <div class="srow"><span class="sl">SYSTEM HEALTH</span><span class="sv" id="sHealth">100%</span></div>
+        <div class="srow"><span class="sl">ENGINEER RATING</span><span class="sv" id="sRating" style="color:var(--purple)">JUNIOR</span></div>
       </div>
-      <div class="leaderboard" id="leaderboard"></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
-        <button class="btn-primary" id="restartBtn">RESTART MISSION</button>
+      <div class="dbs" id="debSection">
+        <div class="dbt">🎓 POST-INCIDENT DEBRIEF — WHAT YOU SHOULD KNOW</div>
+        <div id="debContent"></div>
+      </div>
+      <div class="lbwrap" id="lbWrap"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px;padding-bottom:20px">
+        <button class="btn" id="restartBtn">⚡ RESTART MISSION</button>
       </div>
     </div>
 
@@ -797,896 +364,654 @@ body::after {
 
 <script>
 'use strict';
-// ═══════════════════════════════════════════════════════════════
-//  DEVOPS RUSH  — Game Engine v2.0
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  DEVOPS RUSH v3  ·  Real Scenarios · Hints · Sound · Debrief
+// ═══════════════════════════════════════════════════════════════════════
 
-// ── CONSTANTS ──────────────────────────────────────────────────
-const STATES = { INTRO:'INTRO', CI:'CI_PIPELINE', CLOUD:'CLOUD_ARCHITECTURE', K8S:'KUBERNETES_CLUSTER', INCIDENT:'INCIDENT_RESPONSE', SCORE:'SCORE_SCREEN' };
-const PIPE_ORDER = ['GIT','BUILD','TEST','DOCKER','REGISTRY','DEPLOY'];
-const PIPE_META = {
-  GIT:    { icon:'📁', color:'#f34f29', label:'Git' },
-  BUILD:  { icon:'⚙️',  color:'#0099cc', label:'Build' },
-  TEST:   { icon:'🧪', color:'#9b59b6', label:'Test' },
-  DOCKER: { icon:'🐳', color:'#0db7ed', label:'Docker' },
-  REGISTRY:{ icon:'📦', color:'#ff8c00', label:'Registry' },
-  DEPLOY: { icon:'🚀', color:'#00ff88', label:'Deploy' }
-};
-const CLOUD_ORDER = ['INTERNET','CLOUDFRONT','LOADBALANCER','K8S_CLUSTER','DATABASE','CACHE'];
-const CLOUD_META = {
-  INTERNET:    { icon:'🌐', label:'Internet',       color:'#00f5ff' },
-  CLOUDFRONT:  { icon:'☁️',  label:'CloudFront',    color:'#ff8c00' },
-  LOADBALANCER:{ icon:'⚖️',  label:'Load Balancer', color:'#9b59b6' },
-  K8S_CLUSTER: { icon:'⎈',  label:'K8s Cluster',   color:'#0db7ed' },
-  DATABASE:    { icon:'🗄️',  label:'Database',      color:'#00ff88' },
-  CACHE:       { icon:'⚡',  label:'Cache',         color:'#ffe600' }
-};
-const INCIDENTS = [
-  { id:'CPU',    title:'CPU SPIKE',     desc:'CPU at 98% — containers throttling', icon:'🔥', severity:'critical', fix:'AUTOSCALE' },
-  { id:'MEM',    title:'MEMORY LEAK',   desc:'Heap growing 200MB/min — OOM risk',  icon:'💾', severity:'critical', fix:'RESTART' },
-  { id:'DISK',   title:'DISK FULL',     desc:'/var/log at 100% — writes failing',  icon:'💿', severity:'high',     fix:'CLEANLOGS' },
-  { id:'DDOS',   title:'DDoS ATTACK',   desc:'12k req/s from 847 IPs detected',    icon:'⚔️',  severity:'critical', fix:'WAF' },
-  { id:'LAT',    title:'HIGH LATENCY',  desc:'p99 latency > 8s — SLO breached',   icon:'⏱️',  severity:'high',     fix:'CACHE' },
-  { id:'DB',     title:'DB CONN FAIL',  desc:'Connection pool exhausted — timeout',icon:'🗄️',  severity:'critical', fix:'RECONNECTDB' },
-  { id:'SSL',    title:'SSL CERT EXP',  desc:'Certificate expires in 2 hours',     icon:'🔒', severity:'high',     fix:'ROTATE' },
-  { id:'NET',    title:'NETWORK PART',  desc:'AZ-2 isolated — failover needed',    icon:'📡', severity:'critical', fix:'FAILOVER' },
-];
-const FIXES = [
-  { id:'AUTOSCALE',  icon:'📈', label:'AutoScale',    color:'#00f5ff' },
-  { id:'RESTART',    icon:'🔄', label:'Restart',      color:'#9b59b6' },
-  { id:'CLEANLOGS',  icon:'🧹', label:'Clean Logs',   color:'#ff8c00' },
-  { id:'WAF',        icon:'🛡️',  label:'Enable WAF',   color:'#ff2d55' },
-  { id:'CACHE',      icon:'⚡', label:'Enable Cache', color:'#ffe600' },
-  { id:'RECONNECTDB',icon:'🔗', label:'Reconnect DB', color:'#00ff88' },
-  { id:'ROTATE',     icon:'🔑', label:'Rotate Cert',  color:'#bf5fff' },
-  { id:'FAILOVER',   icon:'🌐', label:'Failover AZ',  color:'#0db7ed' },
-];
-const POD_NAMES = ['api-gateway','auth-svc','payment-svc','user-svc','order-svc','notify-svc','search-svc','cache-proxy','metrics-agent','log-forwarder','config-svc','scheduler','worker-1','worker-2','gateway-v2'];
-const FIX_TOOLS_K8S = [
-  { id:'RESTART_POD', icon:'🔄', label:'Restart Pod' },
-  { id:'SCALE_DEPLOY',icon:'📈', label:'Scale Deploy' },
-  { id:'REDEPLOY',    icon:'🚀', label:'Redeploy Svc' },
-  { id:'ROLLBACK',    icon:'⏪', label:'Roll Back' },
-];
-
-// ── STATE ──────────────────────────────────────────────────────
-const G = {
-  state: STATES.INTRO,
-  score: 0, health: 100, combo: 1, maxCombo: 1,
-  level: 1, timer: 0, timerActive: false,
-  stageScores: { CI:0, CLOUD:0, K8S:0, INC:0 },
-  drag: null, // { el, type, data, ghostEl }
-  ci: { slots:[], completed:0 },
-  cloud: { drops:[], completed:0 },
-  k8s: { pods:[], fixed:0 },
-  inc: { incidents:[], resolved:0 },
-  particles: [], raf: null,
-  chaosTimer: 0, bossActive: false,
-};
-
-// ── PARTICLE SYSTEM ────────────────────────────────────────────
-const canvas = document.getElementById('particleCanvas');
-const ctx = canvas.getContext('2d');
-
-function resizeCanvas() {
-  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+// ── AUDIO ──────────────────────────────────────────────────────────────
+let ac=null, sndOn=true;
+function gac(){if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}return ac;}
+function tone(f,tp,dur,vol=.28,st=0){
+  if(!sndOn)return; const a=gac(); if(!a)return;
+  try{
+    const o=a.createOscillator(),g=a.createGain();
+    o.connect(g);g.connect(a.destination);
+    o.type=tp;o.frequency.value=f;
+    const t=a.currentTime+st;
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    o.start(t);o.stop(t+dur);
+  }catch(e){}
 }
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+const SFX={
+  ok:   ()=>{tone(523,'sine',.07,.22);tone(659,'sine',.07,.22,.09);tone(784,'sine',.11,.22,.18);},
+  err:  ()=>{tone(220,'sawtooth',.14,.2);tone(170,'sawtooth',.14,.2,.12);},
+  drop: ()=>{tone(440,'sine',.05,.14);},
+  combo:()=>{tone(880,'sine',.05,.2);tone(1100,'sine',.07,.2,.06);tone(1320,'sine',.09,.2,.13);},
+  warn: ()=>{tone(330,'square',.07,.14);tone(330,'square',.07,.14,.18);},
+  boom: ()=>{tone(60,'sawtooth',.4,.35);tone(80,'square',.3,.2,.05);},
+  lvl:  ()=>{[523,659,784,1047].forEach((f,i)=>tone(f,'sine',.14,.2,i*.1));},
+  hint: ()=>{tone(660,'sine',.1,.12);},
+  tick: ()=>{tone(900,'square',.025,.07);},
+};
+document.getElementById('sndBtn').addEventListener('click',()=>{
+  sndOn=!sndOn;
+  document.getElementById('sndBtn').textContent=sndOn?'🔊 SFX ON':'🔇 SFX OFF';
+  if(sndOn){gac();SFX.hint();}
+});
 
-function spawnParticles(x, y, color = '#00f5ff', count = 18, type = 'burst') {
-  for (let i = 0; i < count; i++) {
-    const angle = (Math.PI * 2 * i / count) + (Math.random() - 0.5) * 0.4;
-    const speed = 2 + Math.random() * 5;
-    G.particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      life: 1, decay: 0.015 + Math.random() * 0.02,
-      size: 2 + Math.random() * 4,
-      color, type,
-      glow: Math.random() > 0.5
-    });
+// ── DATA ───────────────────────────────────────────────────────────────
+const ST={INTRO:'INTRO',CI:'CI',CLOUD:'CLOUD',K8S:'K8S',INC:'INC',SCORE:'SCORE'};
+
+const PIPE=[
+  {id:'GIT',     ic:'📁',col:'#f34f29',lb:'Git',     de:'Source control — every change tracked'},
+  {id:'BUILD',   ic:'⚙️', col:'#0099cc',lb:'Build',   de:'Compile & package the application'},
+  {id:'TEST',    ic:'🧪',col:'#9b59b6',lb:'Test',     de:'Unit, integration & e2e tests must pass'},
+  {id:'DOCKER',  ic:'🐳',col:'#0db7ed',lb:'Docker',   de:'Containerize — write once, run anywhere'},
+  {id:'REGISTRY',ic:'📦',col:'#ff8c00',lb:'Registry', de:'Push image to ECR / Docker Hub'},
+  {id:'DEPLOY',  ic:'🚀',col:'#00ff88',lb:'Deploy',   de:'Roll out to production Kubernetes cluster'},
+];
+
+const CI_SCENS=[
+  {t:'Your startup is moving from manual SSH deploys to automated CI/CD. Build the pipeline.',iq:'Q: What is the difference between CI (Continuous Integration) and CD (Continuous Deployment)?'},
+  {t:'Black Friday in 2 weeks. You need to enable 10+ safe releases per day.',iq:'Q: How do you implement zero-downtime deployments in a CI/CD pipeline?'},
+  {t:'Security audit failed — code ships to prod without scanning. Fix the pipeline.',iq:'Q: Where do you add SAST, DAST, and secret scanning in a CI/CD pipeline?'},
+];
+const CI_HINTS=['Order: Git → Build → Test → Docker → Registry → Deploy. NEVER ship untested images.','Git triggers the pipeline. Build compiles. Test validates. Docker containerizes. Registry stores. Deploy ships to K8s.','Rule: always Test BEFORE building a Docker image — testing after containerizing is too late.'];
+const CI_IQS=['Q: Walk me through your ideal CI/CD pipeline.\nA: commit → build → unit tests → integration tests → docker build → push to registry → deploy staging → smoke tests → deploy prod.','Q: What causes pipeline failures most often?\nA: Flaky tests, missing env vars, dependency conflicts, registry auth failures, insufficient resource limits on runners.'];
+
+const CLOUD=[
+  {id:'INTERNET',    ic:'🌐',lb:'Internet',      col:'#00f5ff'},
+  {id:'CLOUDFRONT',  ic:'☁️', lb:'CloudFront CDN',col:'#ff8c00'},
+  {id:'LOADBALANCER',ic:'⚖️', lb:'Load Balancer', col:'#9b59b6'},
+  {id:'K8S_CLUSTER', ic:'⎈', lb:'K8s Cluster',   col:'#0db7ed'},
+  {id:'DATABASE',    ic:'🗄️',lb:'RDS Database',  col:'#00ff88'},
+  {id:'CACHE',       ic:'⚡',lb:'ElastiCache',   col:'#ffe600'},
+];
+const CLOUD_SCENS=[
+  {t:'Design a highly available e-commerce backend for 500k concurrent users on AWS.',iq:'Q: How does CloudFront reduce latency and protect your origin servers?'},
+  {t:'Your API has 800ms latency. A client demands <50ms p99. Architect a solution.',iq:'Q: What caching strategies do you implement at each layer of the stack?'},
+  {t:'You need to pass SOC2. Design a secure, auditable, multi-tier AWS architecture.',iq:'Q: How do you architect for compliance in AWS? What services help?'},
+];
+const CLOUD_HINTS=['Traffic flow: Internet → CDN → Load Balancer → K8s Cluster → Database + Cache.','CloudFront sits BEFORE the load balancer — it caches at 400+ edge locations globally.','Database (RDS) and Cache (ElastiCache) are siblings — both serve the K8s application layer.'];
+const CLOUD_IQS=['Q: Why put CloudFront in front of a Load Balancer?\nA: CloudFront caches static assets at edge locations, reduces origin load 80%+, adds DDoS protection via AWS Shield Standard.','Q: When do you use ElastiCache vs RDS?\nA: ElastiCache (Redis) for sub-ms reads of hot/session data. RDS for durable, transactional, persistent storage.'];
+
+const POD_NAMES=['api-gateway','auth-svc','payment-svc','user-svc','order-svc','notify-svc','search-svc','cache-proxy','metrics-agent','log-forwarder','config-svc','scheduler','worker-1','worker-2','gateway-v2'];
+const K8S_TOOLS=[
+  {id:'RESTART',  ic:'🔄',lb:'Restart Pod',   hi:'kubectl rollout restart — clears heap/OOM state, restarts container process.'},
+  {id:'SCALE',    ic:'📈',lb:'Scale Deploy',  hi:'kubectl scale deployment — adds replicas to handle load spikes.'},
+  {id:'REDEPLOY', ic:'🚀',lb:'Redeploy Svc',  hi:'Pulls latest image, recreates pods — use after config or image changes.'},
+  {id:'ROLLBACK', ic:'⏪',lb:'Roll Back',     hi:'kubectl rollout undo — reverts to last good ReplicaSet. Essential for bad deploys.'},
+];
+const K8S_SCENS=[
+  {t:'payment-svc pods are OOMKilled every 20 min. Users cannot check out.',iq:'Q: How do you debug an OOMKilled pod? What kubectl commands do you use?'},
+  {t:'Bad deploy pushed a wrong env var. All payment pods are in CrashLoopBackOff.',iq:'Q: What is CrashLoopBackOff? How do you recover from a bad Kubernetes deployment?'},
+  {t:'Flash sale in 1 hour. Expecting 10x traffic. Cluster must autoscale.',iq:'Q: How does Horizontal Pod Autoscaler work? What metrics can it scale on?'},
+];
+const K8S_HINTS=['CrashLoopBackOff = K8s gave up restarting. Debug with: kubectl logs <pod> --previous','Always define resource requests/limits and liveness/readiness probes on every pod.','Use "kubectl describe pod" to see Events — scheduling failures, image pull errors, OOM kills.'];
+const K8S_IQS=['Q: Difference between Deployment, StatefulSet, DaemonSet?\nA: Deployment = stateless apps. StatefulSet = ordered, persistent storage (DBs). DaemonSet = one pod per node (logging, monitoring).','Q: How do you debug a pod stuck in Pending?\nA: kubectl describe pod. Check Events for: insufficient CPU/memory, node selector mismatch, PVC not bound, image pull failure.'];
+
+const INCIDENTS=[
+  {id:'CPU',  ti:'CPU SPIKE',     de:'CPU at 98% — containers throttling.\np99 latency 847ms, 156% CPU usage on 3 nodes',ic:'🔥',sev:'critical',fix:'AUTOSCALE', rf:'HPA (Horizontal Pod Autoscaler) adds replicas. CPU-bound workloads scale out, not up.'},
+  {id:'MEM',  ti:'MEMORY LEAK',   de:'Heap growing 200MB/min — OOM imminent.\nNode.js heap: 1.8GB / 2GB limit on payment-svc',ic:'💾',sev:'critical',fix:'RESTART',   rf:'Restart clears heap immediately. Then: take heap dump, profile with clinic.js, set --max-old-space-size.'},
+  {id:'DISK', ti:'DISK FULL',     de:'/var/log at 100% — writes failing.\nLog rotation disabled, 47GB of rotated logs',         ic:'💿',sev:'high',   fix:'CLEANLOGS', rf:'Truncate logs: > /var/log/app.log. Then enable logrotate + ship logs to CloudWatch/ELK.'},
+  {id:'DDOS', ti:'DDoS ATTACK',   de:'12k req/s from 847 IPs detected.\n99% bot traffic, all targeting /api/login',             ic:'⚔️', sev:'critical',fix:'WAF',        rf:'Enable AWS WAF rate-based rules. Block by IP reputation list. Add CAPTCHA on auth endpoints.'},
+  {id:'LAT',  ti:'HIGH LATENCY',  de:'p99 latency > 8s — SLO breached.\nDB queries 6.8s avg, cache miss rate 94%',              ic:'⏱️', sev:'high',   fix:'CACHE',      rf:'Add Redis caching layer (ElastiCache). Cache miss rate 94% = no cache. Implement lazy loading.'},
+  {id:'DB',   ti:'DB CONN FAIL',  de:'Connection pool exhausted — timeouts.\nPgBouncer: 0/200 connections available',            ic:'🗄️',sev:'critical',fix:'RECONNECTDB',rf:'Restart PgBouncer to reconnect pool. Root cause: connection leak. Use pool_mode=transaction.'},
+  {id:'SSL',  ti:'SSL CERT EXP',  de:'Certificate expires in 2 hours.\nSAN cert for *.api.company.com expired',                 ic:'🔒',sev:'high',   fix:'ROTATE',     rf:'Rotate via ACM or cert-manager. Set up auto-renewal alert at 30 days before expiry.'},
+  {id:'NET',  ti:'NETWORK PART',  de:'AZ-2 isolated — health checks failing.\n3 of 9 pods unreachable, Route53 not failing over', ic:'📡',sev:'critical',fix:'FAILOVER',   rf:'Update Route53 health checks, enable cross-zone load balancing, drain AZ-2 traffic.'},
+];
+const FIXES=[
+  {id:'AUTOSCALE',  ic:'📈',lb:'AutoScale',   col:'#00f5ff'},
+  {id:'RESTART',    ic:'🔄',lb:'Restart',     col:'#9b59b6'},
+  {id:'CLEANLOGS',  ic:'🧹',lb:'Clean Logs',  col:'#ff8c00'},
+  {id:'WAF',        ic:'🛡️', lb:'Enable WAF',  col:'#ff2d55'},
+  {id:'CACHE',      ic:'⚡',lb:'Enable Cache',col:'#ffe600'},
+  {id:'RECONNECTDB',ic:'🔗',lb:'Reconnect DB',col:'#00ff88'},
+  {id:'ROTATE',     ic:'🔑',lb:'Rotate Cert', col:'#bf5fff'},
+  {id:'FAILOVER',   ic:'🌐',lb:'Failover AZ', col:'#0db7ed'},
+];
+const INC_SCENS=[
+  {t:'PagerDuty fired 23 alerts in 5 minutes. Production degraded. SLA breach in 10 min.',iq:'Q: Walk me through your incident response process from alert to post-mortem.'},
+  {t:'Your on-call shift starts now. The previous engineer left zero runbooks.',iq:'Q: What makes a good runbook? What belongs in a blameless post-mortem?'},
+  {t:'Black Friday 3AM. Revenue dropping $50k/minute. Site is slow. What do you do first?',iq:'Q: How do you triage a production incident under extreme time pressure?'},
+];
+const INC_HINTS=['Rule #1: Identify blast radius FIRST. Contain it. Then diagnose. Then fix permanently.','CPU→AutoScale. Memory→Restart. Disk→CleanLogs. DDoS→WAF. Latency→Cache. DB→Reconnect. SSL→Rotate. Network→Failover.','Incident order: Acknowledge → Assess severity → Notify stakeholders → Mitigate → Resolve → Post-mortem.'];
+const INC_IQS=['Q: MTTD vs MTTR vs MTTF?\nA: MTTD=Mean Time To Detect. MTTR=Mean Time To Recover. MTTF=Mean Time To Failure. Core SRE reliability metrics.','Q: SLO vs SLA vs SLI?\nA: SLI = measured metric (e.g. latency). SLO = target (p99 < 200ms). SLA = contractual commitment with financial penalties.'];
+
+const DEBRIEF=[
+  {c:'gr',st:'CI/CD PIPELINE',to:'Pipeline Stage Order',ex:'Correct order: Git → Build → Test → Docker → Registry → Deploy. Never build a Docker image before tests pass — you\'d containerize broken code. The registry stores immutable versioned images.',tip:'💡 Interview: "We use GitLab CI with stages: build → unit-test → integration-test → security-scan → docker-build → push-registry → deploy-staging → smoke-test → deploy-prod."'},
+  {c:'',st:'CLOUD ARCHITECTURE',to:'AWS Traffic Flow',ex:'Internet traffic flows: CloudFront (CDN, edge caching, DDoS protection) → Application Load Balancer (health checks, routing rules) → Kubernetes pods (business logic) → RDS (durable storage) + ElastiCache (hot-data cache).',tip:'💡 Interview: "CloudFront caches at 400+ PoPs globally, reducing origin load 80%+. We use cache-control headers and CloudFront Functions for edge routing."'},
+  {c:'pu',st:'KUBERNETES',to:'Pod Lifecycle & Debugging',ex:'CrashLoopBackOff: use kubectl logs --previous. OOMKilled: increase memory limits or fix leak. Pending: kubectl describe pod, check Events. Running but unhealthy: check readiness probe. Always set resource requests/limits.',tip:'💡 Interview: "I always define liveness and readiness probes, set resource requests/limits, use PodDisruptionBudgets for zero-downtime, and HPA for autoscaling on CPU/custom metrics."'},
+  {c:'re',st:'INCIDENT RESPONSE',to:'Fix-to-Incident Mapping',ex:'CPU Spike→HPA AutoScale. Memory Leak→Restart+profile. Disk Full→Log rotation+cleanup. DDoS→WAF rate-limiting. High Latency→Redis Cache. DB Connection Fail→PgBouncer reconnect. SSL Expiry→cert-manager rotate. Network Partition→AZ failover.',tip:'💡 Interview: "We follow SRE principles: SLI/SLO tracking, error budgets, blameless post-mortems with 5-whys root cause analysis, and automated runbooks via Runbook Automation."'},
+  {c:'ye',st:'SRE CONCEPTS',to:'Key SRE & DevOps Metrics',ex:'DORA metrics: Deployment Frequency (how often you deploy), Lead Time for Changes, MTTR (recover time), Change Failure Rate. Elite teams deploy multiple times/day with <1hr lead time and <15% failure rate.',tip:'💡 Interview: "Our DORA metrics: deploy 8x/day, lead time 45min, MTTR 12min, change failure rate 3%. We track these via GitHub metrics + PagerDuty + JIRA.'},
+];
+
+// ── GAME STATE ─────────────────────────────────────────────────────────
+const G={
+  state:ST.INTRO, score:0, health:100, combo:1, maxCombo:1, level:1,
+  timer:0, timerActive:false, stageScores:{CI:0,CLOUD:0,K8S:0,INC:0},
+  wrongs:[], drag:null,
+  ci:{done:0}, cloud:{done:0}, k8s:{pods:[],fixed:0}, inc:{list:[],resolved:0},
+  particles:[], raf:null, chaosT:0,
+};
+
+// ── PARTICLES ──────────────────────────────────────────────────────────
+const cnv=document.getElementById('pCanvas'), ctx=cnv.getContext('2d');
+function rcnv(){cnv.width=window.innerWidth;cnv.height=window.innerHeight;}
+rcnv(); window.addEventListener('resize',rcnv);
+
+function spawn(x,y,col='#00f5ff',n=18){
+  for(let i=0;i<n;i++){
+    const a=Math.PI*2*i/n+(Math.random()-.5)*.4, s=2+Math.random()*5;
+    G.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,dc:.015+Math.random()*.02,sz:2+Math.random()*4,col,glow:Math.random()>.5});
   }
 }
-
-function spawnExplosion(x, y, color = '#00f5ff') {
-  spawnParticles(x, y, color, 30, 'burst');
-  // Ring
-  for(let i = 0; i < 12; i++) {
-    const angle = Math.PI * 2 * i / 12;
-    G.particles.push({ x, y, vx: Math.cos(angle)*1.5, vy: Math.sin(angle)*1.5, life:1, decay:0.03, size:1.5, color, type:'ring', glow:true });
-  }
+function expl(x,y,col='#00f5ff'){
+  spawn(x,y,col,28);
+  for(let i=0;i<10;i++){const a=Math.PI*2*i/10;G.particles.push({x,y,vx:Math.cos(a)*1.5,vy:Math.sin(a)*1.5,life:1,dc:.03,sz:1.5,col,ring:true,glow:true});}
 }
+function trail(x,y){G.particles.push({x,y,vx:(Math.random()-.5)*1.5,vy:-1-Math.random()*2,life:.8,dc:.05,sz:2+Math.random()*2,col:'#00f5ff',glow:true});}
 
-function spawnTrail(x, y, color) {
-  G.particles.push({ x, y, vx:(Math.random()-0.5)*1.5, vy:-1-Math.random()*2, life:0.8, decay:0.05, size:2+Math.random()*2, color, type:'trail', glow:true });
-}
-
-function updateParticles() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  G.particles = G.particles.filter(p => p.life > 0);
-  for(const p of G.particles) {
-    p.x += p.vx; p.y += p.vy;
-    p.vy += 0.08; // gravity
-    p.vx *= 0.98; p.life -= p.decay;
-    ctx.save();
-    ctx.globalAlpha = Math.max(0, p.life);
-    if (p.glow) { ctx.shadowColor = p.color; ctx.shadowBlur = 12; }
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    if (p.life <= 0) { ctx.restore(); continue; }
-    if (p.type === 'ring') { const r = Math.max(0.01, p.size); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.strokeStyle = p.color; ctx.lineWidth = 1.5; ctx.stroke(); }
-    else { const r = Math.max(0.01, p.size * p.life); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.fill(); }
+function drawParticles(){
+  ctx.clearRect(0,0,cnv.width,cnv.height);
+  G.particles=G.particles.filter(p=>p.life>0);
+  for(const p of G.particles){
+    p.x+=p.vx;p.y+=p.vy;p.vy+=.08;p.vx*=.98;p.life-=p.dc;
+    if(p.life<=0) continue;
+    ctx.save();ctx.globalAlpha=Math.max(0,p.life);
+    if(p.glow){ctx.shadowColor=p.col;ctx.shadowBlur=12;}
+    ctx.fillStyle=p.col;ctx.beginPath();
+    if(p.ring){const r=Math.max(.01,p.sz);ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.strokeStyle=p.col;ctx.lineWidth=1.5;ctx.stroke();}
+    else{ctx.arc(p.x,p.y,Math.max(.01,p.sz*p.life),0,Math.PI*2);ctx.fill();}
     ctx.restore();
   }
 }
 
-// ── GAME LOOP ──────────────────────────────────────────────────
-let lastTime = 0;
-function gameLoop(ts) {
-  const dt = Math.min((ts - lastTime) / 1000, 0.1);
-  lastTime = ts;
-  updateParticles();
-  if (G.timerActive) {
-    G.timer -= dt;
-    if (G.timer <= 0) { G.timer = 0; onTimerEnd(); }
-    updateHUD();
+// ── GAME LOOP ───────────────────────────────────────────────────────────
+let lt=0;
+function loop(ts){
+  const dt=Math.min((ts-lt)/1000,.1); lt=ts;
+  drawParticles();
+  if(G.timerActive){
+    G.timer-=dt;
+    if(G.timer<=0){G.timer=0;onTimerEnd();}
+    if(G.timer<=10&&Math.floor(G.timer)!==Math.floor(G.timer+dt)) SFX.tick();
+    updHUD();
   }
-  if (G.state === STATES.K8S) updateK8S(dt);
-  if (G.state === STATES.INCIDENT) updateIncidents(dt);
-  // Chaos
-  if (G.timerActive && G.state !== STATES.INTRO && G.state !== STATES.SCORE) {
-    G.chaosTimer += dt;
-    if (G.chaosTimer > Math.max(8 - G.level, 3)) { G.chaosTimer = 0; triggerChaos(); }
+  if(G.state===ST.K8S) updK8S(dt);
+  if(G.state===ST.INC)  updInc(dt);
+  if(G.timerActive&&G.state!==ST.INTRO&&G.state!==ST.SCORE){
+    G.chaosT+=dt;
+    if(G.chaosT>Math.max(10-G.level,3)){G.chaosT=0;chaos();}
   }
-  G.raf = requestAnimationFrame(gameLoop);
+  G.raf=requestAnimationFrame(loop);
 }
 
-// ── HUD ────────────────────────────────────────────────────────
-function updateHUD() {
-  document.getElementById('hudScore').textContent = G.score.toLocaleString();
-  document.getElementById('hudCombo').textContent = `x${G.combo}`;
-  const h = Math.max(0, Math.round(G.health));
-  document.getElementById('hudHealth').textContent = `${h}%`;
-  document.getElementById('hudHealth').className = 'hud-metric-value health' + (h < 30 ? ' danger' : '');
-  document.getElementById('healthBar').style.width = `${h}%`;
-  const hb = document.getElementById('healthBar');
-  hb.style.background = h > 60 ? 'var(--accent-green)' : h > 30 ? 'var(--accent-orange)' : 'var(--accent-red)';
-  document.getElementById('hudTimer').textContent = Math.ceil(G.timer);
-  document.getElementById('hudTimer').style.color = G.timer < 10 ? 'var(--accent-red)' : 'var(--accent-yellow)';
-  document.getElementById('hudLevel').textContent = G.level;
+// ── HUD ─────────────────────────────────────────────────────────────────
+function updHUD(){
+  document.getElementById('hScore').textContent=G.score.toLocaleString();
+  document.getElementById('hCombo').textContent=`x${Math.round(G.combo)}`;
+  const h=Math.max(0,Math.round(G.health));
+  document.getElementById('hHealth').textContent=`${h}%`;
+  document.getElementById('hHealth').className='hvv gr'+(h<30?' dg':'');
+  document.getElementById('hbf').style.width=`${h}%`;
+  document.getElementById('hbf').style.background=h>60?'var(--green)':h>30?'var(--orange)':'var(--red)';
+  document.getElementById('hTimer').textContent=Math.ceil(G.timer);
+  document.getElementById('hTimer').style.color=G.timer<10?'var(--red)':'var(--yellow)';
+  document.getElementById('hLevel').textContent=G.level;
+}
+function setStageName(n){document.getElementById('stageName').textContent=n;}
+
+// ── STATE MACHINE ───────────────────────────────────────────────────────
+function trans(to,label,sub=''){
+  G.timerActive=false;
+  const ov=document.getElementById('trans');
+  document.getElementById('trtxt').textContent=label;
+  document.getElementById('trsub').textContent=sub;
+  ov.classList.add('on');
+  // reset bar
+  const b=document.getElementById('trbf');
+  b.style.animation='none';b.offsetWidth;b.style.animation='lbar .8s ease-in-out forwards';
+  setTimeout(()=>{ov.classList.remove('on');enterState(to);},900);
 }
 
-function setStage(name) { document.getElementById('stageName').textContent = name; }
-
-// ── STATE MACHINE ──────────────────────────────────────────────
-function transition(toState, label) {
-  G.timerActive = false;
-  const overlay = document.getElementById('transition');
-  document.getElementById('transText').textContent = label || toState;
-  overlay.classList.add('active');
-  setTimeout(() => {
-    overlay.classList.remove('active');
-    enterState(toState);
-  }, 900);
+function enterState(s){
+  G.state=s;
+  document.querySelectorAll('.scr').forEach(x=>x.classList.remove('on'));
+  const mp={[ST.INTRO]:'introScr',[ST.CI]:'ciScr',[ST.CLOUD]:'cloudScr',[ST.K8S]:'k8sScr',[ST.INC]:'incScr',[ST.SCORE]:'scoreScr'};
+  document.getElementById(mp[s])?.classList.add('on');
+  if(s===ST.CI)    {setStageName('CI/CD PIPELINE');  setupCI();    startT(65+G.level*8);}
+  if(s===ST.CLOUD) {setStageName('CLOUD ARCH');       setupCloud(); startT(60+G.level*7);}
+  if(s===ST.K8S)   {setStageName('KUBERNETES');       setupK8S();   startT(60+G.level*7);}
+  if(s===ST.INC)   {setStageName('INCIDENT RESP');    setupInc();   startT(65+G.level*7);}
+  if(s===ST.SCORE) {setStageName('COMPLETE');         showScore();}
+}
+function startT(t){G.timer=t;G.timerActive=true;}
+function onTimerEnd(){
+  G.timerActive=false;SFX.warn();
+  if(G.state===ST.CI)    trans(ST.CLOUD,'CLOUD ARCHITECTURE','Stage 2 of 4');
+  else if(G.state===ST.CLOUD) trans(ST.K8S,'KUBERNETES CLUSTER','Stage 3 of 4');
+  else if(G.state===ST.K8S)   trans(ST.INC,'INCIDENT RESPONSE','Stage 4 of 4');
+  else if(G.state===ST.INC)   trans(ST.SCORE,'MISSION COMPLETE','Calculating results...');
 }
 
-function enterState(state) {
-  G.state = state;
-  // hide all screens
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const screenMap = {
-    [STATES.INTRO]: 'introScreen', [STATES.CI]: 'ciScreen',
-    [STATES.CLOUD]: 'cloudScreen', [STATES.K8S]: 'k8sScreen',
-    [STATES.INCIDENT]: 'incidentScreen', [STATES.SCORE]: 'scoreScreen'
-  };
-  const scr = document.getElementById(screenMap[state]);
-  if (scr) scr.classList.add('active');
-
-  if (state === STATES.CI) { setStage('CI/CD PIPELINE'); setupCI(); startTimer(60 + G.level * 10); }
-  if (state === STATES.CLOUD) { setStage('CLOUD ARCH'); setupCloud(); startTimer(60 + G.level * 8); }
-  if (state === STATES.K8S) { setStage('KUBERNETES'); setupK8S(); startTimer(60 + G.level * 8); }
-  if (state === STATES.INCIDENT) { setStage('INCIDENT RESP'); setupIncidents(); startTimer(60 + G.level * 8); }
-  if (state === STATES.SCORE) { setStage('SCORE'); showScore(); }
+// ── SCORING ─────────────────────────────────────────────────────────────
+function addScore(pts,x,y,col='#00f5ff'){
+  const v=Math.round(pts*G.combo);
+  G.score+=v;G.combo=Math.min(G.combo+.5,8);G.maxCombo=Math.max(G.maxCombo,Math.round(G.combo));
+  expl(x,y,col);floatScore(`+${v}`,x,y,col);
+  if(G.combo>=3){floatCombo(x,y);SFX.combo();}else SFX.ok();
+  updHUD();
+}
+function loseHP(amt,reason=''){
+  G.health=Math.max(0,G.health-amt);G.combo=Math.max(1,G.combo-1);
+  SFX.err();
+  const a=document.getElementById('area');a.style.animation='';a.offsetWidth;a.style.animation='shk .4s';
+  if(reason)G.wrongs.push(reason);
+  notify(`⚠ Health -${amt}%`+(reason?` — ${reason}`:''),'er');
+  updHUD();
+  if(G.health<=0) trans(ST.SCORE,'SYSTEM FAILURE','Critical incident — game over');
+}
+function floatScore(t,x,y,col){
+  const el=document.createElement('div');el.className='sfloat';
+  el.style.cssText=`left:${x}px;top:${y}px;color:${col};font-size:${18+G.combo*2}px;`;
+  el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),1200);
+}
+function floatCombo(x,y){
+  const el=document.createElement('div');el.className='cfloat';
+  el.style.cssText=`left:${x-60}px;top:${y-40}px;color:var(--purple);font-size:${22+G.combo*3}px;`;
+  el.textContent=`x${Math.round(G.combo)} COMBO!`;document.body.appendChild(el);setTimeout(()=>el.remove(),800);
+}
+function notify(msg,type='in'){
+  const el=document.createElement('div');el.className=`notif ${type}`;el.textContent=msg;
+  document.getElementById('notifs').prepend(el);setTimeout(()=>el.remove(),3100);
 }
 
-function startTimer(t) { G.timer = t; G.timerActive = true; }
-
-function onTimerEnd() {
-  G.timerActive = false;
-  if (G.state === STATES.CI) transition(STATES.CLOUD, 'CLOUD ARCH');
-  else if (G.state === STATES.CLOUD) transition(STATES.K8S, 'K8S CLUSTER');
-  else if (G.state === STATES.K8S) transition(STATES.INCIDENT, 'INCIDENT RESP');
-  else if (G.state === STATES.INCIDENT) transition(STATES.SCORE, 'MISSION COMPLETE');
+// ── HINT SYSTEM ──────────────────────────────────────────────────────────
+function toggleHint(s){
+  SFX.hint();
+  const ids={ci:'hCI',cloud:'hCloud',k8s:'hK8s',inc:'hInc'};
+  const pid=ids[s];if(!pid)return;
+  const p=document.getElementById(pid);
+  const opening=!p.classList.contains('vis');
+  Object.values(ids).forEach(id=>{document.getElementById(id)?.classList.remove('vis');});
+  if(opening) p.classList.add('vis');
+}
+function setHint(s,hi,qi){
+  const hmap={ci:['hCIc','hCIq',CI_HINTS,CI_IQS],cloud:['hCloudc','hCloudq',CLOUD_HINTS,CLOUD_IQS],k8s:['hK8sc','hK8sq',K8S_HINTS,K8S_IQS],inc:['hIncc','hIncq',INC_HINTS,INC_IQS]};
+  const [cid,qid,hs,qs]=hmap[s];
+  const ce=document.getElementById(cid);if(ce)ce.textContent=hs[hi%hs.length];
+  const qe=document.getElementById(qid);if(qe)qe.textContent=qs[qi%qs.length];
+}
+function setScenario(s,idx){
+  const sm={ci:[CI_SCENS,'ciSc'],cloud:[CLOUD_SCENS,'cloudSc'],k8s:[K8S_SCENS,'k8sSc'],inc:[INC_SCENS,'incSc']};
+  const [list,eid]=sm[s];const sc=list[idx%list.length];
+  const el=document.getElementById(eid);if(el)el.textContent=`🎯 ${sc.t}`;
 }
 
-// ── SCORE ──────────────────────────────────────────────────────
-function addScore(pts, x, y, color = '#00f5ff') {
-  const actual = Math.round(pts * G.combo);
-  G.score += actual;
-  G.combo = Math.min(G.combo + 0.5, 8);
-  G.maxCombo = Math.max(G.maxCombo, Math.round(G.combo));
-  spawnExplosion(x, y, color);
-  showScoreFloat(`+${actual}`, x, y, color);
-  if (G.combo >= 3) showComboPopup(x, y);
-  updateHUD();
+// ── DRAG SYSTEM ───────────────────────────────────────────────────────────
+let ghost=null;
+function initDrag(el,tp,data){el.addEventListener('pointerdown',e=>startDrag(e,el,tp,data));}
+function startDrag(e,el,tp,data){
+  if(el.classList.contains('plcd')||el.classList.contains('drg'))return;
+  e.preventDefault();el.setPointerCapture(e.pointerId);
+  const r=el.getBoundingClientRect();
+  ghost=el.cloneNode(true);
+  ghost.style.cssText=`position:fixed;pointer-events:none;z-index:9000;width:${r.width}px;height:${r.height}px;opacity:.95;transform:scale(1.12) rotate(-3deg);filter:drop-shadow(0 8px 20px rgba(0,245,255,.7));transition:none;`;
+  document.body.appendChild(ghost);
+  pghost(e);el.classList.add('drg');G.drag={el,tp,data};
+  el.addEventListener('pointermove',pmove);el.addEventListener('pointerup',pup);el.addEventListener('pointercancel',pcancel);
+}
+function pghost(e){
+  if(!ghost)return;const r=ghost.getBoundingClientRect();
+  ghost.style.left=(e.clientX-r.width/2)+'px';ghost.style.top=(e.clientY-r.height/2)+'px';
+  trail(e.clientX,e.clientY);
+}
+function pmove(e){e.preventDefault();pghost(e);hilite(e.clientX,e.clientY);}
+function pup(e){e.preventDefault();const t=findDT(e.clientX,e.clientY);if(t)handleDrop(G.drag,t,e.clientX,e.clientY);cleanDrag();}
+function pcancel(){cleanDrag();}
+function cleanDrag(){
+  if(G.drag?.el)G.drag.el.classList.remove('drg');
+  ghost?.remove();ghost=null;G.drag=null;
+  document.querySelectorAll('.hov').forEach(x=>x.classList.remove('hov'));
+}
+function hilite(x,y){
+  document.querySelectorAll('.hov').forEach(x=>x.classList.remove('hov'));
+  for(const t of getDTs()){const r=t.getBoundingClientRect();if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom)t.classList.add('hov');}
+}
+function findDT(x,y){for(const t of getDTs()){const r=t.getBoundingClientRect();if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom)return t;}return null;}
+function getDTs(){return[...document.querySelectorAll('.pslot:not(.fil),.cdz:not(.fil),.pod.crs,.pod.wrn,.idrop:not(.res)')];}
+
+function handleDrop(drag,target,x,y){
+  if(!drag)return;SFX.drop();
+  if(drag.tp==='pipe'&&target.classList.contains('pslot'))  dropPipe(drag,target,x,y);
+  else if(drag.tp==='cloud'&&target.classList.contains('cdz'))     dropCloud(drag,target,x,y);
+  else if(drag.tp==='k8s'&&target.classList.contains('pod'))       dropK8S(drag,target,x,y);
+  else if(drag.tp==='inc'&&target.classList.contains('idrop'))     dropInc(drag,target,x,y);
 }
 
-function loseHealth(amt) {
-  G.health = Math.max(0, G.health - amt);
-  G.combo = Math.max(1, G.combo - 1);
-  document.getElementById('gameArea').style.animation = '';
-  document.getElementById('gameArea').offsetWidth;
-  document.getElementById('gameArea').style.animation = 'shake 0.4s';
-  notify('⚠ Health -' + amt + '%', 'error');
-  updateHUD();
-  if (G.health <= 0) { transition(STATES.SCORE, 'SYSTEM FAILURE'); }
-}
-
-function showScoreFloat(text, x, y, color) {
-  const el = document.createElement('div');
-  el.className = 'score-float';
-  el.style.cssText = `left:${x}px;top:${y}px;color:${color};font-size:${18+G.combo*2}px;`;
-  el.textContent = text;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 1200);
-}
-
-function showComboPopup(x, y) {
-  const el = document.createElement('div');
-  el.className = 'combo-popup';
-  el.style.cssText = `left:${x-60}px;top:${y-40}px;color:var(--accent-purple);font-size:${22+G.combo*3}px;`;
-  el.textContent = `x${Math.round(G.combo)} COMBO!`;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 800);
-}
-
-// ── NOTIFICATIONS ──────────────────────────────────────────────
-function notify(msg, type = 'info') {
-  const el = document.createElement('div');
-  el.className = `notification ${type}`;
-  el.textContent = msg;
-  document.getElementById('notifications').prepend(el);
-  setTimeout(() => el.remove(), 2600);
-}
-
-// ── DRAG SYSTEM ────────────────────────────────────────────────
-let ghostEl = null;
-
-function initDrag(el, type, data) {
-  el.addEventListener('pointerdown', e => startDrag(e, el, type, data));
-}
-
-function startDrag(e, el, type, data) {
-  if (el.classList.contains('placed') || el.classList.contains('dragging')) return;
-  e.preventDefault();
-  el.setPointerCapture(e.pointerId);
-
-  const rect = el.getBoundingClientRect();
-  ghostEl = el.cloneNode(true);
-  ghostEl.id = 'dragGhostEl';
-  ghostEl.style.cssText = `
-    position:fixed;pointer-events:none;z-index:9000;
-    width:${rect.width}px;height:${rect.height}px;
-    opacity:0.95;transform:scale(1.1) rotate(-3deg);
-    filter:drop-shadow(0 8px 20px rgba(0,245,255,0.7));
-    transition:none;
-  `;
-  document.body.appendChild(ghostEl);
-  positionGhost(e);
-  el.classList.add('dragging');
-
-  G.drag = { el, type, data };
-
-  el.addEventListener('pointermove', onDragMove);
-  el.addEventListener('pointerup', onDragEnd);
-  el.addEventListener('pointercancel', onDragCancel);
-}
-
-function positionGhost(e) {
-  if (!ghostEl) return;
-  const rect = ghostEl.getBoundingClientRect();
-  ghostEl.style.left = (e.clientX - rect.width/2) + 'px';
-  ghostEl.style.top  = (e.clientY - rect.height/2) + 'px';
-  spawnTrail(e.clientX, e.clientY, '#00f5ff');
-}
-
-function onDragMove(e) {
-  e.preventDefault();
-  positionGhost(e);
-  // Highlight drop targets
-  highlightDropTargets(e.clientX, e.clientY);
-}
-
-function onDragEnd(e) {
-  e.preventDefault();
-  const target = findDropTarget(e.clientX, e.clientY);
-  if (target) {
-    handleDrop(G.drag, target, e.clientX, e.clientY);
-  }
-  cleanupDrag();
-}
-
-function onDragCancel() { cleanupDrag(); }
-
-function cleanupDrag() {
-  if (G.drag && G.drag.el) G.drag.el.classList.remove('dragging');
-  if (ghostEl) { ghostEl.remove(); ghostEl = null; }
-  G.drag = null;
-  clearDropHighlights();
-}
-
-function highlightDropTargets(x, y) {
-  clearDropHighlights();
-  const targets = getDropTargets();
-  for (const t of targets) {
-    const r = t.getBoundingClientRect();
-    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
-      t.classList.add('hover-target');
-    }
-  }
-}
-
-function clearDropHighlights() {
-  document.querySelectorAll('.hover-target').forEach(el => el.classList.remove('hover-target'));
-}
-
-function findDropTarget(x, y) {
-  for (const t of getDropTargets()) {
-    const r = t.getBoundingClientRect();
-    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return t;
-  }
-  return null;
-}
-
-function getDropTargets() {
-  const lists = [
-    '.pipeline-slot:not(.filled)',
-    '.cloud-drop-zone:not(.filled)',
-    '.pod.crashed,.pod.warning',
-    '.incident-drop:not(.resolved)'
-  ];
-  return [...document.querySelectorAll(lists.join(','))];
-}
-
-// ── CI/CD MINIGAME ─────────────────────────────────────────────
-function setupCI() {
-  G.ci = { slots: new Array(6).fill(null), completed: 0, round: 0 };
+// ── CI/CD ──────────────────────────────────────────────────────────────
+function setupCI(){
+  G.ci.done=0;setHint('ci',0,0);setScenario('ci',G.level%CI_SCENS.length);
+  document.getElementById('ciDone').textContent='0';
+  document.getElementById('ciProg').style.width='0%';
   renderCI();
-  document.getElementById('ciCompleted').textContent = '0';
-  document.getElementById('ciProgress').style.width = '0%';
 }
-
-function renderCI() {
-  const slotsEl = document.getElementById('pipelineSlots');
-  slotsEl.innerHTML = '';
-  // Connector SVG
-  const connector = document.getElementById('pipelineConnector');
-  connector.innerHTML = PIPE_ORDER.map((_,i) => i < PIPE_ORDER.length-1 ? '<span class="pipeline-arrow">→</span>' : '').join('').replace(/<\/span><span/g, '</span><span style="display:none"></span><span');
-  connector.innerHTML = '<span style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);letter-spacing:2px">DROP PIPELINE STAGES IN ORDER</span>';
-
-  PIPE_ORDER.forEach((_, i) => {
-    const slot = document.createElement('div');
-    slot.className = 'pipeline-slot';
-    slot.dataset.slot = i;
-    const num = document.createElement('div');
-    num.className = 'slot-number';
-    num.textContent = i+1;
-    slot.appendChild(num);
-    const label = document.createElement('div');
-    label.className = 'slot-label';
-    label.textContent = `STEP ${i+1}`;
-    slot.appendChild(label);
-    if (i < PIPE_ORDER.length - 1) {
-      const arr = document.createElement('span');
-      arr.textContent = '→';
-      arr.style.cssText = 'position:absolute;right:-12px;color:var(--text-dim);font-size:12px;z-index:1;';
-      slot.appendChild(arr);
-    }
-    slotsEl.appendChild(slot);
+function renderCI(){
+  const sl=document.getElementById('ciSlots');sl.innerHTML='';
+  PIPE.forEach((_,i)=>{
+    const s=document.createElement('div');s.className='pslot';s.dataset.i=i;
+    s.innerHTML=`<div class="snum">${i+1}</div><div class="slbl">STEP ${i+1}</div>`;
+    if(i<5){const ar=document.createElement('span');ar.textContent='→';ar.style.cssText='position:absolute;right:-9px;color:var(--dim);font-size:11px;z-index:1;';s.appendChild(ar);}
+    sl.appendChild(s);
   });
-
-  // Source cards (shuffled)
-  const shuffled = [...PIPE_ORDER].sort(() => Math.random() - 0.5);
-  const src = document.getElementById('pipelineSource');
-  src.innerHTML = '';
-  shuffled.forEach(key => {
-    const m = PIPE_META[key];
-    const card = document.createElement('div');
-    card.className = 'pipe-card';
-    card.dataset.pipe = key;
-    card.style.color = m.color;
-    card.innerHTML = `<div class="icon">${m.icon}</div><div class="label">${m.label}</div>`;
-    initDrag(card, 'pipe', { key });
-    src.appendChild(card);
+  const sh=[...PIPE].sort(()=>Math.random()-.5);
+  const src=document.getElementById('ciSrc');src.innerHTML='';
+  sh.forEach(p=>{
+    const c=document.createElement('div');c.className='pcard';c.dataset.pipe=p.id;c.style.color=p.col;
+    c.innerHTML=`<div class="ic">${p.ic}</div><div class="lb">${p.lb}</div>`;c.title=p.de;
+    initDrag(c,'pipe',{id:p.id});src.appendChild(c);
   });
-  document.getElementById('ciCompleted').textContent = G.ci.completed;
+  setHint('ci',G.ci.done,G.ci.done%CI_IQS.length);
+  document.getElementById('ciDone').textContent=G.ci.done;
 }
-
-function handleDrop(drag, target, x, y) {
-  if (!drag) return;
-  if (drag.type === 'pipe' && target.classList.contains('pipeline-slot')) handlePipeDrop(drag, target, x, y);
-  else if (drag.type === 'cloud' && target.classList.contains('cloud-drop-zone')) handleCloudDrop(drag, target, x, y);
-  else if (drag.type === 'k8s-fix' && (target.classList.contains('pod'))) handleK8sDrop(drag, target, x, y);
-  else if (drag.type === 'incident-fix' && target.classList.contains('incident-drop')) handleIncidentDrop(drag, target, x, y);
-}
-
-function handlePipeDrop(drag, slot, x, y) {
-  const slotIdx = parseInt(slot.dataset.slot);
-  const key = drag.data.key;
-  const correct = PIPE_ORDER[slotIdx] === key;
-
-  if (correct) {
-    // Place it
-    drag.el.classList.add('placed');
-    slot.classList.add('filled', 'correct');
-    slot.innerHTML = '';
-    const m = PIPE_META[key];
-    slot.innerHTML = `<div class="icon" style="font-size:20px">${m.icon}</div><div class="slot-label" style="color:${m.color}">${m.label}</div>`;
-    addScore(150, x, y, m.color);
-    notify(`✓ ${m.label} placed correctly!`, 'success');
-
-    // Check if pipeline complete
-    const filledSlots = document.querySelectorAll('.pipeline-slot.correct').length;
-    document.getElementById('ciProgress').style.width = `${(filledSlots/6)*100}%`;
-
-    if (filledSlots === 6) {
-      G.ci.completed++;
-      G.stageScores.CI += 1000;
-      document.getElementById('ciCompleted').textContent = G.ci.completed;
-      notify('🚀 Pipeline complete! +1000pts', 'success');
-      setTimeout(() => {
-        if (G.ci.completed < 3) renderCI();
-        else { G.timerActive = false; transition(STATES.CLOUD, 'CLOUD ARCH'); }
-      }, 800);
+function dropPipe(drag,slot,x,y){
+  const idx=parseInt(slot.dataset.i),id=drag.data.id;
+  const pipe=PIPE[idx];
+  if(pipe.id===id){
+    drag.el.classList.add('plcd');slot.classList.add('fil','ok');
+    slot.innerHTML=`<div style="font-size:19px">${pipe.ic}</div><div class="slbl" style="color:${pipe.col}">${pipe.lb}</div>`;
+    addScore(150,x,y,pipe.col);
+    notify(`✓ ${pipe.lb} — ${pipe.de}`,'ok');
+    const filled=document.querySelectorAll('.pslot.ok').length;
+    document.getElementById('ciProg').style.width=`${(filled/6)*100}%`;
+    if(filled===6){
+      G.ci.done++;G.stageScores.CI+=1000;
+      document.getElementById('ciDone').textContent=G.ci.done;
+      notify(`🚀 Pipeline ${G.ci.done} deployed! +1000pts`,'ok');SFX.lvl();
+      setTimeout(()=>{if(G.ci.done<3)renderCI();else{G.timerActive=false;trans(ST.CLOUD,'CLOUD ARCHITECTURE','Stage 2 of 4');}},900);
     }
   } else {
-    slot.classList.add('wrong');
-    setTimeout(() => slot.classList.remove('wrong'), 500);
-    drag.el.classList.remove('dragging');
-    loseHealth(8);
-    notify(`✗ Wrong order! ${PIPE_META[key].label} doesn't belong here.`, 'error');
+    slot.classList.add('bad');setTimeout(()=>slot.classList.remove('bad'),500);
+    drag.el.classList.remove('drg');
+    const correctPos=PIPE.findIndex(p=>p.id===id)+1;
+    loseHP(8,`${PIPE.find(p=>p.id===id)?.lb} belongs at step ${correctPos}, not step ${idx+1}`);
   }
 }
 
-// ── CLOUD ARCH ─────────────────────────────────────────────────
-let cloudLineAnim = 0;
-
-function setupCloud() {
-  G.cloud = { drops: new Array(6).fill(null), completed: 0 };
-  document.getElementById('cloudCompleted').textContent = '0';
-  document.getElementById('cloudProgress').style.width = '0%';
+// ── CLOUD ──────────────────────────────────────────────────────────────
+function setupCloud(){
+  G.cloud.done=0;setHint('cloud',0,0);setScenario('cloud',G.level%CLOUD_SCENS.length);
+  document.getElementById('cloudDone').textContent='0';
+  document.getElementById('cloudProg').style.width='0%';
   renderCloud();
 }
-
-function renderCloud() {
-  const wrap = document.getElementById('cloudCanvasWrap');
-  const cc = document.getElementById('cloudCanvas');
-  const dzContainer = document.getElementById('cloudDropZones');
-  dzContainer.innerHTML = '';
-
-  const W = wrap.clientWidth || 400;
-  const H = wrap.clientHeight || 260;
-  cc.width = W; cc.height = H;
-
-  // Layout positions for 6 zones
-  const positions = [
-    { x:0.5, y:0.08, w:0.18, h:0.16 }, // Internet — top center
-    { x:0.5, y:0.28, w:0.18, h:0.16 }, // CloudFront
-    { x:0.5, y:0.48, w:0.18, h:0.16 }, // LB
-    { x:0.5, y:0.68, w:0.18, h:0.16 }, // K8s
-    { x:0.22,y:0.68, w:0.18, h:0.16 }, // DB  (left)
-    { x:0.78,y:0.68, w:0.18, h:0.16 }, // Cache (right)
-  ];
-
-  CLOUD_ORDER.forEach((key, i) => {
-    const p = positions[i];
-    const m = CLOUD_META[key];
-    const dz = document.createElement('div');
-    dz.className = 'cloud-drop-zone';
-    dz.dataset.zone = i;
-    dz.dataset.key = key;
-    dz.style.cssText = `left:${(p.x - p.w/2)*100}%;top:${(p.y)*100}%;width:${p.w*100}%;height:${p.h*100}%;border-color:${m.color}33;`;
-    dz.innerHTML = `<div class="dz-icon" style="font-size:clamp(14px,3vw,22px)">${m.icon}</div><div class="dz-label" style="color:${m.color}88">${m.label}</div>`;
-    dzContainer.appendChild(dz);
+function renderCloud(){
+  const wrap=document.getElementById('ccWrap'),cc=document.getElementById('ccanv'),dzC=document.getElementById('cdzones');
+  dzC.innerHTML='';
+  const W=wrap.clientWidth||400,H=wrap.clientHeight||250;cc.width=W;cc.height=H;
+  const pos=[{x:.5,y:.05,w:.2,h:.17},{x:.5,y:.25,w:.2,h:.17},{x:.5,y:.45,w:.2,h:.17},{x:.5,y:.65,w:.2,h:.17},{x:.19,y:.65,w:.2,h:.17},{x:.81,y:.65,w:.2,h:.17}];
+  CLOUD.forEach((c,i)=>{
+    const p=pos[i];
+    const dz=document.createElement('div');dz.className='cdz';dz.dataset.key=c.id;
+    dz.style.cssText=`left:${(p.x-p.w/2)*100}%;top:${p.y*100}%;width:${p.w*100}%;height:${p.h*100}%;border-color:${c.col}33;`;
+    dz.innerHTML=`<div style="font-size:clamp(13px,2.5vw,20px)">${c.ic}</div><div style="font-size:8px;color:${c.col}88">${c.lb}</div>`;
+    dzC.appendChild(dz);
   });
-
-  // Animated canvas connections
-  animateCloudCanvas(cc, positions, CLOUD_META);
-
-  // Source nodes (shuffled)
-  const shuffled = [...CLOUD_ORDER].sort(() => Math.random() - 0.5);
-  const src = document.getElementById('cloudSource');
-  src.innerHTML = '';
-  shuffled.forEach(key => {
-    const m = CLOUD_META[key];
-    const node = document.createElement('div');
-    node.className = 'cloud-node';
-    node.dataset.key = key;
-    node.style.borderColor = m.color + '55';
-    node.innerHTML = `<span class="node-icon">${m.icon}</span>${m.label}`;
-    initDrag(node, 'cloud', { key });
-    src.appendChild(node);
+  animCloud(cc,pos);
+  const sh=[...CLOUD].sort(()=>Math.random()-.5);
+  const src=document.getElementById('cloudSrc');src.innerHTML='';
+  sh.forEach(c=>{
+    const n=document.createElement('div');n.className='cnode';n.dataset.key=c.id;n.style.borderColor=c.col+'55';
+    n.innerHTML=`<span style="font-size:clamp(12px,2vw,18px)">${c.ic}</span>${c.lb}`;
+    initDrag(n,'cloud',{id:c.id});src.appendChild(n);
   });
-  document.getElementById('cloudCompleted').textContent = G.cloud.completed;
+  setHint('cloud',G.cloud.done,G.cloud.done%CLOUD_IQS.length);
+  document.getElementById('cloudDone').textContent=G.cloud.done;
 }
-
-function animateCloudCanvas(cc, positions, meta) {
-  const ctx2 = cc.getContext('2d');
-  const W = cc.width, H = cc.height;
-  let offset = 0;
-  const connections = [[0,1],[1,2],[2,3],[3,4],[3,5]];
-  const keys = Object.keys(meta);
-
-  function draw() {
-    if (cc.width !== W) return;
-    ctx2.clearRect(0,0,W,H);
-    offset = (offset + 0.5) % 20;
-
-    connections.forEach(([a,b]) => {
-      const pa = positions[a], pb = positions[b];
-      const x1 = pa.x * W, y1 = (pa.y + pa.h/2) * H;
-      const x2 = pb.x * W, y2 = (pb.y) * H;
-      const key = keys[a];
-      const color = meta[key]?.color || '#00f5ff';
-      ctx2.save();
-      ctx2.strokeStyle = color + '44';
-      ctx2.lineWidth = 1.5;
-      ctx2.setLineDash([4, 8]);
-      ctx2.lineDashOffset = -offset;
-      ctx2.beginPath();
-      ctx2.moveTo(x1, y1);
-      ctx2.lineTo(x2, y2);
-      ctx2.stroke();
-      // Glow
-      ctx2.shadowColor = color;
-      ctx2.shadowBlur = 8;
-      ctx2.strokeStyle = color + '88';
-      ctx2.lineWidth = 1;
-      ctx2.beginPath();
-      ctx2.moveTo(x1, y1);
-      ctx2.lineTo(x2, y2);
-      ctx2.stroke();
-      ctx2.restore();
+function animCloud(cc,pos){
+  const ctx2=cc.getContext('2d'),W=cc.width,H=cc.height,conns=[[0,1],[1,2],[2,3],[3,4],[3,5]];
+  let off=0,alive=true,ow=W;
+  function draw(){
+    if(cc.width!==ow){alive=false;return;}
+    ctx2.clearRect(0,0,W,H);off=(off+.5)%20;
+    conns.forEach(([a,b])=>{
+      const pa=pos[a],pb=pos[b],x1=pa.x*W,y1=(pa.y+pa.h/2)*H,x2=pb.x*W,y2=pb.y*H,col=CLOUD[a].col;
+      ctx2.save();ctx2.setLineDash([4,8]);ctx2.lineDashOffset=-off;
+      ctx2.strokeStyle=col+'44';ctx2.lineWidth=1.5;ctx2.beginPath();ctx2.moveTo(x1,y1);ctx2.lineTo(x2,y2);ctx2.stroke();
+      ctx2.shadowColor=col;ctx2.shadowBlur=8;ctx2.strokeStyle=col+'88';ctx2.lineWidth=1;
+      ctx2.beginPath();ctx2.moveTo(x1,y1);ctx2.lineTo(x2,y2);ctx2.stroke();ctx2.restore();
     });
-
-    requestAnimationFrame(draw);
-  }
-  draw();
+    if(alive)requestAnimationFrame(draw);
+  }draw();
 }
-
-function handleCloudDrop(drag, zone, x, y) {
-  const zoneKey = zone.dataset.key;
-  const dragKey = drag.data.key;
-  const m = CLOUD_META[dragKey];
-
-  if (zoneKey === dragKey) {
-    drag.el.classList.add('placed');
-    zone.classList.add('filled', 'correct');
-    zone.style.borderColor = m.color;
-    zone.style.background = m.color + '18';
-    zone.innerHTML = `<div class="dz-icon" style="font-size:clamp(14px,3vw,22px)">${m.icon}</div><div style="font-family:var(--font-mono);font-size:8px;color:${m.color};font-weight:700">${m.label}</div>`;
-    addScore(200, x, y, m.color);
-    notify(`✓ ${m.label} placed!`, 'success');
-
-    const filled = document.querySelectorAll('.cloud-drop-zone.correct').length;
-    document.getElementById('cloudProgress').style.width = `${(filled/6)*100}%`;
-
-    if (filled === 6) {
-      G.cloud.completed++;
-      G.stageScores.CLOUD += 1200;
-      document.getElementById('cloudCompleted').textContent = G.cloud.completed;
-      notify('☁️ Architecture complete! +1200pts', 'success');
-      spawnExplosion(x, y, '#00ff88');
-      setTimeout(() => {
-        if (G.cloud.completed < 3) renderCloud();
-        else { G.timerActive = false; transition(STATES.K8S, 'K8S CLUSTER'); }
-      }, 800);
+function dropCloud(drag,zone,x,y){
+  const zk=zone.dataset.key,dk=drag.data.id,c=CLOUD.find(x=>x.id===dk);
+  if(zk===dk){
+    drag.el.classList.add('plcd');zone.classList.add('fil','ok');zone.style.borderColor=c.col;zone.style.background=c.col+'18';
+    zone.innerHTML=`<div style="font-size:clamp(13px,2.5vw,20px)">${c.ic}</div><div style="font-family:var(--mono);font-size:8px;color:${c.col};font-weight:700">${c.lb}</div>`;
+    addScore(200,x,y,c.col);notify(`✓ ${c.lb} placed in correct layer`,'ok');
+    const filled=document.querySelectorAll('.cdz.ok').length;
+    document.getElementById('cloudProg').style.width=`${(filled/6)*100}%`;
+    if(filled===6){
+      G.cloud.done++;G.stageScores.CLOUD+=1200;document.getElementById('cloudDone').textContent=G.cloud.done;
+      notify(`☁️ Architecture ${G.cloud.done} complete! +1200pts`,'ok');SFX.lvl();expl(x,y,'#00ff88');
+      setTimeout(()=>{if(G.cloud.done<3)renderCloud();else{G.timerActive=false;trans(ST.K8S,'KUBERNETES CLUSTER','Stage 3 of 4');}},900);
     }
   } else {
-    zone.classList.add('wrong');
-    setTimeout(() => zone.classList.remove('wrong'), 500);
-    loseHealth(10);
-    notify(`✗ Wrong service! ${m.label} doesn't go there.`, 'error');
+    zone.classList.add('bad');setTimeout(()=>zone.classList.remove('bad'),500);
+    const zname=CLOUD.find(x=>x.id===zk)?.lb||'wrong layer';
+    loseHP(10,`${c?.lb} doesn't belong at the ${zname} position`);
   }
 }
 
-// ── KUBERNETES ─────────────────────────────────────────────────
-function setupK8S() {
-  const podCount = 8 + G.level * 2;
-  G.k8s.pods = [];
-  G.k8s.fixed = 0;
-
-  for (let i = 0; i < Math.min(podCount, 16); i++) {
-    const name = POD_NAMES[i % POD_NAMES.length];
-    const status = Math.random() > 0.6 ? 'running' : (Math.random() > 0.5 ? 'crashed' : 'warning');
-    G.k8s.pods.push({
-      id: i, name, status, cpu: Math.random() * 80 + 10,
-      crashTimer: status !== 'running' ? 15 + Math.random() * 10 : Infinity,
-      fixable: status !== 'running',
-      autocrash: Math.random() > 0.7
-    });
+// ── KUBERNETES ─────────────────────────────────────────────────────────
+function setupK8S(){
+  const n=8+G.level*2;G.k8s.pods=[];G.k8s.fixed=0;
+  setHint('k8s',0,0);setScenario('k8s',G.level%K8S_SCENS.length);
+  for(let i=0;i<Math.min(n,16);i++){
+    const r=Math.random(),st=r>.6?'run':(r>.35?'crs':'wrn');
+    G.k8s.pods.push({id:i,nm:POD_NAMES[i%POD_NAMES.length],st,cpu:Math.random()*80+10,ct:st!=='run'?15+Math.random()*10:Infinity,fix:st!=='run',ac:Math.random()>.65});
   }
-  renderK8S();
-  updateK8SProgress();
+  renderK8S();updK8SProg();
 }
-
-function renderK8S() {
-  const grid = document.getElementById('k8sGrid');
-  grid.innerHTML = '';
-  G.k8s.pods.forEach(pod => {
-    const el = document.createElement('div');
-    el.className = `pod ${pod.status}`;
-    el.dataset.podId = pod.id;
-    const icons = { running:'🟢', crashed:'🔴', warning:'🟡', fixing:'🔵', fixed:'✅' };
-    const cpu = Math.round(pod.cpu);
-    const cpuColor = cpu > 80 ? 'var(--accent-red)' : cpu > 60 ? 'var(--accent-orange)' : 'var(--accent-green)';
-    el.innerHTML = `
-      <div class="pod-icon">${icons[pod.status] || '⚪'}</div>
-      <div class="pod-name">${pod.name}</div>
-      <div class="pod-status">${pod.status.toUpperCase()}</div>
-      <div class="pod-cpu"><div class="pod-cpu-fill" style="width:${cpu}%;background:${cpuColor}"></div></div>`;
+function renderK8S(){
+  const grid=document.getElementById('k8Grid');grid.innerHTML='';
+  G.k8s.pods.forEach(pod=>{
+    const el=document.createElement('div');el.className=`pod ${pod.st}`;el.dataset.pid=pod.id;
+    const ico={run:'🟢',crs:'🔴',wrn:'🟡',fix:'🔵'}[pod.st]||'⚪';
+    const cpu=Math.round(pod.cpu),cc=cpu>80?'var(--red)':cpu>60?'var(--orange)':'var(--green)';
+    el.innerHTML=`<div class="pico">${ico}</div><div class="pnm">${pod.nm}</div><div class="pst">${pod.st.toUpperCase()}</div><div class="pcpu"><div class="pcpuf" style="width:${cpu}%;background:${cc}"></div></div>`;
     grid.appendChild(el);
   });
-
-  // Fix tools
-  const ft = document.getElementById('fixTools');
-  ft.innerHTML = '';
-  FIX_TOOLS_K8S.forEach(tool => {
-    const el = document.createElement('div');
-    el.className = 'fix-tool';
-    el.dataset.fix = tool.id;
-    el.innerHTML = `<span style="font-size:16px">${tool.icon}</span><span>${tool.label}</span>`;
-    initDrag(el, 'k8s-fix', { fix: tool.id, icon: tool.icon, label: tool.label });
-    ft.appendChild(el);
+  const ft=document.getElementById('ftools');ft.innerHTML='';
+  K8S_TOOLS.forEach(t=>{
+    const el=document.createElement('div');el.className='ftool';el.dataset.fix=t.id;
+    el.innerHTML=`<span style="font-size:15px">${t.ic}</span><span>${t.lb}</span>`;el.title=t.hi;
+    initDrag(el,'k8s',t);ft.appendChild(el);
   });
 }
-
-function updateK8S(dt) {
-  let needsRender = false;
-  G.k8s.pods.forEach(pod => {
-    if (pod.status === 'running' && pod.autocrash) {
-      pod.crashTimer -= dt;
-      if (pod.crashTimer <= 0) {
-        pod.status = Math.random() > 0.5 ? 'crashed' : 'warning';
-        pod.crashTimer = 15 + Math.random() * 10;
-        pod.fixable = true;
-        loseHealth(3);
-        notify(`⚠ Pod ${pod.name} just crashed!`, 'warning');
-        needsRender = true;
-      }
-    }
-    if (pod.cpu !== undefined && pod.status === 'running') {
-      pod.cpu += (Math.random() - 0.5) * 5;
-      pod.cpu = Math.max(5, Math.min(99, pod.cpu));
-    }
+function updK8S(dt){
+  let ch=false;
+  G.k8s.pods.forEach(p=>{
+    if(p.st==='run'&&p.ac){p.ct-=dt;if(p.ct<=0){p.st='crs';p.ct=15+Math.random()*10;p.fix=true;loseHP(3,`pod ${p.nm} crashed`);notify(`⚠ ${p.nm} crashed!`,'wa');ch=true;}}
+    if(p.st==='run'){p.cpu+=(Math.random()-.5)*4;p.cpu=Math.max(5,Math.min(99,p.cpu));}
   });
-  if (needsRender) renderK8S();
+  if(ch)renderK8S();
+}
+function dropK8S(drag,podEl,x,y){
+  const id=parseInt(podEl.dataset.pid),pod=G.k8s.pods.find(p=>p.id===id);
+  if(!pod||pod.st==='run')return;
+  pod.st='fix';podEl.className='pod fix';
+  notify(`⚙ Applying ${drag.data.lb} to ${pod.nm}...`,'in');
+  setTimeout(()=>{
+    pod.st='run';pod.fix=false;pod.cpu=20+Math.random()*30;pod.ac=Math.random()>.5;pod.ct=15+Math.random()*15;
+    G.k8s.fixed++;G.stageScores.K8S+=300;
+    addScore(300,x,y,'#bf5fff');
+    notify(`✅ ${pod.nm} restored! ${drag.data.hi}`,'ok');
+    renderK8S();updK8SProg();expl(x,y,'#00ff88');
+  },700);
+}
+function updK8SProg(){
+  const tot=G.k8s.pods.filter(p=>p.fix||p.st!=='run').length+G.k8s.fixed;
+  document.getElementById('k8sProg').style.width=`${Math.min(100,(G.k8s.fixed/Math.max(1,tot))*100)}%`;
+  document.getElementById('k8sFix').textContent=G.k8s.fixed;
 }
 
-function handleK8sDrop(drag, podEl, x, y) {
-  const podId = parseInt(podEl.dataset.podId);
-  const pod = G.k8s.pods.find(p => p.id === podId);
-  if (!pod || pod.status === 'running') return;
-
-  // Any fix tool works on crashed/warning pods
-  pod.status = 'fixing';
-  podEl.className = 'pod fixing';
-  addScore(300, x, y, '#bf5fff');
-  notify(`⚙ Applying ${drag.data.label}...`, 'info');
-
-  setTimeout(() => {
-    pod.status = 'running';
-    pod.fixable = false;
-    pod.cpu = 20 + Math.random() * 30;
-    pod.autocrash = Math.random() > 0.5;
-    pod.crashTimer = 15 + Math.random() * 15;
-    G.k8s.fixed++;
-    G.stageScores.K8S += 300;
-    addScore(200, x, y + 30, '#00ff88');
-    notify(`✅ ${pod.name} restored!`, 'success');
-    renderK8S();
-    updateK8SProgress();
-    spawnExplosion(x, y, '#00ff88');
-  }, 800);
+// ── INCIDENT ───────────────────────────────────────────────────────────
+function setupInc(){
+  const n=3+Math.min(G.level,5);
+  const pool=[...INCIDENTS].sort(()=>Math.random()-.5).slice(0,n);
+  G.inc.list=pool.map((inc,i)=>({...inc,timer:35+Math.random()*25,resolved:false,id:`i${i}`}));
+  G.inc.resolved=0;
+  setHint('inc',0,0);setScenario('inc',G.level%INC_SCENS.length);
+  renderInc();
 }
-
-function updateK8SProgress() {
-  const total = G.k8s.pods.filter(p => !p.autocrash || p.status !== 'running').length;
-  const pct = Math.min(100, (G.k8s.fixed / Math.max(1, G.k8s.pods.filter(p => p.fixable || p.status !== 'running').length + G.k8s.fixed)) * 100);
-  document.getElementById('k8sProgress').style.width = `${pct}%`;
-  document.getElementById('k8sFixed').textContent = G.k8s.fixed;
-}
-
-// ── INCIDENT RESPONSE ──────────────────────────────────────────
-function setupIncidents() {
-  const count = 3 + Math.min(G.level, 5);
-  const pool = [...INCIDENTS].sort(() => Math.random() - 0.5).slice(0, count);
-  G.inc.incidents = pool.map((inc, i) => ({
-    ...inc, timer: 30 + Math.random() * 30, resolved: false, id: `inc_${i}`
-  }));
-  G.inc.resolved = 0;
-  renderIncidents();
-}
-
-function renderIncidents() {
-  const grid = document.getElementById('incidentsGrid');
-  grid.innerHTML = '';
-  G.inc.incidents.forEach(inc => {
-    const el = document.createElement('div');
-    el.className = 'incident-card';
-    el.dataset.incId = inc.id;
-    const sevColors = { critical: 'var(--accent-red)', high: 'var(--accent-orange)', medium: 'var(--accent-yellow)' };
-    el.innerHTML = `
-      <div class="incident-title">${inc.icon} ${inc.title}</div>
-      <div class="incident-desc">${inc.desc}</div>
-      <div class="incident-severity"><div class="severity-dot sev-${inc.severity}"></div><span style="color:${sevColors[inc.severity]};font-family:var(--font-mono);font-size:9px;letter-spacing:1px">${inc.severity.toUpperCase()}</span></div>
-      <div class="incident-drop ${inc.resolved ? 'resolved' : ''}" data-inc-id="${inc.id}">${inc.resolved ? '✅ RESOLVED' : 'DROP FIX HERE'}</div>
-      <div class="incident-timer"><div class="incident-timer-fill" id="itf_${inc.id}" style="width:100%"></div></div>`;
-    if (inc.resolved) el.style.opacity = '0.5';
+function renderInc(){
+  const grid=document.getElementById('incGrid');grid.innerHTML='';
+  const sc={critical:'var(--red)',high:'var(--orange)',medium:'var(--yellow)'};
+  G.inc.list.forEach(inc=>{
+    const el=document.createElement('div');el.className='icard';el.dataset.iid=inc.id;
+    const dropHtml=inc.resolved
+      ?`<div class="idrop res">✅ ${FIXES.find(f=>f.id===inc.fix)?.lb} — ${inc.rf}</div>`
+      :`<div class="idrop${inc.expired?' bad':''}" data-iid="${inc.id}">${inc.expired?'⏰ EXPIRED':'DROP FIX HERE'}</div>`;
+    el.innerHTML=`<div class="ititle">${inc.ic} ${inc.ti}</div><div class="idesc">${inc.de}</div><div class="isev"><div class="svd s${inc.sev[0]}"></div><span style="color:${sc[inc.sev]};font-family:var(--mono);font-size:8px;letter-spacing:1px">${inc.sev.toUpperCase()}</span></div>${dropHtml}<div class="itbar"><div class="itbf" id="ib${inc.id}" style="width:100%"></div></div>`;
+    if(inc.resolved)el.style.opacity='.5';
     grid.appendChild(el);
   });
-
-  // Fixes toolbar
-  const tb = document.getElementById('fixesToolbar');
-  tb.innerHTML = '';
-  FIXES.forEach(fix => {
-    const el = document.createElement('div');
-    el.className = 'fix-btn';
-    el.dataset.fix = fix.id;
-    el.style.color = fix.color;
-    el.innerHTML = `<span style="font-size:16px">${fix.icon}</span><span>${fix.label}</span>`;
-    initDrag(el, 'incident-fix', fix);
-    tb.appendChild(el);
+  const tb=document.getElementById('ftbar');tb.innerHTML='';
+  FIXES.forEach(f=>{
+    const el=document.createElement('div');el.className='fbtn';el.style.color=f.col;
+    el.innerHTML=`<span style="font-size:14px">${f.ic}</span><span>${f.lb}</span>`;
+    initDrag(el,'inc',f);tb.appendChild(el);
   });
-  document.getElementById('incResolved').textContent = G.inc.resolved;
+  document.getElementById('incRes').textContent=G.inc.resolved;
 }
-
-function updateIncidents(dt) {
-  let changed = false;
-  G.inc.incidents.forEach(inc => {
-    if (inc.resolved) return;
-    inc.timer -= dt;
-    const pct = Math.max(0, (inc.timer / 60) * 100);
-    const bar = document.getElementById(`itf_${inc.id}`);
-    if (bar) bar.style.width = `${pct}%`;
-    if (inc.timer <= 0) {
-      loseHealth(15);
-      inc.resolved = true; // expired
-      inc.expired = true;
-      notify(`💥 ${inc.title} expired! -15 health`, 'error');
-      changed = true;
-    }
+function updInc(dt){
+  let ch=false;
+  G.inc.list.forEach(inc=>{
+    if(inc.resolved)return;inc.timer-=dt;
+    const bar=document.getElementById(`ib${inc.id}`);
+    if(bar)bar.style.width=`${Math.max(0,(inc.timer/60)*100)}%`;
+    if(inc.timer<=0){loseHP(15,`${inc.ti} expired without fix`);inc.resolved=inc.expired=true;notify(`💥 ${inc.ti} expired! -15 health`,'er');ch=true;}
   });
-  if (changed) renderIncidents();
-  const pct = (G.inc.resolved / Math.max(1, G.inc.incidents.length)) * 100;
-  document.getElementById('incProgress').style.width = `${pct}%`;
-  document.getElementById('incResolved').textContent = G.inc.resolved;
+  if(ch)renderInc();
+  document.getElementById('incProg').style.width=`${(G.inc.resolved/Math.max(1,G.inc.list.length))*100}%`;
+  document.getElementById('incRes').textContent=G.inc.resolved;
 }
-
-function handleIncidentDrop(drag, dropZone, x, y) {
-  const incId = dropZone.dataset.incId;
-  const inc = G.inc.incidents.find(i => i.id === incId);
-  if (!inc || inc.resolved) return;
-
-  const fixId = drag.data.id;
-  if (fixId === inc.fix) {
-    inc.resolved = true;
-    G.inc.resolved++;
-    G.stageScores.INC += 400;
-    dropZone.className = 'incident-drop resolved';
-    dropZone.textContent = '✅ RESOLVED';
-    const card = dropZone.closest('.incident-card');
-    if (card) { card.style.animation = 'none'; card.style.borderColor = 'var(--accent-green)'; card.style.opacity = '0.6'; }
-    addScore(400, x, y, '#00ff88');
-    notify(`✅ ${inc.title} resolved with ${drag.data.label}!`, 'success');
-    spawnExplosion(x, y, '#00ff88');
-    document.getElementById('incResolved').textContent = G.inc.resolved;
-
-    if (G.inc.incidents.every(i => i.resolved)) {
-      notify('🎉 All incidents resolved!', 'success');
-      G.timerActive = false;
-      setTimeout(() => transition(STATES.SCORE, 'MISSION COMPLETE'), 800);
-    }
+function dropInc(drag,dz,x,y){
+  const iid=dz.dataset.iid,inc=G.inc.list.find(i=>i.id===iid);
+  if(!inc||inc.resolved)return;
+  if(drag.data.id===inc.fix){
+    inc.resolved=true;G.inc.resolved++;G.stageScores.INC+=400;
+    dz.className='idrop res';dz.innerHTML=`✅ ${drag.data.lb} — ${inc.rf}`;dz.style.fontSize='7px';dz.style.padding='5px';
+    const card=dz.closest('.icard');if(card){card.style.animation='none';card.style.borderColor='var(--green)';card.style.opacity='.55';}
+    addScore(400,x,y,'#00ff88');notify(`✅ ${inc.ti} resolved! ${drag.data.lb} was correct.`,'ok');expl(x,y,'#00ff88');
+    document.getElementById('incRes').textContent=G.inc.resolved;
+    if(G.inc.list.every(i=>i.resolved)){SFX.lvl();G.timerActive=false;setTimeout(()=>trans(ST.SCORE,'MISSION COMPLETE','Calculating results...'),800);}
   } else {
-    dropZone.classList.add('wrong-fix');
-    setTimeout(() => dropZone.classList.remove('wrong-fix'), 500);
-    loseHealth(12);
-    notify(`✗ Wrong fix! ${drag.data.label} won't fix ${inc.title}.`, 'error');
+    dz.classList.add('bad');setTimeout(()=>dz.classList.remove('bad'),500);
+    const correctFix=FIXES.find(f=>f.id===inc.fix)?.lb||'correct tool';
+    loseHP(12,`${drag.data.lb} won't fix ${inc.ti} — needs ${correctFix}`);
+    notify(`✗ Wrong fix! ${inc.ti} needs ${correctFix}`,'er');
   }
 }
 
-// ── CHAOS ENGINE ────────────────────────────────────────────────
-function triggerChaos() {
-  const events = [
-    () => { loseHealth(5); notify('⚡ Random spike! -5 health', 'warning'); },
-    () => { G.combo = Math.max(1, G.combo - 1); notify('🌩 Chaos reset combo!', 'warning'); updateHUD(); },
-    () => {
-      if (G.state === STATES.K8S && G.k8s.pods.length) {
-        const running = G.k8s.pods.filter(p => p.status === 'running');
-        if (running.length > 0) {
-          const pod = running[Math.floor(Math.random() * running.length)];
-          pod.status = 'crashed'; pod.fixable = true;
-          loseHealth(4); renderK8S();
-          notify(`💥 Pod ${pod.name} crashed!`, 'error');
-        }
+// ── CHAOS ──────────────────────────────────────────────────────────────
+const BOSS_MSG=['DATABASE IS DOWN','SITE IS DOWN','DDOS IN PROGRESS','PAYMENT FAILING','SLA BREACHED','ALL PODS CRASHED'];
+function chaos(){
+  const ev=[
+    ()=>{loseHP(5,'Chaos event: random production spike');notify('⚡ Chaos: production spike!','wa');SFX.warn();},
+    ()=>{G.combo=Math.max(1,G.combo-1);notify('🌩 Chaos: combo broken!','wa');updHUD();},
+    ()=>{
+      if(G.state===ST.K8S){
+        const run=G.k8s.pods.filter(p=>p.st==='run');
+        if(run.length){const p=run[Math.floor(Math.random()*run.length)];p.st='crs';p.fix=true;loseHP(4,`Chaos crashed ${p.nm}`);renderK8S();notify(`💥 Chaos: ${p.nm} crashed!`,'er');}
       }
     },
-    () => { if (G.level >= 3) { document.getElementById('bossAlert').classList.add('active'); setTimeout(() => document.getElementById('bossAlert').classList.remove('active'), 1500); loseHealth(10); notify('🚨 BOSS INCIDENT! -10 health', 'error'); } },
+    ()=>{
+      if(G.level>=2){
+        const msg=BOSS_MSG[Math.floor(Math.random()*BOSS_MSG.length)];
+        document.getElementById('bossT').textContent=`⚠ ${msg} ⚠`;
+        document.getElementById('boss').classList.add('on');SFX.boom();
+        setTimeout(()=>document.getElementById('boss').classList.remove('on'),2200);
+        loseHP(8,'Boss incident!');notify('🚨 BOSS INCIDENT!','er');
+      }
+    },
   ];
-  const e = events[Math.floor(Math.random() * events.length)];
-  e();
+  ev[Math.floor(Math.random()*ev.length)]();
 }
 
-// ── SCORE SCREEN ────────────────────────────────────────────────
-function showScore() {
-  document.getElementById('finalScore').textContent = G.score.toLocaleString();
-  document.getElementById('scoreCI').textContent = G.stageScores.CI.toLocaleString();
-  document.getElementById('scoreCloud').textContent = G.stageScores.CLOUD.toLocaleString();
-  document.getElementById('scoreK8s').textContent = G.stageScores.K8S.toLocaleString();
-  document.getElementById('scoreInc').textContent = G.stageScores.INC.toLocaleString();
-  document.getElementById('scoreCombo').textContent = `x${G.maxCombo}`;
-  document.getElementById('scoreHealth').textContent = `${Math.round(G.health)}%`;
-
-  saveScore();
-  renderLeaderboard();
-  spawnExplosion(window.innerWidth/2, window.innerHeight/2, '#ffe600');
-  setTimeout(() => spawnExplosion(window.innerWidth/2, window.innerHeight/2, '#00ff88'), 200);
-  setTimeout(() => spawnExplosion(window.innerWidth/2, window.innerHeight/2, '#bf5fff'), 400);
+// ── SCORE SCREEN ───────────────────────────────────────────────────────
+function rating(s){
+  if(s>=8000)return{lb:'STAFF ENGINEER',col:'#ffe600'};
+  if(s>=5000)return{lb:'SENIOR ENGINEER',col:'#00ff88'};
+  if(s>=3000)return{lb:'MID-LEVEL SRE',col:'#00f5ff'};
+  if(s>=1500)return{lb:'JUNIOR ENGINEER',col:'#bf5fff'};
+  return{lb:'INTERN',col:'#ff8c00'};
 }
+function showScore(){
+  const r=rating(G.score);
+  document.getElementById('sFinal').textContent=G.score.toLocaleString();
+  document.getElementById('sCI').textContent=G.stageScores.CI.toLocaleString();
+  document.getElementById('sCloud').textContent=G.stageScores.CLOUD.toLocaleString();
+  document.getElementById('sK8s').textContent=G.stageScores.K8S.toLocaleString();
+  document.getElementById('sInc').textContent=G.stageScores.INC.toLocaleString();
+  document.getElementById('sCombo').textContent=`x${G.maxCombo}`;
+  document.getElementById('sHealth').textContent=`${Math.round(G.health)}%`;
+  document.getElementById('sRating').textContent=r.lb;document.getElementById('sRating').style.color=r.col;
+  const tEl=document.getElementById('sTitleEl');
+  if(G.health<=0){tEl.textContent='SYSTEM FAILURE';tEl.style.color='var(--red)';}
+  else{tEl.textContent='MISSION COMPLETE';tEl.style.color='var(--yellow)';}
 
-function saveScore() {
-  try {
-    const lb = JSON.parse(localStorage.getItem('devopsRushLB') || '[]');
-    lb.push({ score: G.score, date: new Date().toLocaleDateString(), health: Math.round(G.health) });
-    lb.sort((a,b) => b.score - a.score);
-    lb.splice(10);
-    localStorage.setItem('devopsRushLB', JSON.stringify(lb));
-  } catch(e) {}
-}
-
-function renderLeaderboard() {
-  try {
-    const lb = JSON.parse(localStorage.getItem('devopsRushLB') || '[]');
-    const el = document.getElementById('leaderboard');
-    if (!lb.length) { el.innerHTML = ''; return; }
-    el.innerHTML = `<div class="lb-title">TOP ENGINEERS — LOCAL LEADERBOARD</div>` +
-      lb.slice(0,8).map((entry, i) => `
-        <div class="lb-row ${entry.score === G.score && i === lb.findIndex(e => e.score === G.score) ? 'highlight' : ''}">
-          <span class="lb-rank">#${i+1}</span>
-          <span class="lb-name">ENGINEER_${(entry.score % 999).toString().padStart(3,'0')}</span>
-          <span class="lb-score">${entry.score.toLocaleString()}</span>
-          <span style="color:var(--text-dim);font-family:var(--font-mono);font-size:10px;margin-left:8px">${entry.date}</span>
-        </div>`).join('');
-  } catch(e) {}
-}
-
-// ── INIT ────────────────────────────────────────────────────────
-function init() {
-  G.raf = requestAnimationFrame(gameLoop);
-
-  document.getElementById('startBtn').addEventListener('click', () => {
-    G.score = 0; G.health = 100; G.combo = 1; G.maxCombo = 1; G.level = 1; G.chaosTimer = 0;
-    G.stageScores = { CI:0, CLOUD:0, K8S:0, INC:0 };
-    updateHUD();
-    transition(STATES.CI, 'CI/CD PIPELINE');
+  // Build debrief
+  const dc=document.getElementById('debContent');dc.innerHTML='';
+  DEBRIEF.forEach(d=>{
+    const div=document.createElement('div');div.className=`dbi ${d.c}`;
+    div.innerHTML=`<div class="dbq">📋 STAGE: ${d.st}</div><div class="dbto">${d.to}</div><div class="dbex">${d.ex}</div><div class="dbtip">${d.tip}</div>`;
+    dc.appendChild(div);
   });
-
-  document.getElementById('restartBtn').addEventListener('click', () => {
-    G.score = 0; G.health = 100; G.combo = 1; G.maxCombo = 1; G.level = 1; G.chaosTimer = 0;
-    G.stageScores = { CI:0, CLOUD:0, K8S:0, INC:0 };
-    updateHUD();
-    transition(STATES.CI, 'CI/CD PIPELINE');
-  });
-
-  // Level up every 90 seconds of play
-  setInterval(() => {
-    if (G.timerActive) { G.level = Math.min(G.level + 1, 10); updateHUD(); notify(`⬆ Level ${G.level}!`, 'info'); }
-  }, 90000);
+  if(G.wrongs.length){
+    const div=document.createElement('div');div.className='dbi re';
+    div.innerHTML=`<div class="dbq">❌ YOUR MISTAKES (${G.wrongs.length})</div><div class="dbex">${G.wrongs.slice(0,5).join('<br>')}</div><div class="dbtip">💡 Review these areas before your next DevOps interview.</div>`;
+    dc.appendChild(div);
+  }
+  saveScore();renderLB();SFX.lvl();
+  expl(window.innerWidth/2,window.innerHeight/2,'#ffe600');
+  setTimeout(()=>expl(window.innerWidth/2,window.innerHeight/2,'#00ff88'),200);
+  setTimeout(()=>expl(window.innerWidth/2,window.innerHeight/2,'#bf5fff'),400);
+}
+function saveScore(){
+  try{
+    const lb=JSON.parse(localStorage.getItem('drLB')||'[]');const r=rating(G.score);
+    lb.push({score:G.score,date:new Date().toLocaleDateString(),h:Math.round(G.health),r:r.lb});
+    lb.sort((a,b)=>b.score-a.score);lb.splice(10);localStorage.setItem('drLB',JSON.stringify(lb));
+  }catch(e){}
+}
+function renderLB(){
+  try{
+    const lb=JSON.parse(localStorage.getItem('drLB')||'[]'),el=document.getElementById('lbWrap');
+    if(!lb.length){el.innerHTML='';return;}
+    el.innerHTML=`<div class="lbt">🏆 LOCAL LEADERBOARD</div>`+lb.slice(0,7).map((e,i)=>`<div class="lbr ${e.score===G.score&&i===lb.findIndex(x=>x.score===G.score)?'hi':''}"><span style="color:var(--dim);width:22px">#${i+1}</span><span style="flex:1;margin:0 7px">${e.r||'ENGINEER'}</span><span style="color:var(--cyan)">${e.score.toLocaleString()}</span></div>`).join('');
+  }catch(e){}
 }
 
-init();
+// ── INIT ───────────────────────────────────────────────────────────────
+function reset(){
+  G.score=0;G.health=100;G.combo=1;G.maxCombo=1;G.level=1;G.chaosT=0;
+  G.stageScores={CI:0,CLOUD:0,K8S:0,INC:0};G.wrongs=[];
+  updHUD();gac();
+  trans(ST.CI,'CI/CD PIPELINE','Stage 1 of 4');
+}
+
+document.getElementById('startBtn').addEventListener('click',reset);
+document.getElementById('restartBtn').addEventListener('click',reset);
+
+// Level up timer
+let pt=0;
+setInterval(()=>{if(G.timerActive){pt+=5;if(pt%90===0&&G.level<10){G.level++;updHUD();SFX.lvl();notify(`⬆ Level ${G.level} — chaos increases!`,'in');}}},5000);
+
+G.raf=requestAnimationFrame(loop);
 </script>
 </body>
 </html>
