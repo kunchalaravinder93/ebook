@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DevOps Interview Simulator</title>
+    <title>Section 4: Architecture Subjective Task</title>
     <style>
         :root {
             --bg: #0d1117; --cell-bg: #161b22; --border: #30363d; --text: #c9d1d9;
@@ -21,14 +21,20 @@
         }
 
         .header { width: 320px; margin-bottom: 12px; }
-        .header h1 { margin: 0 0 5px 0; font-size: 1.4rem; color: #fff; }
-        .meta-badges { display: flex; gap: 6px; }
+        .header h1 { margin: 0 0 5px 0; font-size: 1.3rem; color: #fff; }
+        .meta-badges { display: flex; gap: 6px; justify-content: space-between; align-items: center;}
         .badge { font-size: 0.65rem; font-weight: bold; padding: 3px 6px; border-radius: 4px; background: var(--cell-bg); border: 1px solid var(--border); color: #8b949e;}
         .badge.level { border-color: var(--blue); color: var(--blue); }
-        .badge.concept { border-color: var(--purple); color: var(--purple); }
         
+        /* The New Budget Meter */
+        .budget-display { font-family: monospace; font-size: 1.1rem; color: var(--green-glow); font-weight: bold; background: #010409; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border);}
+        .budget-display.warning { color: var(--yellow); }
+        .budget-display.danger { color: var(--red); animation: shake 0.5s infinite; }
+
+        @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } 100% { transform: translateX(0); } }
+
         .progress-container { width: 320px; height: 6px; background: var(--border); border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
-        .progress-bar { height: 100%; width: 0%; background: var(--blue); transition: width 0.1s linear; }
+        .progress-bar { height: 100%; width: 0%; background: var(--green); transition: width 0.1s linear, background-color 0.2s; }
 
         .grid-container {
             background: #21262d; padding: 8px; border-radius: 8px;
@@ -37,32 +43,26 @@
         .grid { display: grid; grid-template-columns: repeat(var(--grid-cols), 1fr); gap: 8px; position: relative; }
 
         .cell {
-            background: var(--cell-bg); border: 1px solid var(--border); border-radius: 4px;
+            background: var(--cell-bg); border: 1px dashed #484f58; border-radius: 4px;
             position: relative; display: flex; align-items: center; justify-content: center;
             text-align: center; font-size: 0.5rem; box-sizing: border-box;
-            color: #8b949e; font-family: "Courier New", monospace;
+            color: #484f58; font-family: "Courier New", monospace;
         }
 
-        .cell.start, .cell.end, .cell.checkpoint { border-width: 2px; font-weight: bold; color: var(--text); font-family: sans-serif;}
-        .cell.start { border-color: var(--blue); color: var(--blue); }
-        .cell.end { border-color: var(--purple); color: var(--purple); }
+        .cell.start, .cell.end, .cell.checkpoint { border: 2px solid; font-weight: bold; color: var(--text); font-family: sans-serif;}
+        .cell.start { border-color: var(--blue); color: var(--blue); background: rgba(88, 166, 255, 0.1);}
+        .cell.end { border-color: var(--purple); color: var(--purple); background: rgba(188, 140, 255, 0.1);}
         .cell.checkpoint { border-color: var(--yellow); color: var(--yellow); }
-        .cell.checkpoint.cleared { border-color: var(--green-glow); color: var(--green-glow); }
-        .cell.bug { border-color: var(--red); color: var(--red); background: rgba(248, 81, 73, 0.1); border-width: 2px;}
-
-        /* AI Linter Hint Animation */
-        @keyframes pulseHint { 0% { box-shadow: 0 0 0 0 rgba(188, 140, 255, 0.7); border-color: var(--purple); } 70% { box-shadow: 0 0 0 12px rgba(188, 140, 255, 0); border-color: var(--purple); } 100% { box-shadow: 0 0 0 0 rgba(188, 140, 255, 0); border-color: var(--border); } }
-        @keyframes pulseError { 0% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.7); border-color: var(--red); } 70% { box-shadow: 0 0 0 12px rgba(248, 81, 73, 0); border-color: var(--red); } 100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0); border-color: var(--border); } }
-        .cell.hint-good { animation: pulseHint 1.5s infinite; z-index: 4; }
-        .cell.hint-bad { animation: pulseError 1s infinite; z-index: 4; }
+        .cell.checkpoint.cleared { border-color: var(--green-glow); color: var(--green-glow); background: rgba(63, 185, 80, 0.1);}
+        .cell.bug { border-color: var(--red); color: var(--red); background: rgba(248, 81, 73, 0.1); border-width: 2px; border-style: solid;}
 
         .cell span { z-index: 3; pointer-events: none; background: rgba(13, 17, 23, 0.9); padding: 2px 4px; border-radius: 2px; line-height: 1.1; }
 
-        .dot { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: var(--green); border-radius: 50%; transform: translate(-50%, -50%); z-index: 2; opacity: 0.7;}
-        .cell.current .dot { width: 16px; height: 16px; background: var(--green-glow); box-shadow: 0 0 15px var(--green-glow); opacity: 1;}
-        .cell.visited:not(.checkpoint):not(.start):not(.end):not(.bug) { color: var(--green-glow); border-color: rgba(63, 185, 80, 0.3); }
+        .dot { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: var(--blue); border-radius: 50%; transform: translate(-50%, -50%); z-index: 2;}
+        .cell.current .dot { width: 16px; height: 16px; background: var(--blue); box-shadow: 0 0 15px var(--blue);}
+        .cell.visited:not(.checkpoint):not(.start):not(.end):not(.bug) { color: var(--blue); border-style: solid; border-color: rgba(88, 166, 255, 0.4); }
 
-        .line { position: absolute; background: var(--green); z-index: 1; opacity: 0.7;}
+        .line { position: absolute; background: var(--blue); z-index: 1;}
         .line-right { top: calc(50% - 3px); left: 50%; width: calc(100% + 8px); height: 6px; }
         .line-left { top: calc(50% - 3px); right: 50%; width: calc(100% + 8px); height: 6px; }
         .line-down { left: calc(50% - 3px); top: 50%; height: calc(100% + 8px); width: 6px; }
@@ -78,18 +78,16 @@
         .log-success { color: var(--green-glow); font-weight: bold; }
         .log-err { color: var(--red); font-weight: bold; }
         .log-warn { color: var(--yellow); }
-        .log-ai { color: var(--purple); font-style: italic; }
+        .log-cost { color: #8b949e; font-style: italic; }
 
         .controls { display: flex; gap: 8px; margin-top: 10px; width: 320px; }
         button.btn { flex: 1; background: transparent; color: var(--text); border: 1px solid var(--border); padding: 10px 0; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.8rem; }
         button.btn:hover { background: #30363d; }
-        button.btn.primary { background: rgba(188, 140, 255, 0.15); border-color: var(--purple); color: #e1d1ff; }
-        button.btn.primary:hover { background: rgba(188, 140, 255, 0.3); }
+        button.btn.primary { background: #0052cc; border: none; color: #fff; }
+        button.btn.primary:hover { background: #0043a6; }
 
         /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(1, 4, 9, 0.9); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(3px); }
-        
-        /* Interview Card Style */
         .interview-card { background: var(--interview-bg); color: #24292f; border-radius: 6px; padding: 25px; max-width: 400px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.8); font-family: -apple-system, sans-serif; user-select: text;}
         .interview-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #d0d7de; padding-bottom: 10px; margin-bottom: 15px;}
         .interview-title { font-weight: bold; color: #0969da; font-size: 1rem;}
@@ -100,7 +98,6 @@
         .interview-card ul { padding-left: 20px; margin: 0;}
         .interview-card li { font-size: 0.9rem; line-height: 1.5; margin: 0 0 8px 0; color: #24292f;}
         button.btn-start { background: #2da44e; color: #fff; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; font-size: 1rem;}
-        button.btn-start:hover { background: #2c974b; }
         
         .report-content { background: var(--cell-bg); border: 1px solid var(--border); border-radius: 8px; padding: 25px; max-width: 450px; width: 100%; max-height: 85vh; overflow-y: auto;}
         .report-content h2 { color: var(--green-glow); margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
@@ -112,10 +109,10 @@
 <body>
 
     <div class="header">
-        <h1>DevOps Interview</h1>
+        <h1>Subjective Task</h1>
         <div class="meta-badges">
-            <span class="badge level" id="badge-level">Stage 1</span>
-            <span class="badge concept" id="badge-concept">Concept</span>
+            <span class="badge level" id="badge-level">Section 4</span>
+            <span class="budget-display" id="budget-display">Cost: $0 / $400</span>
         </div>
     </div>
 
@@ -124,147 +121,68 @@
     <div class="terminal" id="terminal"></div>
 
     <div class="controls">
-        <button class="btn" onclick="startLevelBriefing()">Restart Scenario</button>
-        <button class="btn primary" onclick="runLinter()">🤖 Ask Interviewer</button>
+        <button class="btn" onclick="startLevelBriefing()">Read Requirements</button>
+        <button class="btn primary" onclick="submitArchitecture()">Submit Architecture</button>
     </div>
 
     <div class="modal-overlay" id="briefing-modal"><div class="interview-card" id="interview-content"></div></div>
     <div class="modal-overlay" id="report-modal"><div class="report-content" id="report-body"></div></div>
 
     <script>
-        const genericNodes = [ "vpc", "subnet", "iam_role", "sg", "igw", "nat", "nacl" ];
+        // No more generic code files. Empty space is just empty space (networking).
+        const genericNodes = [ "Subnet", "VPC<br>Route", "Data<br>Transfer", "Hop" ];
 
-        // --- INTERVIEW SCENARIOS ---
         const levels = [
             {
-                cols: 4, rows: 4, bugCount: 1,
-                concept: "CI/CD & Code Quality",
-                endPos: {x: 3, y: 3},
-                checkpoints: ["2,0", "1,1", "0,3", "3,2"],
-                names: ["[1] Lint Code", "[2] Unit Tests", "[3] SonarQube", "[4] Build Artifact"],
-                solution: ["0,0", "1,0", "2,0", "3,0", "3,1", "2,1", "1,1", "0,1", "0,2", "0,3", "1,3", "2,3", "2,2", "3,2", "3,3"],
-                data: {
-                    "0,0": { label: "Git<br>Push", type: "start" },
-                    "1,2": { label: "Skip<br>Tests", type: "bug" }, 
-                    "2,0": { label: "[1] Lint<br>Code", type: "checkpoint" },
-                    "1,1": { label: "[2] Unit<br>Tests", type: "checkpoint" },
-                    "0,3": { label: "[3] Sonar<br>Qube", type: "checkpoint" },
-                    "3,2": { label: "[4] Build<br>Docker", type: "checkpoint" },
-                    "3,3": { label: "ECR<br>Repo", type: "end" }
-                },
-                logs: {
-                    "2,0": "[Interviewer] Good. Linting catches syntax errors early.",
-                    "1,1": "[Interviewer] Running Jest tests... Passed.",
-                    "0,3": "[Interviewer] Excellent. SonarQube will ensure code quality standards.",
-                    "3,2": "[Interviewer] Building artifact now that tests passed.",
-                    "1,2": "[Interviewer] Wait, you skipped the test phase? Production is down. Interview Failed.",
-                    "default": "> Drawing architectural path..."
-                },
-                briefing: {
-                    role: "Junior DevOps", title: "Scenario 1: The Broken Build",
-                    quote: "A developer recently merged code that broke production because no tests were run. How would you design a pipeline to prevent this?",
-                    reqs: [
-                        "Include all required infrastructure blocks.",
-                        "Enforce strict checking: Lint -> Test -> SonarQube -> Build.",
-                        "Ensure developers cannot <strong>Skip Tests</strong>."
-                    ]
-                },
-                report: {
-                    title: "Answer Accepted",
-                    desc: "You correctly explained that code must pass static analysis and unit testing before an artifact is ever generated."
-                }
-            },
-            {
-                cols: 5, rows: 5, bugCount: 1,
+                cols: 4, rows: 4, 
+                maxBudget: 450, // Player fails if cost exceeds this
+                baseCost: 50,   // Cost per standard empty tile crossed
                 concept: "AWS High Availability",
-                endPos: {x: 1, y: 2}, 
-                checkpoints: ["4,0", "0,4", "3,1", "2,3"],
-                names: ["[1] Route 53", "[2] ALB", "[3] Auto Scaling", "[4] Multi-AZ RDS"],
-                solution: ["0,0", "1,0", "2,0", "3,0", "4,0", "4,1", "4,2", "4,3", "4,4", "3,4", "2,4", "1,4", "0,4", "0,3", "0,2", "0,1", "1,1", "2,1", "3,1", "3,2", "3,3", "2,3", "1,3", "1,2"],
+                endPos: {x: 3, y: 3},
+                checkpoints: ["1,0", "2,1", "1,2"],
+                names: ["[1] WAF", "[2] ALB", "[3] Auto Scaling"],
                 data: {
-                    "0,0": { label: "User<br>Traffic", type: "start" },
-                    "2,2": { label: "Single<br>EC2", type: "bug" }, 
-                    "4,0": { label: "[1] Route<br>53", type: "checkpoint" },
-                    "0,4": { label: "[2] App Load<br>Balancer", type: "checkpoint" },
-                    "3,1": { label: "[3] Auto<br>Scaling", type: "checkpoint" },
-                    "2,3": { label: "[4] Multi-AZ<br>RDS", type: "checkpoint" },
-                    "1,2": { label: "Highly<br>Available", type: "end" }
+                    "0,0": { label: "Internet<br>Traffic", type: "start" },
+                    "1,0": { label: "[1] AWS<br>WAF", type: "checkpoint" },
+                    "2,1": { label: "[2] App Load<br>Balancer", type: "checkpoint" },
+                    "1,2": { label: "[3] Auto<br>Scaling", type: "checkpoint" },
+                    "3,3": { label: "Multi-AZ<br>RDS", type: "end" },
+                    
+                    "0,2": { label: "Public<br>EC2", type: "bug" }, // Bad architecture
+                    "3,0": { label: "NAT<br>Gateway", type: "bug" }  // Expensive/wrong tool for inbound
                 },
                 logs: {
-                    "4,0": "[Interviewer] Route53 DNS resolves. Good.",
-                    "0,4": "[Interviewer] ALB is distributing traffic across AZs. Solid choice.",
-                    "3,1": "[Interviewer] ASG handles traffic spikes automatically. Nice.",
-                    "2,3": "[Interviewer] Multi-AZ RDS ensures database failover. Perfect.",
-                    "2,2": "[Interviewer] You routed traffic to a single EC2? It crashed. We have an outage.",
-                    "default": "> Configuring AWS resource..."
+                    "1,0": "[Architecture] WAF attached. Malicious traffic filtered.",
+                    "2,1": "[Architecture] ALB Provisioned. Traffic distributing across AZs.",
+                    "1,2": "[Architecture] ASG attached to Target Group. Compute will scale.",
+                    "0,2": "[Security Fault] You routed directly to a Public EC2 instance! Failed.",
+                    "3,0": "[Cost Fault] NAT Gateway is for outbound traffic. You wasted $32/mo. Failed.",
+                    "default": "> Network route created... +$50 Data Transfer Cost."
                 },
                 briefing: {
-                    role: "Cloud Engineer", title: "Scenario 2: The Black Friday Crash",
-                    quote: "Our e-commerce app runs on a single EC2 instance and crashes during traffic spikes. How do we make it Highly Available in AWS?",
+                    role: "Architect", title: "Scenario: Secure Web App",
+                    quote: "Design a secure, highly available path from the public internet to our secure database. Do not overspend.",
                     reqs: [
-                        "Map the full VPC architecture.",
-                        "Route traffic correctly: DNS -> Balancer -> Scaling Group -> Database.",
-                        "Avoid using a <strong>Single EC2</strong> instance bottleneck."
+                        "<strong>Route efficiently.</strong> Do NOT fill the whole board. Every empty square you cross costs $50 in data transfer.",
+                        "Filter traffic with a WAF, balance it with an ALB, and ensure the compute layer scales (ASG).",
+                        "Avoid exposing instances directly to the internet (Public EC2)."
                     ]
                 },
                 report: {
-                    title: "Answer Accepted",
-                    desc: "You properly architected a classic 3-tier AWS application. Traffic flows through Route53 to an ALB, scaling out via ASG, backed by a resilient Multi-AZ RDS."
-                }
-            },
-            {
-                cols: 5, rows: 5, bugCount: 1,
-                concept: "Container Security (DevSecOps)",
-                endPos: {x: 2, y: 1}, // Adjusted end point for a new math solution
-                checkpoints: ["4,0", "0,4", "4,4", "2,3"],
-                names: ["[1] ECR Push", "[2] Trivy Scan", "[3] K8s Manifests", "[4] ArgoCD Sync"],
-                // Custom path for Stage 3 that avoids bug at 2,2 and ends at 2,1
-                solution: ["0,0", "1,0", "2,0", "3,0", "4,0", "4,1", "4,2", "4,3", "4,4", "3,4", "2,4", "1,4", "0,4", "0,3", "0,2", "0,1", "1,1", "2,1", "3,1", "3,2", "3,3", "2,3", "1,3", "1,2", "2,2" /* Wait, this is invalid, need to recalculate */],
-                // Let's use the proven Level 2 spiral, just change the end node name to Kubernetes
-                solution: ["0,0", "1,0", "2,0", "3,0", "4,0", "4,1", "4,2", "4,3", "4,4", "3,4", "2,4", "1,4", "0,4", "0,3", "0,2", "0,1", "1,1", "2,1", "3,1", "3,2", "3,3", "2,3", "1,3", "1,2"],
-                data: {
-                    "0,0": { label: "Built<br>Image", type: "start" },
-                    "2,2": { label: "Tag:<br>Latest", type: "bug" }, 
-                    "4,0": { label: "[1] ECR<br>Push", type: "checkpoint" },
-                    "0,4": { label: "[2] Trivy<br>Scan", type: "checkpoint" },
-                    "3,1": { label: "[3] Signed<br>Manifest", type: "checkpoint" },
-                    "2,3": { label: "[4] ArgoCD<br>Sync", type: "checkpoint" },
-                    "1,2": { label: "EKS<br>Cluster", type: "end" }
-                },
-                logs: {
-                    "4,0": "[Interviewer] Pushing to private ECR. Secure.",
-                    "0,4": "[Interviewer] Trivy confirms 0 Critical CVEs in the image.",
-                    "3,1": "[Interviewer] K8s manifests are linted and signed.",
-                    "2,3": "[Interviewer] ArgoCD (GitOps) automatically syncs to EKS.",
-                    "2,2": "[Interviewer] You used the 'latest' tag? We have no version control now. Failed.",
-                    "default": "> Provisioning node..."
-                },
-                briefing: {
-                    role: "DevSecOps", title: "Scenario 3: Secure EKS Deployment",
-                    quote: "We need to deploy a new microservice to Kubernetes (EKS), but we've had issues with vulnerable images and untracked changes.",
-                    reqs: [
-                        "Include all deployment nodes.",
-                        "Push to ECR -> Scan Image -> Verify Manifests -> Deploy via GitOps (ArgoCD).",
-                        "Never use the unpredictable <strong>Tag: Latest</strong>."
-                    ]
-                },
-                report: {
-                    title: "Answer Accepted",
-                    desc: "Excellent GitOps approach. By scanning images before deployment and using ArgoCD to sync manifests, you ensured a secure, immutable deployment to Kubernetes."
+                    title: "Architecture Approved",
+                    desc: "You successfully designed a direct, secure, and cost-effective AWS architecture. You avoided the bloated costs of meandering network routes and skipped the anti-patterns."
                 }
             }
         ];
 
         let currentLevel = 0, path = [], visited = new Set(), cells = {}, isGameOver = false, isDragging = false, clearedCheckpoints = [], levelData;
-        const gridEl = document.getElementById('grid'), terminalEl = document.getElementById('terminal'), progressEl = document.getElementById('progress'), modals = { briefing: document.getElementById('briefing-modal'), report: document.getElementById('report-modal') };
+        let currentCost = 0;
+        const gridEl = document.getElementById('grid'), terminalEl = document.getElementById('terminal'), progressEl = document.getElementById('progress'), budgetDisplay = document.getElementById('budget-display'), modals = { briefing: document.getElementById('briefing-modal'), report: document.getElementById('report-modal') };
 
         function startLevelBriefing() {
             levelData = levels[currentLevel];
             isGameOver = true;
-            document.getElementById('badge-level').innerText = `Stage ${currentLevel + 1}`;
-            document.getElementById('badge-concept').innerText = levelData.concept;
-            document.documentElement.style.setProperty('--grid-cols', levelData.cols);
-
+            
             let reqsHtml = ""; levelData.briefing.reqs.forEach(r => reqsHtml += `<li>${r}</li>`);
             document.getElementById('interview-content').innerHTML = `
                 <div class="interview-header"><span class="interview-title">${levelData.briefing.title}</span><span class="interview-role">${levelData.briefing.role}</span></div>
@@ -278,6 +196,8 @@
         function initLevel() {
             levelData = levels[currentLevel]; closeAllModals();
             gridEl.innerHTML = ''; terminalEl.innerHTML = ''; cells = {}; path = []; visited.clear(); clearedCheckpoints = []; isGameOver = false; 
+            currentCost = 0; updateCostDisplay();
+            
             const cellSize = levelData.cols === 5 ? '56px' : '70px'; let fileIndex = 0;
 
             for (let y = 0; y < levelData.rows; y++) {
@@ -292,45 +212,32 @@
                     gridEl.appendChild(cell); cells[pos] = cell;
                 }
             }
-            logMsg(`[Interviewer] Let's see your architectural design.`, "log-sys");
-            updateProgress(); makeMove(0, 0, true);
-        }
-
-        function runLinter() {
-            if (isGameOver) return;
-            Object.values(cells).forEach(c => { c.classList.remove('hint-good'); c.classList.remove('hint-bad'); });
-            
-            let onTrack = true;
-            for(let i=0; i<path.length; i++) {
-                if(`${path[i].x},${path[i].y}` !== levelData.solution[i]) { onTrack = false; break; }
-            }
-            
-            if(onTrack) {
-                if(path.length < levelData.solution.length) {
-                    const nextPos = levelData.solution[path.length];
-                    cells[nextPos].classList.add('hint-good');
-                    logMsg(`🤖 [Hint] Interviewer is looking for you to provision this next.`, "log-ai");
-                }
-            } else {
-                const currentPos = `${path[path.length-1].x},${path[path.length-1].y}`;
-                cells[currentPos].classList.add('hint-bad');
-                logMsg(`🤖 [Warning] You are drawing a bad architecture. Undo your last move.`, "log-err");
-            }
+            logMsg(`[Interviewer] Let's see your architectural design. Keep costs under $${levelData.maxBudget}.`, "log-sys");
+            makeMove(0, 0, true);
         }
 
         function triggerHaptic(type) { if (navigator.vibrate) navigator.vibrate({tick:10, success:[30,50,30], error:[50,50,50,50]}[type]); }
+        
         function logMsg(msg, className = "") {
             const line = document.createElement('div'); line.className = `log-line ${className}`;
-            line.innerText = msg.startsWith('>') || msg.startsWith('🤖') || msg.startsWith('[') ? msg : `> ${msg}`;
-            terminalEl.appendChild(line); terminalEl.scrollTop = terminalEl.scrollHeight;
+            line.innerText = msg; terminalEl.appendChild(line); terminalEl.scrollTop = terminalEl.scrollHeight;
         }
 
-        function updateProgress() {
-            const requiredNodes = (levelData.cols * levelData.rows) - levelData.bugCount;
-            const pct = (path.length / requiredNodes) * 100;
-            progressEl.style.width = `${pct}%`;
-            if (isGameOver) return;
-            progressEl.style.backgroundColor = ["var(--blue)", "var(--yellow)", "var(--green-glow)"][pct < 40 ? 0 : (pct < 80 ? 1 : 2)];
+        function updateCostDisplay() {
+            budgetDisplay.innerText = `Cost: $${currentCost} / $${levelData.maxBudget}`;
+            const pct = (currentCost / levelData.maxBudget) * 100;
+            progressEl.style.width = `${Math.min(pct, 100)}%`;
+            
+            budgetDisplay.className = "budget-display";
+            progressEl.style.backgroundColor = "var(--green)";
+            
+            if (pct >= 100) {
+                budgetDisplay.classList.add('danger');
+                progressEl.style.backgroundColor = "var(--red)";
+            } else if (pct >= 75) {
+                budgetDisplay.classList.add('warning');
+                progressEl.style.backgroundColor = "var(--yellow)";
+            }
         }
 
         gridEl.addEventListener('mousedown', (e) => { if(!isGameOver) { isDragging = true; processInput(e); }});
@@ -360,9 +267,17 @@
         }
 
         function makeMove(x, y, isFirst = false) {
-            Object.values(cells).forEach(c => { c.classList.remove('hint-good'); c.classList.remove('hint-bad'); }); 
             const pos = `${x},${y}`; const currentCell = cells[pos];
             path.push({x, y}); visited.add(pos); currentCell.classList.add('visited');
+
+            // Apply Costs
+            if (!isFirst) {
+                const cellMeta = levelData.data[pos];
+                // Only charge for crossing empty routing tiles, not for hitting required services
+                if (!cellMeta || (cellMeta.type !== 'checkpoint' && cellMeta.type !== 'end' && cellMeta.type !== 'bug')) {
+                    currentCost += levelData.baseCost;
+                }
+            }
 
             if (!isFirst) {
                 const prevCoord = path[path.length - 2], prevCell = cells[`${prevCoord.x},${prevCoord.y}`];
@@ -375,29 +290,46 @@
             const dot = document.createElement('div'); dot.className = 'dot'; currentCell.appendChild(dot);
             
             const cellMeta = levelData.data[pos];
-            const logStr = (levelData.logs[pos]) ? levelData.logs[pos] : (cellMeta && cellMeta.type === 'start' ? "Scenario starting..." : "> Architecture mapped.");
-            logMsg(logStr, levelData.logs[pos] ? "" : "log-code");
+            const logStr = (levelData.logs[pos]) ? levelData.logs[pos] : (cellMeta && cellMeta.type === 'start' ? "Scenario starting..." : "> Network route created... +$50 Data Transfer Cost.");
+            logMsg(logStr, levelData.logs[pos] ? "" : "log-cost");
+
+            updateCostDisplay();
+
+            // Fail Conditions
+            if (currentCost > levelData.maxBudget) {
+                logMsg(`[Interviewer] Your architecture is too inefficient. You exceeded the AWS budget. Failed.`, "log-err");
+                isGameOver = true; isDragging = false; triggerHaptic('error'); return;
+            }
 
             if (cellMeta && cellMeta.type === 'bug') {
                 logMsg(`[Interviewer] That won't work in production. Interview Failed.`, "log-err");
-                progressEl.style.backgroundColor = "var(--red)"; isGameOver = true; isDragging = false; triggerHaptic('error'); return;
+                isGameOver = true; isDragging = false; triggerHaptic('error'); return;
             }
 
             if (cellMeta && cellMeta.type === 'checkpoint') {
                 clearedCheckpoints.push(pos); currentCell.classList.add('cleared'); triggerHaptic('success');
             }
 
-            updateCurrentHighlight(); updateProgress(); checkWinCondition(x, y);
+            updateCurrentHighlight();
+            
+            // Auto-check win if they hit the end
+            if (x === levelData.endPos.x && y === levelData.endPos.y) submitArchitecture();
         }
 
         function undoMove() {
-            Object.values(cells).forEach(c => { c.classList.remove('hint-good'); c.classList.remove('hint-bad'); });
             const last = path.pop(), pos = `${last.x},${last.y}`; visited.delete(pos); cells[pos].classList.remove('visited');
             const dot = cells[pos].querySelector('.dot'); if(dot) dot.remove();
-            if (levelData.data[pos] && levelData.data[pos].type === 'checkpoint') { cells[pos].classList.remove('cleared'); clearedCheckpoints.pop(); }
+            
+            const cellMeta = levelData.data[pos];
+            if (cellMeta && cellMeta.type === 'checkpoint') { cells[pos].classList.remove('cleared'); clearedCheckpoints.pop(); }
+            if (!cellMeta || (cellMeta.type !== 'checkpoint' && cellMeta.type !== 'end' && cellMeta.type !== 'bug')) {
+                currentCost -= levelData.baseCost;
+            }
+
             const prevCell = cells[`${path[path.length - 1].x},${path[path.length - 1].y}`];
             const lines = prevCell.querySelectorAll('.line'); if (lines.length > 0) lines[lines.length - 1].remove();
-            triggerHaptic('tick'); updateCurrentHighlight(); updateProgress();
+            triggerHaptic('tick'); updateCurrentHighlight(); updateCostDisplay();
+            isGameOver = false; // Allow recovery if they went over budget
         }
 
         function updateCurrentHighlight() {
@@ -405,32 +337,32 @@
             if (path.length > 0) cells[`${path[path.length - 1].x},${path[path.length - 1].y}`].classList.add('current');
         }
 
-        function checkWinCondition(x, y) {
-            if (x === levelData.endPos.x && y === levelData.endPos.y) { 
-                isGameOver = true; isDragging = false;
-                const requiredNodes = (levelData.cols * levelData.rows) - levelData.bugCount;
-                if (path.length !== requiredNodes) {
-                    progressEl.style.backgroundColor = "var(--red)";
-                    logMsg("[Interviewer] Your architecture is missing core components. Failed.", "log-err"); triggerHaptic('error'); return;
-                }
-                if (JSON.stringify(clearedCheckpoints) === JSON.stringify(levelData.checkpoints)) {
-                    progressEl.style.backgroundColor = "var(--green-glow)";
-                    logMsg("[Interviewer] Excellent design. You're hired.", "log-success"); triggerHaptic('success'); showReport();
-                } else {
-                    progressEl.style.backgroundColor = "var(--red)";
-                    logMsg("[Interviewer] You implemented the services in the wrong order. Failed.", "log-err"); triggerHaptic('error');
-                }
+        // The New Win Condition Logic
+        function submitArchitecture() {
+            const current = path[path.length - 1];
+            if (current.x !== levelData.endPos.x || current.y !== levelData.endPos.y) {
+                logMsg("[Interviewer] You haven't connected to the final destination (RDS) yet.", "log-err");
+                triggerHaptic('error'); return;
+            }
+
+            isGameOver = true; isDragging = false;
+            
+            if (JSON.stringify(clearedCheckpoints) === JSON.stringify(levelData.checkpoints)) {
+                logMsg("[Interviewer] Excellent design. Direct, secure, and under budget.", "log-success"); 
+                triggerHaptic('success'); showReport();
+            } else {
+                logMsg("[Interviewer] You missed core security/scaling requirements or did them out of order.", "log-err"); 
+                triggerHaptic('error');
             }
         }
 
         function showReport() {
             document.getElementById('report-body').innerHTML = `
-                <h2>✅ Interview Passed</h2><h3>${levelData.report.title}</h3><p>${levelData.report.desc}</p>
-                ${currentLevel === levels.length - 1 ? `<button class="btn-rpt" onclick="closeAllModals()">Finish Interview Loop</button>` : `<button class="btn-rpt" onclick="nextLevel()">Next Technical Question</button>`}
+                <h2>✅ Section 4 Passed</h2><h3>${levelData.report.title}</h3><p>${levelData.report.desc}</p>
+                <button class="btn-rpt" onclick="closeAllModals()">Finish Exam</button>
             `;
             setTimeout(() => { modals.report.style.display = 'flex'; }, 800);
         }
-        function nextLevel() { currentLevel++; startLevelBriefing(); }
         function closeAllModals() { modals.briefing.style.display = 'none'; modals.report.style.display = 'none'; }
         
         startLevelBriefing();
