@@ -1,476 +1,1014 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>DevOps Rush V4</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEVOPS RUSH</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&amp;family=VT323&amp;display=swap');
 
-<style>
+        :root {
+            --neon-cyan: #00f7ff;
+            --neon-green: #00ff9d;
+            --neon-red: #ff0066;
+            --neon-purple: #9d00ff;
+        }
 
-body{
-margin:0;
-font-family:Segoe UI;
-background:#0f172a;
-color:white;
-overflow:hidden;
-}
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: #05080f;
+            color: #fff;
+            font-family: 'VT323', monospace;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            image-rendering: pixelated;
+        }
 
-#hud{
-position:fixed;
-top:0;
-width:100%;
-height:60px;
-background:#020617;
-display:flex;
-justify-content:space-around;
-align-items:center;
-border-bottom:2px solid #334155;
-z-index:10;
-}
+        #hud {
+            width: 1200px;
+            max-width: 95vw;
+            height: 80px;
+            background: rgba(10, 15, 35, 0.95);
+            border: 3px solid var(--neon-cyan);
+            border-radius: 0;
+            box-shadow: 0 0 30px var(--neon-cyan);
+            display: flex;
+            align-items: center;
+            padding: 0 30px;
+            font-size: 22px;
+            gap: 40px;
+            z-index: 100;
+            position: relative;
+        }
 
-#game{
-position:absolute;
-top:60px;
-bottom:0;
-width:100%;
-overflow:hidden;
-}
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 120px;
+        }
 
-.zone{
-border:2px dashed #64748b;
-border-radius:10px;
-text-align:center;
-padding:10px;
-position:absolute;
-}
+        .hud-label {
+            font-size: 14px;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
 
-.item{
-background:#1e293b;
-border-radius:8px;
-padding:10px;
-position:absolute;
-cursor:pointer;
-touch-action:none;
-box-shadow:0 4px 12px rgba(0,0,0,0.6);
-}
+        .hud-value {
+            font-size: 28px;
+            font-weight: 700;
+            text-shadow: 0 0 15px currentColor;
+        }
 
-.good{background:#065f46;}
-.bad{background:#7f1d1d;}
+        #health-bar {
+            width: 220px;
+            height: 18px;
+            background: #111;
+            border: 2px solid var(--neon-green);
+            position: relative;
+            overflow: hidden;
+        }
 
-.particle{
-position:absolute;
-width:6px;
-height:6px;
-background:#22c55e;
-border-radius:50%;
-pointer-events:none;
-}
+        #health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff9d, #00f7ff);
+            transition: width 0.3s linear;
+            box-shadow: 0 0 20px #00ff9d;
+        }
 
-.node{
-position:absolute;
-width:80px;
-height:40px;
-background:#1e293b;
-border-radius:6px;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:12px;
-}
+        #canvas {
+            border: 4px solid var(--neon-cyan);
+            box-shadow: 0 0 60px var(--neon-cyan),
+                        0 0 120px rgba(0, 247, 255, 0.3);
+            image-rendering: crisp-edges;
+            background: #0a0f1f;
+        }
 
-.line{
-position:absolute;
-height:2px;
-background:#64748b;
-}
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(5, 8, 15, 0.97);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            font-family: 'Orbitron', sans-serif;
+        }
 
-.center{
-text-align:center;
-padding-top:120px;
-}
+        .overlay.show { display: flex; }
 
-button{
-padding:12px 24px;
-background:#3b82f6;
-border:none;
-border-radius:6px;
-color:white;
-font-size:16px;
-cursor:pointer;
-}
+        #title {
+            font-size: 92px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00f7ff, #9d00ff, #00ff9d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 80px #00f7ff;
+            margin-bottom: 20px;
+            letter-spacing: 12px;
+        }
 
-</style>
+        .btn {
+            margin-top: 40px;
+            padding: 20px 60px;
+            font-size: 32px;
+            background: transparent;
+            color: var(--neon-green);
+            border: 4px solid var(--neon-green);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            box-shadow: 0 0 30px var(--neon-green);
+        }
+
+        .btn:hover {
+            background: var(--neon-green);
+            color: #000;
+            box-shadow: 0 0 60px var(--neon-green);
+            transform: scale(1.05);
+        }
+
+        #leaderboard {
+            margin-top: 30px;
+            width: 500px;
+            background: rgba(10,15,35,0.8);
+            border: 3px solid var(--neon-purple);
+            padding: 20px;
+        }
+
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 20px;
+            border-bottom: 1px solid #333;
+            font-size: 24px;
+        }
+
+        .alert {
+            position: absolute;
+            top: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 40px;
+            background: rgba(255, 0, 102, 0.9);
+            color: white;
+            font-size: 28px;
+            border: 4px solid #fff;
+            box-shadow: 0 0 40px #ff0066;
+            animation: flash 0.8s infinite;
+            display: none;
+            z-index: 300;
+            text-transform: uppercase;
+        }
+
+        @keyframes flash {
+            50% { opacity: 0.4; }
+        }
+
+        .terminal {
+            font-family: 'VT323', monospace;
+            color: #00ff9d;
+            text-shadow: 0 0 10px #00ff9d;
+        }
+    </style>
 </head>
-
 <body>
-
-<div id="hud">
-<div>Stage: <span id="stage"></span></div>
-<div>Score: <span id="score"></span></div>
-<div>Health: <span id="health"></span></div>
-<div>Time: <span id="time"></span></div>
-<div>Combo: <span id="combo"></span></div>
-</div>
-
-<div id="game"></div>
-
-<script>
-
-const State={
-INTRO:"INTRO",
-CI:"CI_PIPELINE",
-ARCH:"ARCHITECTURE",
-K8S:"KUBERNETES",
-INCIDENT:"INCIDENT",
-END:"END"
-}
-
-let state=State.INTRO
-let score=0
-let combo=0
-let health=100
-let timer=40
-let difficulty=1
-let drag=null
-
-const game=document.getElementById("game")
-
-const stageEl=document.getElementById("stage")
-const scoreEl=document.getElementById("score")
-const healthEl=document.getElementById("health")
-const timeEl=document.getElementById("time")
-const comboEl=document.getElementById("combo")
-
-function hud(){
-stageEl.innerText=state
-scoreEl.innerText=score
-healthEl.innerText=health
-timeEl.innerText=timer
-comboEl.innerText=combo
-}
-
-function clearGame(){
-game.innerHTML=""
-}
-
-function startTimer(){
-
-timer=40
-
-let t=setInterval(()=>{
-
-timer--
-hud()
-
-if(timer<=0){
-clearInterval(t)
-nextStage()
-}
-
-},1000)
-
-}
-
-function nextStage(){
-
-combo=0
-difficulty++
-
-if(state===State.CI){
-state=State.ARCH
-archGame()
-return
-}
-
-if(state===State.ARCH){
-state=State.K8S
-k8sGame()
-return
-}
-
-if(state===State.K8S){
-state=State.INCIDENT
-incidentGame()
-return
-}
-
-if(state===State.INCIDENT){
-state=State.END
-endGame()
-}
-
-}
-
-function intro(){
-
-clearGame()
-
-let div=document.createElement("div")
-div.className="center"
-
-div.innerHTML=`
-<h1>🚀 DevOps Rush V4</h1>
-<p>Cloud Chaos Simulator</p>
-<button onclick="startGame()">Start</button>
-`
-
-game.appendChild(div)
-
-}
-
-function startGame(){
-
-score=0
-health=100
-combo=0
-difficulty=1
-
-state=State.CI
-
-ciGame()
-
-}
-
-function ciGame(){
-
-clearGame()
-hud()
-startTimer()
-
-let pipeline=["Git","Build","Test","Docker","Registry","Deploy"]
-
-pipeline.forEach((p,i)=>{
-
-let z=document.createElement("div")
-z.className="zone"
-z.innerText=p
-z.dataset.name=p
-z.style.left=(i*14+5)+"%"
-z.style.top="40%"
-z.style.width="12%"
-z.style.height="100px"
-
-game.appendChild(z)
-
-})
-
-pipeline.sort(()=>Math.random()-0.5)
-
-pipeline.forEach(p=>{
-
-let el=document.createElement("div")
-el.className="item"
-el.innerText=p
-el.style.left=(Math.random()*600)+"px"
-el.style.top=(100+Math.random()*300)+"px"
-enableDrag(el)
-
-game.appendChild(el)
-
-})
-
-}
-
-function archGame(){
-
-clearGame()
-hud()
-startTimer()
-
-createNode("Internet",50,40)
-createNode("CloudFront",200,100)
-createNode("LoadBalancer",350,160)
-createNode("K8sCluster",500,220)
-createNode("Database",650,280)
-
-drawLine(90,60,210,110)
-drawLine(240,120,360,170)
-drawLine(390,180,510,230)
-drawLine(540,240,660,290)
-
-}
-
-function createNode(name,x,y){
-
-let n=document.createElement("div")
-n.className="node"
-n.innerText=name
-n.style.left=x+"px"
-n.style.top=y+"px"
-
-game.appendChild(n)
-
-}
-
-function drawLine(x1,y1,x2,y2){
-
-let l=document.createElement("div")
-l.className="line"
-
-l.style.left=x1+"px"
-l.style.top=y1+"px"
-l.style.width=Math.hypot(x2-x1,y2-y1)+"px"
-l.style.transform="rotate("+Math.atan2(y2-y1,x2-x1)+"rad)"
-
-game.appendChild(l)
-
-}
-
-function k8sGame(){
-
-clearGame()
-hud()
-startTimer()
-
-for(let i=0;i<6;i++){
-
-let pod=document.createElement("div")
-pod.className="item good"
-pod.innerText="Pod"
-pod.style.left=(100+i*120)+"px"
-pod.style.top="200px"
-
-game.appendChild(pod)
-
-}
-
-}
-
-function incidentGame(){
-
-clearGame()
-hud()
-startTimer()
-
-spawnIncident()
-
-setInterval(spawnIncident,2000/difficulty)
-
-}
-
-function spawnIncident(){
-
-if(state!==State.INCIDENT) return
-
-let data=[
-["CPU Spike","Scale"],
-["Pod Crash","Restart"],
-["Disk Full","Cleanup"],
-["Latency","Cache"],
-["Memory Leak","Redeploy"],
-["DDoS","EnableWAF"]
-]
-
-let i=data[Math.floor(Math.random()*data.length)]
-
-let alert=document.createElement("div")
-alert.className="item bad"
-alert.innerText=i[0]
-alert.dataset.fix=i[1]
-
-alert.style.left=(Math.random()*window.innerWidth)+"px"
-alert.style.top=(100+Math.random()*200)+"px"
-
-game.appendChild(alert)
-
-let fix=document.createElement("div")
-fix.className="item good"
-fix.innerText=i[1]
-
-fix.style.left=(Math.random()*window.innerWidth)+"px"
-fix.style.top=(300+Math.random()*200)+"px"
-
-enableDrag(fix)
-
-game.appendChild(fix)
-
-}
-
-function enableDrag(el){
-
-el.addEventListener("pointerdown",()=>drag=el)
-
-window.addEventListener("pointermove",e=>{
-
-if(!drag)return
-
-drag.style.left=e.clientX-40+"px"
-drag.style.top=e.clientY-20+"px"
-
-})
-
-window.addEventListener("pointerup",()=>{
-
-if(!drag)return
-
-checkDrop(drag)
-drag=null
-
-})
-
-}
-
-function checkDrop(el){
-
-let alerts=document.querySelectorAll(".bad")
-
-alerts.forEach(a=>{
-
-let r=a.getBoundingClientRect()
-let e=el.getBoundingClientRect()
-
-if(e.left<r.right && e.right>r.left && e.top<r.bottom && e.bottom>r.top){
-
-if(el.innerText===a.dataset.fix){
-
-score+=20
-combo++
-
-a.remove()
-el.remove()
-
-}else{
-
-health-=10
-combo=0
-
-}
-
-hud()
-
-}
-
-})
-
-}
-
-function endGame(){
-
-clearGame()
-
-let best=localStorage.getItem("devopsV4")
-
-if(!best || score>best){
-localStorage.setItem("devopsV4",score)
-best=score
-}
-
-let div=document.createElement("div")
-div.className="center"
-
-div.innerHTML=`
-<h1>🏆 Cloud Deployment Complete</h1>
-<h2>Score: ${score}</h2>
-<h3>Best Score: ${best}</h3>
-<button onclick="startGame()">Play Again</button>
-`
-
-game.appendChild(div)
-
-}
-
-intro()
-
-</script>
-
+    <!-- HUD -->
+    <div id="hud">
+        <div class="hud-item">
+            <div class="hud-label">STAGE</div>
+            <div class="hud-value terminal" id="stage-name">INTRO</div>
+        </div>
+        <div class="hud-item">
+            <div class="hud-label">SCORE</div>
+            <div class="hud-value" id="score">000000</div>
+        </div>
+        <div class="hud-item">
+            <div class="hud-label">SYSTEM HEALTH</div>
+            <div id="health-bar">
+                <div id="health-fill" style="width:100%"></div>
+            </div>
+        </div>
+        <div class="hud-item">
+            <div class="hud-label">TIME</div>
+            <div class="hud-value" id="timer">90</div>
+        </div>
+        <div class="hud-item">
+            <div class="hud-label">COMBO</div>
+            <div class="hud-value" id="combo">1×</div>
+        </div>
+        <div class="hud-item">
+            <div class="hud-label">DIFFICULTY</div>
+            <div class="hud-value" id="difficulty">LVL 1</div>
+        </div>
+    </div>
+
+    <!-- GAME CANVAS -->
+    <canvas id="canvas" width="1200" height="640"></canvas>
+
+    <!-- INTRO OVERLAY -->
+    <div id="intro-overlay" class="overlay show">
+        <div id="title">DEVOPS RUSH</div>
+        <div style="font-size:28px; margin-bottom:30px; color:#00ff9d;">SURVIVE THE PRODUCTION CHAOS</div>
+        <div style="max-width:600px; text-align:center; font-size:22px; line-height:1.4; margin-bottom:40px;">
+            Drag components • Fix pods • Defeat incidents<br>
+            Elite cloud engineering in real-time
+        </div>
+        <button onclick="startGame()" class="btn">BEGIN SHIFT</button>
+        <div style="position:absolute; bottom:40px; font-size:18px; color:#555;">
+            Touch + Mouse • 60 FPS • Vanilla JS
+        </div>
+    </div>
+
+    <!-- SCORE SCREEN -->
+    <div id="score-overlay" class="overlay">
+        <div style="font-size:68px; margin-bottom:20px; color:#ff0066;">SHIFT COMPLETE</div>
+        <div style="font-size:42px; margin-bottom:10px;">FINAL SCORE</div>
+        <div id="final-score" style="font-size:92px; color:var(--neon-green); text-shadow:0 0 40px #00ff9d; margin-bottom:30px;">000000</div>
+        
+        <div id="leaderboard">
+            <div style="text-align:center; font-size:24px; margin-bottom:15px; color:var(--neon-purple);">GLOBAL OPS LEADERBOARD</div>
+            <div id="lb-list"></div>
+        </div>
+
+        <div style="margin-top:30px;">
+            <input id="player-name" type="text" placeholder="CALLSIGN" maxlength="8" 
+                   style="background:#111; border:3px solid #00f7ff; color:#fff; padding:12px 20px; font-size:24px; width:240px; text-align:center; font-family:VT323;">
+            <button onclick="saveScore()" class="btn" style="margin-left:15px; padding:12px 30px; font-size:22px;">LOG SCORE</button>
+        </div>
+
+        <button onclick="restartGame()" class="btn" style="margin-top:40px;">NEW SHIFT</button>
+    </div>
+
+    <!-- ALERT BANNER -->
+    <div id="alert-banner" class="alert">CRITICAL INCIDENT</div>
+
+    <script>
+        // ============== CORE ENGINE ==============
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let WIDTH = 1200;
+        let HEIGHT = 640;
+        canvas.width = WIDTH;
+        canvas.height = HEIGHT;
+
+        // Game state
+        let gameState = 'INTRO';
+        let score = 0;
+        let health = 100;
+        let stageTimer = 90;
+        let combo = 1;
+        let difficulty = 1;
+        let lastTime = 0;
+        let stageStartTime = 0;
+        let dragging = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        // Systems
+        let particles = [];
+        let draggables = [];
+        let dropTargets = [];
+        let pods = [];
+        let incidents = [];
+        let lines = [];
+
+        // Audio
+        let audioCtx;
+        function initAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        function playBeep(freq, duration, type = 'sine', vol = 0.4) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.value = freq;
+            osc.type = type;
+            gain.gain.value = vol;
+            osc.start();
+            setTimeout(() => {
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.02);
+                osc.stop(audioCtx.currentTime + 0.05);
+            }, duration);
+        }
+
+        // Particle system
+        class Particle {
+            constructor(x, y, vx, vy, life, color, size) {
+                this.x = x; this.y = y;
+                this.vx = vx; this.vy = vy;
+                this.life = life;
+                this.maxLife = life;
+                this.color = color;
+                this.size = size || 6;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.08;
+                this.life--;
+                this.vx *= 0.98;
+            }
+            draw() {
+                const alpha = this.life / this.maxLife;
+                ctx.save();
+                ctx.globalAlpha = alpha * 0.9;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = this.color;
+                ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+                ctx.restore();
+            }
+        }
+
+        function createExplosion(x, y, color, count = 35) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const vel = 2 + Math.random() * 7;
+                particles.push(new Particle(
+                    x, y,
+                    Math.cos(angle) * vel,
+                    Math.sin(angle) * vel - 3,
+                    35 + Math.random() * 25,
+                    color,
+                    4 + Math.random() * 5
+                ));
+            }
+        }
+
+        // Utility
+        function hitTest(obj, x, y) {
+            return x > obj.x && x < obj.x + obj.w && y > obj.y && y < obj.y + obj.h;
+        }
+
+        function overlap(a, b) {
+            return !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
+        }
+
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = WIDTH / rect.width;
+            return {
+                x: (e.clientX || e.touches[0].clientX) * scaleX - rect.left * scaleX,
+                y: (e.clientY || e.touches[0].clientY) * (HEIGHT / rect.height) - rect.top * (HEIGHT / rect.height)
+            };
+        }
+
+        // ============== STATE MACHINE ==============
+        function changeState(newState) {
+            gameState = newState;
+            document.getElementById('stage-name').textContent = newState.replace('_', ' ');
+            
+            // Clear stage objects
+            draggables = [];
+            dropTargets = [];
+            pods = [];
+            incidents = [];
+            lines = [];
+            dragging = null;
+
+            if (newState === 'INTRO') return;
+            
+            stageStartTime = Date.now();
+            stageTimer = 90;
+            
+            if (newState === 'CI_PIPELINE') initCIPipeline();
+            else if (newState === 'CLOUD_ARCHITECTURE') initCloudArchitecture();
+            else if (newState === 'KUBERNETES_CLUSTER') initKubernetes();
+            else if (newState === 'INCIDENT_RESPONSE') initIncidentResponse();
+            else if (newState === 'SCORE_SCREEN') showScoreScreen();
+        }
+
+        // ============== MINI-GAME 1: CI PIPELINE ==============
+        const pipelineComponents = ['Git', 'Build', 'Test', 'Docker', 'Registry', 'Deploy'];
+        
+        function initCIPipeline() {
+            const shuffled = [...pipelineComponents].sort(() => Math.random() - 0.5);
+            
+            // Draggables on left
+            for (let i = 0; i < 6; i++) {
+                draggables.push({
+                    type: 'ci',
+                    label: shuffled[i],
+                    x: 80 + (i % 3) * 170,
+                    y: 180 + Math.floor(i / 3) * 160,
+                    w: 130,
+                    h: 92,
+                    correctIndex: pipelineComponents.indexOf(shuffled[i]),
+                    placed: false,
+                    originalX: 80 + (i % 3) * 170,
+                    originalY: 180 + Math.floor(i / 3) * 160,
+                    color: '#00ff9d'
+                });
+            }
+            
+            // Drop slots
+            for (let i = 0; i < 6; i++) {
+                dropTargets.push({
+                    x: 620 + i * 82,
+                    y: 260,
+                    w: 74,
+                    h: 110,
+                    index: i,
+                    occupied: false,
+                    expected: pipelineComponents[i]
+                });
+            }
+        }
+
+        function checkPipelineComplete() {
+            if (dropTargets.every(t => t.occupied)) {
+                score += 800 * combo;
+                createExplosion(600, 320, '#00f7ff', 80);
+                playBeep(1200, 180);
+                playBeep(1600, 280);
+                setTimeout(() => {
+                    changeState('CLOUD_ARCHITECTURE');
+                }, 1400);
+            }
+        }
+
+        // ============== MINI-GAME 2: CLOUD ARCHITECTURE ==============
+        function initCloudArchitecture() {
+            const services = [
+                {label: 'Internet', correctX: 120, correctY: 180},
+                {label: 'CloudFront', correctX: 320, correctY: 140},
+                {label: 'ALB', correctX: 520, correctY: 240},
+                {label: 'EKS', correctX: 720, correctY: 200},
+                {label: 'RDS', correctX: 920, correctY: 320},
+                {label: 'ElastiCache', correctX: 720, correctY: 380}
+            ];
+            
+            const shuffledServices = [...services].sort(() => Math.random() - 0.5);
+            
+            for (let i = 0; i < 6; i++) {
+                draggables.push({
+                    type: 'cloud',
+                    label: shuffledServices[i].label,
+                    x: 80 + (i % 3) * 170,
+                    y: 160 + Math.floor(i / 3) * 170,
+                    w: 140,
+                    h: 88,
+                    correctX: shuffledServices[i].correctX,
+                    correctY: shuffledServices[i].correctY,
+                    placed: false,
+                    color: '#9d00ff'
+                });
+            }
+            
+            // Predefined connection lines
+            lines = [
+                {from: {x:180,y:210}, to: {x:370,y:170}},
+                {from: {x:390,y:170}, to: {x:570,y:260}},
+                {from: {x:590,y:270}, to: {x:750,y:230}},
+                {from: {x:770,y:230}, to: {x:930,y:340}},
+                {from: {x:750,y:260}, to: {x:760,y:370}}
+            ];
+        }
+
+        function checkCloudComplete() {
+            const placedCount = draggables.filter(d => d.placed).length;
+            if (placedCount === 6) {
+                score += 1200 * combo;
+                createExplosion(600, 300, '#ff00cc', 100);
+                setTimeout(() => changeState('KUBERNETES_CLUSTER'), 1300);
+            }
+        }
+
+        // ============== MINI-GAME 3: KUBERNETES ==============
+        function initKubernetes() {
+            pods = [];
+            const podNames = ['api-7f2', 'web-3c1', 'db-9a4', 'cache-2b8', 'worker-4d9'];
+            for (let i = 0; i < 5; i++) {
+                pods.push({
+                    x: 220 + i * 160,
+                    y: 240,
+                    label: podNames[i],
+                    crashed: false,
+                    issue: null,
+                    timer: 0
+                });
+            }
+            
+            // Fix palette
+            const fixes = ['Restart', 'Scale', 'Redeploy', 'Rollback'];
+            for (let i = 0; i < 4; i++) {
+                draggables.push({
+                    type: 'fix',
+                    label: fixes[i],
+                    x: 100,
+                    y: 420 + i * 55,
+                    w: 160,
+                    h: 48,
+                    color: '#00f7ff'
+                });
+            }
+            
+            // Spawn first crash
+            setTimeout(spawnPodCrash, 800);
+        }
+
+        function spawnPodCrash() {
+            if (gameState !== 'KUBERNETES_CLUSTER') return;
+            const healthy = pods.filter(p => !p.crashed);
+            if (healthy.length === 0) return;
+            
+            const pod = healthy[Math.floor(Math.random() * healthy.length)];
+            pod.crashed = true;
+            pod.issue = ['OOM', 'Crash', 'Network', 'CPU'][Math.floor(Math.random()*4)];
+            pod.timer = 180;
+            
+            // Spawn alert
+            showAlert(pod.issue + ' in ' + pod.label);
+            setTimeout(() => { if (document.getElementById('alert-banner')) document.getElementById('alert-banner').style.display = 'none'; }, 2200);
+            
+            // Schedule next
+            if (difficulty > 2) setTimeout(spawnPodCrash, 2200);
+        }
+
+        // ============== MINI-GAME 4: INCIDENT RESPONSE ==============
+        function initIncidentResponse() {
+            incidents = [];
+            draggables = [];
+            
+            const fixTypes = [
+                {label:'AutoScale', match:'CPU Spike'},
+                {label:'Restart', match:'Memory Leak'},
+                {label:'Clean Logs', match:'Disk Full'},
+                {label:'WAF', match:'DDoS'},
+                {label:'Cache', match:'High Latency'},
+                {label:'Reconnect', match:'DB Fail'}
+            ];
+            
+            // Fix palette
+            for (let i = 0; i < fixTypes.length; i++) {
+                draggables.push({
+                    type: 'incident-fix',
+                    label: fixTypes[i].label,
+                    match: fixTypes[i].match,
+                    x: 80,
+                    y: 160 + i * 68,
+                    w: 170,
+                    h: 54,
+                    color: '#ff00aa'
+                });
+            }
+            
+            spawnIncident();
+            spawnIncident();
+        }
+
+        function spawnIncident() {
+            if (gameState !== 'INCIDENT_RESPONSE') return;
+            
+            const types = ['CPU Spike','Memory Leak','Disk Full','DDoS','High Latency','DB Fail'];
+            const type = types[Math.floor(Math.random()*types.length)];
+            
+            incidents.push({
+                x: 480 + Math.random() * 520,
+                y: 140 + Math.random() * 280,
+                w: 210,
+                h: 110,
+                type: type,
+                life: 240 + Math.random() * 120
+            });
+            
+            showAlert(type);
+            setTimeout(() => { if (document.getElementById('alert-banner')) document.getElementById('alert-banner').style.display = 'none'; }, 1800);
+            
+            if (incidents.length < 3 + difficulty) {
+                setTimeout(spawnIncident, 1400);
+            }
+        }
+
+        function showAlert(text) {
+            const alertEl = document.getElementById('alert-banner');
+            alertEl.textContent = text.toUpperCase();
+            alertEl.style.display = 'block';
+        }
+
+        // ============== INPUT HANDLING ==============
+        function attachInput() {
+            canvas.addEventListener('pointerdown', e => {
+                if (gameState === 'INTRO' || gameState === 'SCORE_SCREEN') return;
+                const pos = getPointerPos(e);
+                
+                // Check draggables from top
+                for (let i = draggables.length - 1; i >= 0; i--) {
+                    const d = draggables[i];
+                    if (!d.placed && hitTest(d, pos.x, pos.y)) {
+                        dragging = d;
+                        dragOffsetX = pos.x - d.x;
+                        dragOffsetY = pos.y - d.y;
+                        // Bring to front
+                        draggables.splice(i, 1);
+                        draggables.push(d);
+                        return;
+                    }
+                }
+            });
+
+            canvas.addEventListener('pointermove', e => {
+                if (!dragging) return;
+                const pos = getPointerPos(e);
+                dragging.x = pos.x - dragOffsetX;
+                dragging.y = pos.y - dragOffsetY;
+            });
+
+            canvas.addEventListener('pointerup', e => {
+                if (!dragging) return;
+                const pos = getPointerPos(e);
+                
+                let dropped = false;
+                
+                // Check drop targets
+                for (let target of dropTargets) {
+                    if (!target.occupied && overlap(dragging, target)) {
+                        if (dragging.type === 'ci' && dragging.correctIndex === target.index) {
+                            // CI success
+                            target.occupied = true;
+                            dragging.placed = true;
+                            dragging.x = target.x + 4;
+                            dragging.y = target.y + 10;
+                            score += 120 * combo;
+                            combo = Math.min(combo + 1, 8);
+                            createExplosion(dragging.x + 65, dragging.y + 40, '#00ff9d');
+                            playBeep(900, 120);
+                            checkPipelineComplete();
+                            dropped = true;
+                        } 
+                        else if (dragging.type === 'cloud' && 
+                                 Math.abs(dragging.x - dragging.correctX) < 70 && 
+                                 Math.abs(dragging.y - dragging.correctY) < 70) {
+                            dragging.placed = true;
+                            dragging.x = dragging.correctX - 60;
+                            dragging.y = dragging.correctY - 35;
+                            score += 180 * combo;
+                            combo = Math.min(combo + 1, 8);
+                            createExplosion(dragging.x + 70, dragging.y + 40, '#9d00ff');
+                            playBeep(1100, 140);
+                            checkCloudComplete();
+                            dropped = true;
+                        }
+                    }
+                }
+                
+                // Kubernetes pod fix
+                if (dragging.type === 'fix' && gameState === 'KUBERNETES_CLUSTER') {
+                    for (let pod of pods) {
+                        if (pod.crashed && hitTest(pod, pos.x, pos.y)) {
+                            pod.crashed = false;
+                            pod.issue = null;
+                            score += 250 * combo;
+                            combo = Math.min(combo + 1, 8);
+                            createExplosion(pod.x + 60, pod.y + 50, '#00ff9d', 45);
+                            playBeep(1300, 200);
+                            dropped = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Incident fix
+                if (dragging.type === 'incident-fix' && gameState === 'INCIDENT_RESPONSE') {
+                    for (let i = incidents.length - 1; i >= 0; i--) {
+                        const inc = incidents[i];
+                        if (hitTest(inc, pos.x, pos.y) && dragging.match === inc.type) {
+                            createExplosion(inc.x + 100, inc.y + 50, '#00f7ff', 60);
+                            playBeep(1600, 150);
+                            score += 320 * combo;
+                            combo = Math.min(combo + 1, 8);
+                            incidents.splice(i, 1);
+                            dropped = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!dropped) {
+                    // Wrong drop or miss
+                    if (dragging.originalX !== undefined) {
+                        dragging.x = dragging.originalX;
+                        dragging.y = dragging.originalY;
+                    }
+                    combo = 1;
+                    health = Math.max(0, health - 6);
+                    playBeep(180, 420, 'sawtooth', 0.6);
+                    createExplosion(dragging.x + 50, dragging.y + 30, '#ff0066', 18);
+                }
+                
+                dragging = null;
+            });
+        }
+
+        // ============== UPDATE & DRAW ==============
+        function update(dt) {
+            // Global timer
+            if (gameState !== 'INTRO' && gameState !== 'SCORE_SCREEN') {
+                const elapsed = (Date.now() - stageStartTime) / 1000;
+                stageTimer = Math.max(0, Math.ceil(90 - elapsed));
+                
+                if (stageTimer <= 0) {
+                    if (gameState === 'INCIDENT_RESPONSE') {
+                        changeState('SCORE_SCREEN');
+                    } else {
+                        const nextStates = ['CI_PIPELINE','CLOUD_ARCHITECTURE','KUBERNETES_CLUSTER','INCIDENT_RESPONSE','SCORE_SCREEN'];
+                        const idx = nextStates.indexOf(gameState);
+                        changeState(nextStates[idx + 1]);
+                    }
+                }
+                
+                // Passive health drain + chaos
+                if (Math.random() < 0.012 * difficulty) {
+                    health = Math.max(0, health - 0.6);
+                }
+                
+                // Difficulty ramp
+                difficulty = Math.floor(1 + (Date.now() - stageStartTime) / 28000);
+                document.getElementById('difficulty').textContent = `LVL ${difficulty}`;
+            }
+            
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update();
+                if (particles[i].life <= 0) particles.splice(i, 1);
+            }
+            
+            // Kubernetes logic
+            if (gameState === 'KUBERNETES_CLUSTER') {
+                for (let pod of pods) {
+                    if (pod.crashed) {
+                        pod.timer--;
+                        if (pod.timer <= 0) {
+                            pod.crashed = false;
+                            health = Math.max(0, health - 18);
+                            createExplosion(pod.x + 60, pod.y + 50, '#ff0066', 30);
+                        }
+                    }
+                }
+                // Spawn new crash occasionally
+                if (Math.random() < 0.018) spawnPodCrash();
+            }
+            
+            // Incident timeout
+            if (gameState === 'INCIDENT_RESPONSE') {
+                for (let i = incidents.length - 1; i >= 0; i--) {
+                    incidents[i].life--;
+                    if (incidents[i].life <= 0) {
+                        health = Math.max(0, health - 22);
+                        createExplosion(incidents[i].x + 100, incidents[i].y + 50, '#ff0066');
+                        incidents.splice(i, 1);
+                    }
+                }
+            }
+            
+            // HUD sync
+            document.getElementById('score').textContent = String(Math.floor(score)).padStart(6, '0');
+            document.getElementById('timer').textContent = stageTimer;
+            document.getElementById('combo').textContent = combo + '×';
+            document.getElementById('health-fill').style.width = health + '%';
+            
+            if (health <= 0 && gameState !== 'SCORE_SCREEN') {
+                changeState('SCORE_SCREEN');
+            }
+        }
+
+        function drawBackground() {
+            ctx.fillStyle = '#0a0f1f';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+            
+            // Subtle grid
+            ctx.strokeStyle = 'rgba(0, 247, 255, 0.07)';
+            ctx.lineWidth = 1;
+            for (let x = 40; x < WIDTH; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, HEIGHT);
+                ctx.stroke();
+            }
+            for (let y = 40; y < HEIGHT; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(WIDTH, y);
+                ctx.stroke();
+            }
+            
+            // Dashboard header glow
+            ctx.fillStyle = 'rgba(0, 247, 255, 0.03)';
+            ctx.fillRect(0, 0, WIDTH, 110);
+        }
+
+        function draw() {
+            drawBackground();
+            
+            ctx.textAlign = 'left';
+            ctx.font = '22px VT323';
+            
+            if (gameState === 'CI_PIPELINE') {
+                ctx.fillStyle = '#00f7ff';
+                ctx.fillText('>>> CI/CD PIPELINE ASSEMBLY', 60, 80);
+                
+                // Pipeline flow line
+                ctx.strokeStyle = '#00ff9d';
+                ctx.lineWidth = 12;
+                ctx.beginPath();
+                ctx.moveTo(570, 310);
+                ctx.lineTo(1130, 310);
+                ctx.stroke();
+                
+                // Draw slots
+                for (let t of dropTargets) {
+                    ctx.strokeStyle = t.occupied ? '#00ff9d' : '#334455';
+                    ctx.lineWidth = 6;
+                    ctx.strokeRect(t.x, t.y, t.w, t.h);
+                    ctx.fillStyle = '#112233';
+                    ctx.fillRect(t.x + 4, t.y + 4, t.w - 8, t.h - 8);
+                    ctx.fillStyle = '#00ff9d';
+                    ctx.fillText((t.index + 1) + '', t.x + 26, t.y + 68);
+                }
+                
+            } else if (gameState === 'CLOUD_ARCHITECTURE') {
+                ctx.fillStyle = '#9d00ff';
+                ctx.fillText('CLOUD ARCHITECTURE BUILDER', 60, 80);
+                
+                // Draw connection lines when ready
+                ctx.strokeStyle = '#ff00cc';
+                ctx.lineWidth = 5;
+                ctx.setLineDash([8, 18]);
+                lines.forEach(line => {
+                    ctx.beginPath();
+                    ctx.moveTo(line.from.x, line.from.y);
+                    ctx.lineTo(line.to.x, line.to.y);
+                    ctx.stroke();
+                });
+                ctx.setLineDash([]);
+            } 
+            else if (gameState === 'KUBERNETES_CLUSTER') {
+                ctx.fillStyle = '#00ff9d';
+                ctx.fillText('KUBERNETES CLUSTER MANAGEMENT', 60, 80);
+                
+                // Draw pods
+                for (let pod of pods) {
+                    ctx.save();
+                    const pulse = pod.crashed ? Math.sin(Date.now()/80) * 6 : 0;
+                    ctx.translate(pod.x, pod.y);
+                    
+                    ctx.fillStyle = pod.crashed ? '#ff0066' : '#00ff9d';
+                    ctx.shadowBlur = 25;
+                    ctx.shadowColor = pod.crashed ? '#ff0066' : '#00ff9d';
+                    ctx.fillRect(-10, -10, 130, 92);
+                    
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(8, 18, 94, 54);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '17px VT323';
+                    ctx.fillText(pod.label, 18, 48);
+                    
+                    if (pod.crashed) {
+                        ctx.fillStyle = '#ff0';
+                        ctx.fillText(pod.issue || 'CRASH', 18, 78);
+                    }
+                    ctx.restore();
+                }
+            } 
+            else if (gameState === 'INCIDENT_RESPONSE') {
+                ctx.fillStyle = '#ff0066';
+                ctx.fillText('INCIDENT RESPONSE OPS', 60, 80);
+                
+                // Draw incidents
+                for (let inc of incidents) {
+                    ctx.save();
+                    ctx.translate(inc.x, inc.y);
+                    ctx.fillStyle = '#330011';
+                    ctx.fillRect(0, 0, inc.w, inc.h);
+                    ctx.strokeStyle = '#ff0066';
+                    ctx.lineWidth = 7;
+                    ctx.strokeRect(0, 0, inc.w, inc.h);
+                    
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '28px VT323';
+                    ctx.fillText(inc.type, 22, 48);
+                    ctx.restore();
+                }
+            }
+            
+            // Draw draggables
+            for (let d of draggables) {
+                if (d.placed && gameState !== 'KUBERNETES_CLUSTER') continue;
+                
+                ctx.save();
+                ctx.shadowBlur = 22;
+                ctx.shadowColor = d.color || '#00f7ff';
+                ctx.fillStyle = d.color || '#00f7ff';
+                ctx.fillRect(d.x, d.y, d.w, d.h);
+                
+                ctx.fillStyle = '#111';
+                ctx.font = '21px VT323';
+                ctx.textAlign = 'center';
+                ctx.fillText(d.label, d.x + d.w/2, d.y + d.h/2 + 8);
+                ctx.restore();
+            }
+            
+            // Particles
+            for (let p of particles) p.draw();
+            
+            // Stage specific extra text
+            if (gameState === 'CI_PIPELINE') {
+                ctx.fillStyle = '#555';
+                ctx.font = '18px VT323';
+                ctx.fillText('DRAG TO SLOTS IN ORDER', 640, 520);
+            }
+        }
+
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const dt = timestamp - lastTime;
+            lastTime = timestamp;
+            
+            update(dt);
+            draw();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ============== SCORE & LEADERBOARD ==============
+        function showScoreScreen() {
+            document.getElementById('score-overlay').classList.add('show');
+            document.getElementById('final-score').textContent = String(Math.floor(score)).padStart(6, '0');
+            
+            const saved = JSON.parse(localStorage.getItem('devopsRushLB') || '[]');
+            saved.sort((a,b) => b.score - a.score);
+            
+            let html = '';
+            for (let i = 0; i < Math.min(5, saved.length); i++) {
+                html += `<div class="score-row"><span>${saved[i].name}</span><span>${String(saved[i].score).padStart(6,'0')}</span></div>`;
+            }
+            document.getElementById('lb-list').innerHTML = html || '<div style="text-align:center;padding:30px;color:#555">NO SHIFTS YET</div>';
+        }
+
+        function saveScore() {
+            const nameEl = document.getElementById('player-name');
+            let name = (nameEl.value || 'OPS-' + Math.floor(Math.random()*999)).toUpperCase().slice(0,8);
+            
+            let lb = JSON.parse(localStorage.getItem('devopsRushLB') || '[]');
+            lb.push({name: name, score: Math.floor(score)});
+            lb.sort((a,b) => b.score - a.score);
+            lb = lb.slice(0, 8);
+            localStorage.setItem('devopsRushLB', JSON.stringify(lb));
+            
+            showScoreScreen();
+            nameEl.value = '';
+        }
+
+        function restartGame() {
+            score = 0;
+            health = 100;
+            combo = 1;
+            difficulty = 1;
+            document.getElementById('score-overlay').classList.remove('show');
+            document.getElementById('intro-overlay').classList.add('show');
+            changeState('INTRO');
+        }
+
+        function startGame() {
+            if (!audioCtx) initAudio();
+            document.getElementById('intro-overlay').classList.remove('show');
+            changeState('CI_PIPELINE');
+        }
+
+        // ============== BOOT ==============
+        function boot() {
+            attachInput();
+            requestAnimationFrame(gameLoop);
+            
+            // Demo particle
+            setInterval(() => {
+                if (gameState === 'INTRO') {
+                    createExplosion(300 + Math.random()*600, 220 + Math.random()*200, '#00f7ff', 12);
+                }
+            }, 420);
+            
+            // Keyboard shortcut for testing
+            document.addEventListener('keydown', e => {
+                if (e.key === '/' && gameState === 'SCORE_SCREEN') {
+                    restartGame();
+                }
+            });
+            
+            // Touch support already covered by pointer events
+            console.log('%cDEVOPS RUSH v1.0 READY — SINGLE FILE EDITION', 'color:#00ff9d; font-family:monospace; font-size:13px');
+        }
+
+        window.onload = boot;
+    </script>
 </body>
 </html>
