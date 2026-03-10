@@ -2,1013 +2,879 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DEVOPS RUSH</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DevOps Rush - Cloud Operations Simulator</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&amp;family=VT323&amp;display=swap');
-
+        /* --- CORE THEME & RESET --- */
         :root {
-            --neon-cyan: #00f7ff;
-            --neon-green: #00ff9d;
-            --neon-red: #ff0066;
-            --neon-purple: #9d00ff;
+            --bg-base: #050b14;
+            --bg-panel: #0d1a2d;
+            --border-glow: #1e3a5f;
+            --neon-blue: #00f3ff;
+            --neon-green: #39ff14;
+            --neon-red: #ff003c;
+            --neon-yellow: #ffea00;
+            --text-main: #e2f1ff;
+            --text-muted: #6b8eb5;
         }
 
-        * { margin:0; padding:0; box-sizing:border-box; }
+        * { box-sizing: border-box; font-family: 'Courier New', Courier, monospace; user-select: none; }
+        
         body {
-            background: #05080f;
-            color: #fff;
-            font-family: 'VT323', monospace;
-            overflow: hidden;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            image-rendering: pixelated;
+            margin: 0; padding: 0; background-color: var(--bg-base); color: var(--text-main);
+            overflow: hidden; display: flex; flex-direction: column; height: 100vh;
+            touch-action: none; /* Crucial for mobile dragging */
         }
 
+        h1, h2, h3, p { margin: 0; }
+
+        /* --- HUD (HEADS UP DISPLAY) --- */
         #hud {
-            width: 1200px;
-            max-width: 95vw;
-            height: 80px;
-            background: rgba(10, 15, 35, 0.95);
-            border: 3px solid var(--neon-cyan);
-            border-radius: 0;
-            box-shadow: 0 0 30px var(--neon-cyan);
-            display: flex;
-            align-items: center;
-            padding: 0 30px;
-            font-size: 22px;
-            gap: 40px;
-            z-index: 100;
-            position: relative;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 20px; background: rgba(13, 26, 45, 0.9);
+            border-bottom: 2px solid var(--border-glow); box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+            z-index: 100; font-weight: bold; font-size: 0.9rem;
         }
+        
+        .hud-group { display: flex; gap: 20px; align-items: center; }
+        .hud-item { display: flex; flex-direction: column; align-items: center; }
+        .hud-label { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;}
+        .hud-value { font-size: 1.2rem; text-shadow: 0 0 5px currentColor; }
+        
+        #val-health { color: var(--neon-green); }
+        #val-score { color: var(--neon-blue); }
+        #val-combo { color: var(--neon-yellow); }
+        #val-time { color: var(--text-main); }
 
-        .hud-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-width: 120px;
-        }
+        .health-bar-bg { width: 100px; height: 10px; background: #111; border: 1px solid var(--border-glow); border-radius: 5px; overflow: hidden; margin-top: 3px;}
+        .health-bar-fill { height: 100%; width: 100%; background: var(--neon-green); transition: width 0.3s, background-color 0.3s; box-shadow: 0 0 10px var(--neon-green);}
 
-        .hud-label {
-            font-size: 14px;
-            color: var(--neon-cyan);
-            text-transform: uppercase;
-            letter-spacing: 3px;
-        }
+        /* --- SCREENS --- */
+        .screen { display: none; flex: 1; flex-direction: column; align-items: center; padding: 20px; position: relative; overflow: hidden; width: 100%; max-width: 800px; margin: 0 auto;}
+        .screen.active { display: flex; }
 
-        .hud-value {
-            font-size: 28px;
-            font-weight: 700;
-            text-shadow: 0 0 15px currentColor;
-        }
-
-        #health-bar {
-            width: 220px;
-            height: 18px;
-            background: #111;
-            border: 2px solid var(--neon-green);
-            position: relative;
-            overflow: hidden;
-        }
-
-        #health-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #00ff9d, #00f7ff);
-            transition: width 0.3s linear;
-            box-shadow: 0 0 20px #00ff9d;
-        }
-
-        #canvas {
-            border: 4px solid var(--neon-cyan);
-            box-shadow: 0 0 60px var(--neon-cyan),
-                        0 0 120px rgba(0, 247, 255, 0.3);
-            image-rendering: crisp-edges;
-            background: #0a0f1f;
-        }
-
-        .overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(5, 8, 15, 0.97);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 200;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .overlay.show { display: flex; }
-
-        #title {
-            font-size: 92px;
-            font-weight: 700;
-            background: linear-gradient(90deg, #00f7ff, #9d00ff, #00ff9d);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 80px #00f7ff;
-            margin-bottom: 20px;
-            letter-spacing: 12px;
-        }
-
+        /* General UI Elements */
         .btn {
-            margin-top: 40px;
-            padding: 20px 60px;
-            font-size: 32px;
-            background: transparent;
-            color: var(--neon-green);
-            border: 4px solid var(--neon-green);
-            cursor: pointer;
-            transition: all 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 6px;
-            box-shadow: 0 0 30px var(--neon-green);
+            background: rgba(0, 243, 255, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue);
+            padding: 12px 24px; font-size: 1.2rem; font-weight: bold; border-radius: 4px;
+            cursor: pointer; text-transform: uppercase; transition: 0.2s; box-shadow: 0 0 10px rgba(0,243,255,0.2);
+        }
+        .btn:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 20px var(--neon-blue); }
+
+        .title { color: var(--neon-blue); font-size: 2.5rem; text-shadow: 0 0 15px var(--neon-blue); margin-bottom: 10px; text-align: center; text-transform: uppercase;}
+        .subtitle { color: var(--text-muted); margin-bottom: 30px; text-align: center; max-width: 500px; line-height: 1.5;}
+
+        /* --- DRAG & DROP ELEMENTS --- */
+        .draggable {
+            position: absolute; padding: 10px 15px; background: var(--bg-panel);
+            border: 2px solid var(--neon-blue); color: var(--neon-blue); border-radius: 6px;
+            font-weight: bold; font-size: 0.8rem; cursor: grab; z-index: 50;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2); text-align: center;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.1s;
+        }
+        .draggable:active, .draggable.dragging { cursor: grabbing; transform: scale(1.1); z-index: 100; box-shadow: 0 0 20px var(--neon-blue); background: #001f3f;}
+        
+        .dropzone {
+            border: 2px dashed var(--text-muted); border-radius: 6px; background: rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); font-size: 0.8rem; text-align: center; transition: 0.2s;
+        }
+        .dropzone.hover { border-color: var(--neon-yellow); background: rgba(255, 234, 0, 0.1); }
+        .dropzone.filled { border-style: solid; border-color: var(--neon-green); color: var(--neon-green); }
+
+        .tools-tray {
+            position: absolute; bottom: 20px; width: 100%; display: flex; flex-wrap: wrap;
+            justify-content: center; gap: 10px; padding: 10px;
+            background: rgba(13, 26, 45, 0.8); border: 1px solid var(--border-glow); border-radius: 8px;
         }
 
-        .btn:hover {
-            background: var(--neon-green);
-            color: #000;
-            box-shadow: 0 0 60px var(--neon-green);
-            transform: scale(1.05);
-        }
+        /* --- STAGE 1: CI PIPELINE --- */
+        .pipeline-track { display: flex; gap: 10px; width: 100%; justify-content: space-between; align-items: center; margin-top: 40px; flex-wrap: wrap;}
+        .pipe-zone { width: 80px; height: 80px; position: relative;}
+        .pipe-arrow { color: var(--border-glow); font-weight: bold; font-size: 1.5rem; }
 
-        #leaderboard {
-            margin-top: 30px;
-            width: 500px;
-            background: rgba(10,15,35,0.8);
-            border: 3px solid var(--neon-purple);
-            padding: 20px;
-        }
+        /* --- STAGE 2: CLOUD ARCHITECTURE --- */
+        .arch-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); gap: 15px; width: 100%; height: 350px; position: relative; margin-top: 20px;}
+        .arch-zone { width: 100%; height: 100%; }
+        /* Positioning logic handled in JS, but grid helps spacing */
 
-        .score-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 20px;
-            border-bottom: 1px solid #333;
-            font-size: 24px;
+        /* --- STAGE 3: K8S CLUSTER --- */
+        .k8s-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; margin-top: 20px;}
+        .pod {
+            background: var(--bg-panel); border: 2px solid var(--neon-green); border-radius: 8px;
+            height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); transition: 0.3s; position: relative;
         }
+        .pod-title { font-weight: bold; font-size: 0.9rem; color: var(--text-main); margin-bottom: 5px;}
+        .pod-status { font-size: 0.7rem; color: var(--neon-green); text-transform: uppercase;}
+        
+        .pod.crash { border-color: var(--neon-red); box-shadow: 0 0 20px rgba(255, 0, 60, 0.5); animation: pulseAlert 1s infinite; }
+        .pod.crash .pod-status { color: var(--neon-red); }
 
-        .alert {
-            position: absolute;
-            top: 120px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 15px 40px;
-            background: rgba(255, 0, 102, 0.9);
-            color: white;
-            font-size: 28px;
-            border: 4px solid #fff;
-            box-shadow: 0 0 40px #ff0066;
-            animation: flash 0.8s infinite;
-            display: none;
-            z-index: 300;
-            text-transform: uppercase;
-        }
+        @keyframes pulseAlert { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
-        @keyframes flash {
-            50% { opacity: 0.4; }
+        /* --- STAGE 4: INCIDENT RESPONSE --- */
+        .terminal-window {
+            width: 100%; height: 350px; background: #020408; border: 1px solid var(--border-glow);
+            border-radius: 6px; padding: 15px; display: flex; flex-direction: column; gap: 10px;
+            overflow: hidden; position: relative; margin-top: 20px;
         }
+        .alert-row {
+            background: rgba(255, 0, 60, 0.1); border-left: 4px solid var(--neon-red);
+            padding: 10px; display: flex; justify-content: space-between; align-items: center;
+            animation: slideIn 0.3s ease-out; width: 100%;
+        }
+        .alert-text { color: var(--neon-red); font-weight: bold; font-size: 0.85rem;}
+        .alert-target { width: 120px; height: 40px; border: 1px dashed var(--neon-red); border-radius: 4px; display: flex; align-items: center; justify-content: center;}
+        
+        @keyframes slideIn { from { transform: translateX(-100%); opacity: 0;} to { transform: translateX(0); opacity: 1;} }
 
-        .terminal {
-            font-family: 'VT323', monospace;
-            color: #00ff9d;
-            text-shadow: 0 0 10px #00ff9d;
-        }
+        /* --- PARTICLES & EFFECTS --- */
+        .particle { position: absolute; border-radius: 50%; pointer-events: none; z-index: 1000; }
+        .floating-text { position: absolute; font-weight: bold; font-size: 1.2rem; pointer-events: none; z-index: 1000; animation: floatUp 1s forwards; text-shadow: 0 2px 5px rgba(0,0,0,0.8);}
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-40px); } }
+
+        /* --- LEADERBOARD --- */
+        .leaderboard { width: 100%; max-width: 400px; background: var(--bg-panel); border: 1px solid var(--border-glow); border-radius: 8px; padding: 15px; margin-bottom: 20px;}
+        .lb-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem;}
+        .lb-row:last-child { border: none; }
+        .lb-rank { color: var(--neon-yellow); width: 30px;}
+        .lb-score { color: var(--neon-blue); font-weight: bold;}
+
+        /* Utilities */
+        .instruction { position: absolute; top: 20px; width: 100%; text-align: center; color: var(--neon-yellow); font-size: 0.9rem; letter-spacing: 1px;}
     </style>
 </head>
 <body>
-    <!-- HUD -->
+
     <div id="hud">
-        <div class="hud-item">
-            <div class="hud-label">STAGE</div>
-            <div class="hud-value terminal" id="stage-name">INTRO</div>
-        </div>
-        <div class="hud-item">
-            <div class="hud-label">SCORE</div>
-            <div class="hud-value" id="score">000000</div>
-        </div>
-        <div class="hud-item">
-            <div class="hud-label">SYSTEM HEALTH</div>
-            <div id="health-bar">
-                <div id="health-fill" style="width:100%"></div>
+        <div class="hud-group">
+            <div class="hud-item">
+                <span class="hud-label">Stage</span>
+                <span class="hud-value" id="val-stage" style="color: var(--neon-blue)">INTRO</span>
+            </div>
+            <div class="hud-item" style="margin-left: 10px;">
+                <span class="hud-label">Score</span>
+                <span class="hud-value" id="val-score">0</span>
+            </div>
+            <div class="hud-item" style="margin-left: 10px;">
+                <span class="hud-label">Multiplier</span>
+                <span class="hud-value" id="val-combo">x1</span>
             </div>
         </div>
-        <div class="hud-item">
-            <div class="hud-label">TIME</div>
-            <div class="hud-value" id="timer">90</div>
-        </div>
-        <div class="hud-item">
-            <div class="hud-label">COMBO</div>
-            <div class="hud-value" id="combo">1×</div>
-        </div>
-        <div class="hud-item">
-            <div class="hud-label">DIFFICULTY</div>
-            <div class="hud-value" id="difficulty">LVL 1</div>
+        <div class="hud-group">
+            <div class="hud-item">
+                <span class="hud-label">Time / Wait</span>
+                <span class="hud-value" id="val-time">--</span>
+            </div>
+            <div class="hud-item" style="margin-left: 10px;">
+                <span class="hud-label">System Health</span>
+                <div class="health-bar-bg"><div class="health-bar-fill" id="val-health-bar"></div></div>
+            </div>
         </div>
     </div>
 
-    <!-- GAME CANVAS -->
-    <canvas id="canvas" width="1200" height="640"></canvas>
-
-    <!-- INTRO OVERLAY -->
-    <div id="intro-overlay" class="overlay show">
-        <div id="title">DEVOPS RUSH</div>
-        <div style="font-size:28px; margin-bottom:30px; color:#00ff9d;">SURVIVE THE PRODUCTION CHAOS</div>
-        <div style="max-width:600px; text-align:center; font-size:22px; line-height:1.4; margin-bottom:40px;">
-            Drag components • Fix pods • Defeat incidents<br>
-            Elite cloud engineering in real-time
-        </div>
-        <button onclick="startGame()" class="btn">BEGIN SHIFT</button>
-        <div style="position:absolute; bottom:40px; font-size:18px; color:#555;">
-            Touch + Mouse • 60 FPS • Vanilla JS
-        </div>
-    </div>
-
-    <!-- SCORE SCREEN -->
-    <div id="score-overlay" class="overlay">
-        <div style="font-size:68px; margin-bottom:20px; color:#ff0066;">SHIFT COMPLETE</div>
-        <div style="font-size:42px; margin-bottom:10px;">FINAL SCORE</div>
-        <div id="final-score" style="font-size:92px; color:var(--neon-green); text-shadow:0 0 40px #00ff9d; margin-bottom:30px;">000000</div>
+    <div id="screen-INTRO" class="screen active">
+        <h1 class="title">DevOps Rush</h1>
+        <p class="subtitle">You are the Lead Cloud Engineer. Production is unstable. Architect systems, deploy code, and mitigate disasters before system health reaches 0%.</p>
+        <button class="btn" onclick="Game.changeState('CI_PIPELINE')">Initialize Shift</button>
         
-        <div id="leaderboard">
-            <div style="text-align:center; font-size:24px; margin-bottom:15px; color:var(--neon-purple);">GLOBAL OPS LEADERBOARD</div>
-            <div id="lb-list"></div>
+        <div class="leaderboard" style="margin-top: 40px;">
+            <h3 style="color: var(--neon-yellow); margin-bottom: 10px; text-align: center; text-transform: uppercase;">Top Engineers</h3>
+            <div id="lb-content">No data.</div>
         </div>
-
-        <div style="margin-top:30px;">
-            <input id="player-name" type="text" placeholder="CALLSIGN" maxlength="8" 
-                   style="background:#111; border:3px solid #00f7ff; color:#fff; padding:12px 20px; font-size:24px; width:240px; text-align:center; font-family:VT323;">
-            <button onclick="saveScore()" class="btn" style="margin-left:15px; padding:12px 30px; font-size:22px;">LOG SCORE</button>
-        </div>
-
-        <button onclick="restartGame()" class="btn" style="margin-top:40px;">NEW SHIFT</button>
     </div>
 
-    <!-- ALERT BANNER -->
-    <div id="alert-banner" class="alert">CRITICAL INCIDENT</div>
+    <div id="screen-CI_PIPELINE" class="screen">
+        <div class="instruction">TASK: Assemble the CI/CD Pipeline in correct order.</div>
+        <div class="pipeline-track" id="ci-track">
+            </div>
+        <div class="tools-tray" id="ci-tray"></div>
+    </div>
+
+    <div id="screen-CLOUD_ARCHITECTURE" class="screen">
+        <div class="instruction">TASK: Architect the Cloud Network Flow.</div>
+        <div class="arch-grid" id="arch-track">
+            </div>
+        <div class="tools-tray" id="arch-tray"></div>
+    </div>
+
+    <div id="screen-KUBERNETES_CLUSTER" class="screen">
+        <div class="instruction">TASK: Drag corrective actions to crashing pods! Survive 30s.</div>
+        <div class="k8s-grid" id="k8s-grid"></div>
+        <div class="tools-tray" id="k8s-tray"></div>
+    </div>
+
+    <div id="screen-INCIDENT_RESPONSE" class="screen">
+        <div class="instruction" style="color: var(--neon-red)">CRITICAL: Multiple incidents detected! Resolve quickly. Survive 30s.</div>
+        <div class="terminal-window" id="incident-terminal"></div>
+        <div class="tools-tray" id="incident-tray"></div>
+    </div>
+
+    <div id="screen-SCORE_SCREEN" class="screen">
+        <h1 class="title" id="end-title">Shift Ended</h1>
+        <p class="subtitle" id="end-subtitle">Production stabilized... for now.</p>
+        <h2 style="color: var(--neon-blue); font-size: 3rem; margin: 20px 0;" id="final-score">0</h2>
+        <button class="btn" onclick="Game.init()">Start Next Shift</button>
+    </div>
 
     <script>
-        // ============== CORE ENGINE ==============
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let WIDTH = 1200;
-        let HEIGHT = 640;
-        canvas.width = WIDTH;
-        canvas.height = HEIGHT;
+        // --- GLOBAL GAME STATE ---
+        const Game = {
+            state: 'INTRO',
+            score: 0,
+            health: 100,
+            combo: 1,
+            stageTimer: 0,
+            difficulty: 1,
+            lastFrameTime: 0,
+            animFrame: null,
 
-        // Game state
-        let gameState = 'INTRO';
-        let score = 0;
-        let health = 100;
-        let stageTimer = 90;
-        let combo = 1;
-        let difficulty = 1;
-        let lastTime = 0;
-        let stageStartTime = 0;
-        let dragging = null;
-        let dragOffsetX = 0;
-        let dragOffsetY = 0;
+            init() {
+                this.score = 0;
+                this.health = 100;
+                this.combo = 1;
+                this.difficulty = 1;
+                UI.updateHUD();
+                UI.loadLeaderboard();
+                this.changeState('INTRO');
+                if(!this.animFrame) this.animFrame = requestAnimationFrame(t => this.loop(t));
+            },
 
-        // Systems
-        let particles = [];
-        let draggables = [];
-        let dropTargets = [];
-        let pods = [];
-        let incidents = [];
-        let lines = [];
-
-        // Audio
-        let audioCtx;
-        function initAudio() {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        function playBeep(freq, duration, type = 'sine', vol = 0.4) {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.value = freq;
-            osc.type = type;
-            gain.gain.value = vol;
-            osc.start();
-            setTimeout(() => {
-                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.02);
-                osc.stop(audioCtx.currentTime + 0.05);
-            }, duration);
-        }
-
-        // Particle system
-        class Particle {
-            constructor(x, y, vx, vy, life, color, size) {
-                this.x = x; this.y = y;
-                this.vx = vx; this.vy = vy;
-                this.life = life;
-                this.maxLife = life;
-                this.color = color;
-                this.size = size || 6;
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.vy += 0.08;
-                this.life--;
-                this.vx *= 0.98;
-            }
-            draw() {
-                const alpha = this.life / this.maxLife;
-                ctx.save();
-                ctx.globalAlpha = alpha * 0.9;
-                ctx.fillStyle = this.color;
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.color;
-                ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
-                ctx.restore();
-            }
-        }
-
-        function createExplosion(x, y, color, count = 35) {
-            for (let i = 0; i < count; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const vel = 2 + Math.random() * 7;
-                particles.push(new Particle(
-                    x, y,
-                    Math.cos(angle) * vel,
-                    Math.sin(angle) * vel - 3,
-                    35 + Math.random() * 25,
-                    color,
-                    4 + Math.random() * 5
-                ));
-            }
-        }
-
-        // Utility
-        function hitTest(obj, x, y) {
-            return x > obj.x && x < obj.x + obj.w && y > obj.y && y < obj.y + obj.h;
-        }
-
-        function overlap(a, b) {
-            return !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
-        }
-
-        function getPointerPos(e) {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = WIDTH / rect.width;
-            return {
-                x: (e.clientX || e.touches[0].clientX) * scaleX - rect.left * scaleX,
-                y: (e.clientY || e.touches[0].clientY) * (HEIGHT / rect.height) - rect.top * (HEIGHT / rect.height)
-            };
-        }
-
-        // ============== STATE MACHINE ==============
-        function changeState(newState) {
-            gameState = newState;
-            document.getElementById('stage-name').textContent = newState.replace('_', ' ');
-            
-            // Clear stage objects
-            draggables = [];
-            dropTargets = [];
-            pods = [];
-            incidents = [];
-            lines = [];
-            dragging = null;
-
-            if (newState === 'INTRO') return;
-            
-            stageStartTime = Date.now();
-            stageTimer = 90;
-            
-            if (newState === 'CI_PIPELINE') initCIPipeline();
-            else if (newState === 'CLOUD_ARCHITECTURE') initCloudArchitecture();
-            else if (newState === 'KUBERNETES_CLUSTER') initKubernetes();
-            else if (newState === 'INCIDENT_RESPONSE') initIncidentResponse();
-            else if (newState === 'SCORE_SCREEN') showScoreScreen();
-        }
-
-        // ============== MINI-GAME 1: CI PIPELINE ==============
-        const pipelineComponents = ['Git', 'Build', 'Test', 'Docker', 'Registry', 'Deploy'];
-        
-        function initCIPipeline() {
-            const shuffled = [...pipelineComponents].sort(() => Math.random() - 0.5);
-            
-            // Draggables on left
-            for (let i = 0; i < 6; i++) {
-                draggables.push({
-                    type: 'ci',
-                    label: shuffled[i],
-                    x: 80 + (i % 3) * 170,
-                    y: 180 + Math.floor(i / 3) * 160,
-                    w: 130,
-                    h: 92,
-                    correctIndex: pipelineComponents.indexOf(shuffled[i]),
-                    placed: false,
-                    originalX: 80 + (i % 3) * 170,
-                    originalY: 180 + Math.floor(i / 3) * 160,
-                    color: '#00ff9d'
-                });
-            }
-            
-            // Drop slots
-            for (let i = 0; i < 6; i++) {
-                dropTargets.push({
-                    x: 620 + i * 82,
-                    y: 260,
-                    w: 74,
-                    h: 110,
-                    index: i,
-                    occupied: false,
-                    expected: pipelineComponents[i]
-                });
-            }
-        }
-
-        function checkPipelineComplete() {
-            if (dropTargets.every(t => t.occupied)) {
-                score += 800 * combo;
-                createExplosion(600, 320, '#00f7ff', 80);
-                playBeep(1200, 180);
-                playBeep(1600, 280);
-                setTimeout(() => {
-                    changeState('CLOUD_ARCHITECTURE');
-                }, 1400);
-            }
-        }
-
-        // ============== MINI-GAME 2: CLOUD ARCHITECTURE ==============
-        function initCloudArchitecture() {
-            const services = [
-                {label: 'Internet', correctX: 120, correctY: 180},
-                {label: 'CloudFront', correctX: 320, correctY: 140},
-                {label: 'ALB', correctX: 520, correctY: 240},
-                {label: 'EKS', correctX: 720, correctY: 200},
-                {label: 'RDS', correctX: 920, correctY: 320},
-                {label: 'ElastiCache', correctX: 720, correctY: 380}
-            ];
-            
-            const shuffledServices = [...services].sort(() => Math.random() - 0.5);
-            
-            for (let i = 0; i < 6; i++) {
-                draggables.push({
-                    type: 'cloud',
-                    label: shuffledServices[i].label,
-                    x: 80 + (i % 3) * 170,
-                    y: 160 + Math.floor(i / 3) * 170,
-                    w: 140,
-                    h: 88,
-                    correctX: shuffledServices[i].correctX,
-                    correctY: shuffledServices[i].correctY,
-                    placed: false,
-                    color: '#9d00ff'
-                });
-            }
-            
-            // Predefined connection lines
-            lines = [
-                {from: {x:180,y:210}, to: {x:370,y:170}},
-                {from: {x:390,y:170}, to: {x:570,y:260}},
-                {from: {x:590,y:270}, to: {x:750,y:230}},
-                {from: {x:770,y:230}, to: {x:930,y:340}},
-                {from: {x:750,y:260}, to: {x:760,y:370}}
-            ];
-        }
-
-        function checkCloudComplete() {
-            const placedCount = draggables.filter(d => d.placed).length;
-            if (placedCount === 6) {
-                score += 1200 * combo;
-                createExplosion(600, 300, '#ff00cc', 100);
-                setTimeout(() => changeState('KUBERNETES_CLUSTER'), 1300);
-            }
-        }
-
-        // ============== MINI-GAME 3: KUBERNETES ==============
-        function initKubernetes() {
-            pods = [];
-            const podNames = ['api-7f2', 'web-3c1', 'db-9a4', 'cache-2b8', 'worker-4d9'];
-            for (let i = 0; i < 5; i++) {
-                pods.push({
-                    x: 220 + i * 160,
-                    y: 240,
-                    label: podNames[i],
-                    crashed: false,
-                    issue: null,
-                    timer: 0
-                });
-            }
-            
-            // Fix palette
-            const fixes = ['Restart', 'Scale', 'Redeploy', 'Rollback'];
-            for (let i = 0; i < 4; i++) {
-                draggables.push({
-                    type: 'fix',
-                    label: fixes[i],
-                    x: 100,
-                    y: 420 + i * 55,
-                    w: 160,
-                    h: 48,
-                    color: '#00f7ff'
-                });
-            }
-            
-            // Spawn first crash
-            setTimeout(spawnPodCrash, 800);
-        }
-
-        function spawnPodCrash() {
-            if (gameState !== 'KUBERNETES_CLUSTER') return;
-            const healthy = pods.filter(p => !p.crashed);
-            if (healthy.length === 0) return;
-            
-            const pod = healthy[Math.floor(Math.random() * healthy.length)];
-            pod.crashed = true;
-            pod.issue = ['OOM', 'Crash', 'Network', 'CPU'][Math.floor(Math.random()*4)];
-            pod.timer = 180;
-            
-            // Spawn alert
-            showAlert(pod.issue + ' in ' + pod.label);
-            setTimeout(() => { if (document.getElementById('alert-banner')) document.getElementById('alert-banner').style.display = 'none'; }, 2200);
-            
-            // Schedule next
-            if (difficulty > 2) setTimeout(spawnPodCrash, 2200);
-        }
-
-        // ============== MINI-GAME 4: INCIDENT RESPONSE ==============
-        function initIncidentResponse() {
-            incidents = [];
-            draggables = [];
-            
-            const fixTypes = [
-                {label:'AutoScale', match:'CPU Spike'},
-                {label:'Restart', match:'Memory Leak'},
-                {label:'Clean Logs', match:'Disk Full'},
-                {label:'WAF', match:'DDoS'},
-                {label:'Cache', match:'High Latency'},
-                {label:'Reconnect', match:'DB Fail'}
-            ];
-            
-            // Fix palette
-            for (let i = 0; i < fixTypes.length; i++) {
-                draggables.push({
-                    type: 'incident-fix',
-                    label: fixTypes[i].label,
-                    match: fixTypes[i].match,
-                    x: 80,
-                    y: 160 + i * 68,
-                    w: 170,
-                    h: 54,
-                    color: '#ff00aa'
-                });
-            }
-            
-            spawnIncident();
-            spawnIncident();
-        }
-
-        function spawnIncident() {
-            if (gameState !== 'INCIDENT_RESPONSE') return;
-            
-            const types = ['CPU Spike','Memory Leak','Disk Full','DDoS','High Latency','DB Fail'];
-            const type = types[Math.floor(Math.random()*types.length)];
-            
-            incidents.push({
-                x: 480 + Math.random() * 520,
-                y: 140 + Math.random() * 280,
-                w: 210,
-                h: 110,
-                type: type,
-                life: 240 + Math.random() * 120
-            });
-            
-            showAlert(type);
-            setTimeout(() => { if (document.getElementById('alert-banner')) document.getElementById('alert-banner').style.display = 'none'; }, 1800);
-            
-            if (incidents.length < 3 + difficulty) {
-                setTimeout(spawnIncident, 1400);
-            }
-        }
-
-        function showAlert(text) {
-            const alertEl = document.getElementById('alert-banner');
-            alertEl.textContent = text.toUpperCase();
-            alertEl.style.display = 'block';
-        }
-
-        // ============== INPUT HANDLING ==============
-        function attachInput() {
-            canvas.addEventListener('pointerdown', e => {
-                if (gameState === 'INTRO' || gameState === 'SCORE_SCREEN') return;
-                const pos = getPointerPos(e);
+            changeState(newState) {
+                if (Stages[this.state] && Stages[this.state].exit) Stages[this.state].exit();
+                this.state = newState;
+                document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+                document.getElementById(`screen-${newState}`).classList.add('active');
                 
-                // Check draggables from top
-                for (let i = draggables.length - 1; i >= 0; i--) {
-                    const d = draggables[i];
-                    if (!d.placed && hitTest(d, pos.x, pos.y)) {
-                        dragging = d;
-                        dragOffsetX = pos.x - d.x;
-                        dragOffsetY = pos.y - d.y;
-                        // Bring to front
-                        draggables.splice(i, 1);
-                        draggables.push(d);
-                        return;
+                let displayTitle = newState.replace('_', ' ');
+                if(newState === 'SCORE_SCREEN') displayTitle = 'DEBRIEF';
+                document.getElementById('val-stage').innerText = displayTitle;
+                
+                if (Stages[newState] && Stages[newState].enter) Stages[newState].enter();
+            },
+
+            loop(timestamp) {
+                const dt = (timestamp - this.lastFrameTime) / 1000; // Delta time in seconds
+                this.lastFrameTime = timestamp;
+
+                if (dt < 0.1) { // Cap dt to avoid massive jumps
+                    if (Stages[this.state] && Stages[this.state].update) {
+                        Stages[this.state].update(dt);
                     }
-                }
-            });
-
-            canvas.addEventListener('pointermove', e => {
-                if (!dragging) return;
-                const pos = getPointerPos(e);
-                dragging.x = pos.x - dragOffsetX;
-                dragging.y = pos.y - dragOffsetY;
-            });
-
-            canvas.addEventListener('pointerup', e => {
-                if (!dragging) return;
-                const pos = getPointerPos(e);
-                
-                let dropped = false;
-                
-                // Check drop targets
-                for (let target of dropTargets) {
-                    if (!target.occupied && overlap(dragging, target)) {
-                        if (dragging.type === 'ci' && dragging.correctIndex === target.index) {
-                            // CI success
-                            target.occupied = true;
-                            dragging.placed = true;
-                            dragging.x = target.x + 4;
-                            dragging.y = target.y + 10;
-                            score += 120 * combo;
-                            combo = Math.min(combo + 1, 8);
-                            createExplosion(dragging.x + 65, dragging.y + 40, '#00ff9d');
-                            playBeep(900, 120);
-                            checkPipelineComplete();
-                            dropped = true;
-                        } 
-                        else if (dragging.type === 'cloud' && 
-                                 Math.abs(dragging.x - dragging.correctX) < 70 && 
-                                 Math.abs(dragging.y - dragging.correctY) < 70) {
-                            dragging.placed = true;
-                            dragging.x = dragging.correctX - 60;
-                            dragging.y = dragging.correctY - 35;
-                            score += 180 * combo;
-                            combo = Math.min(combo + 1, 8);
-                            createExplosion(dragging.x + 70, dragging.y + 40, '#9d00ff');
-                            playBeep(1100, 140);
-                            checkCloudComplete();
-                            dropped = true;
-                        }
-                    }
+                    Particles.update(dt);
                 }
                 
-                // Kubernetes pod fix
-                if (dragging.type === 'fix' && gameState === 'KUBERNETES_CLUSTER') {
-                    for (let pod of pods) {
-                        if (pod.crashed && hitTest(pod, pos.x, pos.y)) {
-                            pod.crashed = false;
-                            pod.issue = null;
-                            score += 250 * combo;
-                            combo = Math.min(combo + 1, 8);
-                            createExplosion(pod.x + 60, pod.y + 50, '#00ff9d', 45);
-                            playBeep(1300, 200);
-                            dropped = true;
-                            break;
-                        }
-                    }
-                }
-                
-                // Incident fix
-                if (dragging.type === 'incident-fix' && gameState === 'INCIDENT_RESPONSE') {
-                    for (let i = incidents.length - 1; i >= 0; i--) {
-                        const inc = incidents[i];
-                        if (hitTest(inc, pos.x, pos.y) && dragging.match === inc.type) {
-                            createExplosion(inc.x + 100, inc.y + 50, '#00f7ff', 60);
-                            playBeep(1600, 150);
-                            score += 320 * combo;
-                            combo = Math.min(combo + 1, 8);
-                            incidents.splice(i, 1);
-                            dropped = true;
-                            break;
-                        }
-                    }
-                }
-                
-                if (!dropped) {
-                    // Wrong drop or miss
-                    if (dragging.originalX !== undefined) {
-                        dragging.x = dragging.originalX;
-                        dragging.y = dragging.originalY;
-                    }
-                    combo = 1;
-                    health = Math.max(0, health - 6);
-                    playBeep(180, 420, 'sawtooth', 0.6);
-                    createExplosion(dragging.x + 50, dragging.y + 30, '#ff0066', 18);
-                }
-                
-                dragging = null;
-            });
-        }
+                this.animFrame = requestAnimationFrame(t => this.loop(t));
+            },
 
-        // ============== UPDATE & DRAW ==============
-        function update(dt) {
-            // Global timer
-            if (gameState !== 'INTRO' && gameState !== 'SCORE_SCREEN') {
-                const elapsed = (Date.now() - stageStartTime) / 1000;
-                stageTimer = Math.max(0, Math.ceil(90 - elapsed));
+            addScore(points) {
+                this.score += points * this.combo;
+                this.combo++;
+                UI.updateHUD();
+                UI.floatText(`+${points * this.combo}`, varColors.blue);
+            },
+
+            takeDamage(amount, reason) {
+                this.health -= amount;
+                this.combo = 1;
+                if(this.health < 0) this.health = 0;
+                UI.updateHUD();
+                UI.floatText(`-${amount} HP!`, varColors.red);
                 
-                if (stageTimer <= 0) {
-                    if (gameState === 'INCIDENT_RESPONSE') {
-                        changeState('SCORE_SCREEN');
+                // Screen shake effect
+                document.body.style.transform = `translate(${Math.random()*10-5}px, ${Math.random()*10-5}px)`;
+                setTimeout(() => document.body.style.transform = 'none', 100);
+
+                if (this.health <= 0 && this.state !== 'SCORE_SCREEN') {
+                    this.changeState('SCORE_SCREEN');
+                }
+            },
+
+            saveScore() {
+                let scores = JSON.parse(localStorage.getItem('devopsRushScores') || '[]');
+                scores.push(this.score);
+                scores.sort((a,b) => b-a);
+                scores = scores.slice(0, 5);
+                localStorage.setItem('devopsRushScores', JSON.stringify(scores));
+            }
+        };
+
+        // --- CONSTANTS & HELPERS ---
+        const varColors = {
+            blue: '#00f3ff', green: '#39ff14', red: '#ff003c', yellow: '#ffea00'
+        };
+
+        const Utils = {
+            randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; },
+            shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            },
+            createDraggable(id, label, color) {
+                const el = document.createElement('div');
+                el.className = 'draggable';
+                el.id = `drag-${id}`;
+                el.dataset.id = id;
+                el.innerText = label;
+                if(color) { el.style.borderColor = color; el.style.color = color; }
+                return el;
+            },
+            createDropzone(id, expectedId) {
+                const el = document.createElement('div');
+                el.className = 'dropzone';
+                el.dataset.expected = expectedId;
+                el.id = `drop-${id}`;
+                return el;
+            }
+        };
+
+        // --- UI MANAGER ---
+        const UI = {
+            updateHUD() {
+                document.getElementById('val-score').innerText = Game.score;
+                document.getElementById('val-combo').innerText = `x${Game.combo}`;
+                const hb = document.getElementById('val-health-bar');
+                hb.style.width = `${Game.health}%`;
+                hb.style.backgroundColor = Game.health > 50 ? varColors.green : (Game.health > 25 ? varColors.yellow : varColors.red);
+            },
+            setTime(seconds) {
+                document.getElementById('val-time').innerText = Math.ceil(seconds) + 's';
+            },
+            floatText(text, color, x = window.innerWidth/2, y = window.innerHeight/2) {
+                const el = document.createElement('div');
+                el.className = 'floating-text';
+                el.innerText = text;
+                el.style.color = color;
+                el.style.left = `${x}px`;
+                el.style.top = `${y}px`;
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 1000);
+            },
+            loadLeaderboard() {
+                const scores = JSON.parse(localStorage.getItem('devopsRushScores') || '[]');
+                const lb = document.getElementById('lb-content');
+                if(scores.length === 0) { lb.innerHTML = 'No data.'; return; }
+                let html = '';
+                scores.forEach((s, i) => {
+                    html += `<div class="lb-row"><span class="lb-rank">#${i+1}</span><span class="lb-score">${s}</span></div>`;
+                });
+                lb.innerHTML = html;
+            }
+        };
+
+        // --- PARTICLE SYSTEM ---
+        const Particles = {
+            list: [],
+            createExplosion(x, y, color, count = 15) {
+                for(let i=0; i<count; i++) {
+                    const el = document.createElement('div');
+                    el.className = 'particle';
+                    const size = Utils.randomInt(4, 10);
+                    el.style.width = `${size}px`;
+                    el.style.height = `${size}px`;
+                    el.style.backgroundColor = color;
+                    el.style.boxShadow = `0 0 10px ${color}`;
+                    el.style.left = `${x}px`;
+                    el.style.top = `${y}px`;
+                    document.body.appendChild(el);
+
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = Utils.randomInt(50, 200);
+                    this.list.push({
+                        el, x, y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 1.0
+                    });
+                }
+            },
+            update(dt) {
+                for(let i = this.list.length - 1; i >= 0; i--) {
+                    let p = this.list[i];
+                    p.life -= dt * 1.5;
+                    if(p.life <= 0) {
+                        p.el.remove();
+                        this.list.splice(i, 1);
                     } else {
-                        const nextStates = ['CI_PIPELINE','CLOUD_ARCHITECTURE','KUBERNETES_CLUSTER','INCIDENT_RESPONSE','SCORE_SCREEN'];
-                        const idx = nextStates.indexOf(gameState);
-                        changeState(nextStates[idx + 1]);
+                        p.x += p.vx * dt;
+                        p.y += p.vy * dt;
+                        p.el.style.left = `${p.x}px`;
+                        p.el.style.top = `${p.y}px`;
+                        p.el.style.opacity = p.life;
                     }
                 }
-                
-                // Passive health drain + chaos
-                if (Math.random() < 0.012 * difficulty) {
-                    health = Math.max(0, health - 0.6);
+            }
+        };
+
+        // --- DRAG & DROP MANAGER ---
+        const DragManager = {
+            activeDrag: null,
+            offsetX: 0, offsetY: 0,
+            origParent: null,
+            onDropCallback: null,
+
+            init(dropCallback) {
+                this.onDropCallback = dropCallback;
+                document.addEventListener('pointerdown', this.onDown.bind(this));
+                document.addEventListener('pointermove', this.onMove.bind(this));
+                document.addEventListener('pointerup', this.onUp.bind(this));
+            },
+            
+            clear() {
+                if(this.activeDrag) {
+                    this.activeDrag.classList.remove('dragging');
+                    this.activeDrag = null;
                 }
+            },
+
+            onDown(e) {
+                if(e.target.classList.contains('draggable')) {
+                    this.activeDrag = e.target;
+                    this.origParent = this.activeDrag.parentElement;
+                    const rect = this.activeDrag.getBoundingClientRect();
+                    this.offsetX = e.clientX - rect.left;
+                    this.offsetY = e.clientY - rect.top;
+                    
+                    // Move to body for absolute positioning
+                    const origX = rect.left;
+                    const origY = rect.top;
+                    this.activeDrag.style.left = origX + 'px';
+                    this.activeDrag.style.top = origY + 'px';
+                    this.activeDrag.style.width = rect.width + 'px'; // Fix width
+                    document.body.appendChild(this.activeDrag);
+                    
+                    this.activeDrag.classList.add('dragging');
+                    this.activeDrag.setPointerCapture(e.pointerId);
+                }
+            },
+
+            onMove(e) {
+                if(!this.activeDrag) return;
+                this.activeDrag.style.left = (e.clientX - this.offsetX) + 'px';
+                this.activeDrag.style.top = (e.clientY - this.offsetY) + 'px';
                 
-                // Difficulty ramp
-                difficulty = Math.floor(1 + (Date.now() - stageStartTime) / 28000);
-                document.getElementById('difficulty').textContent = `LVL ${difficulty}`;
-            }
-            
-            // Update particles
-            for (let i = particles.length - 1; i >= 0; i--) {
-                particles[i].update();
-                if (particles[i].life <= 0) particles.splice(i, 1);
-            }
-            
-            // Kubernetes logic
-            if (gameState === 'KUBERNETES_CLUSTER') {
-                for (let pod of pods) {
-                    if (pod.crashed) {
-                        pod.timer--;
-                        if (pod.timer <= 0) {
-                            pod.crashed = false;
-                            health = Math.max(0, health - 18);
-                            createExplosion(pod.x + 60, pod.y + 50, '#ff0066', 30);
+                // Hover effect
+                document.querySelectorAll('.dropzone').forEach(dz => dz.classList.remove('hover'));
+                const dropTarget = this.getDropTarget(e.clientX, e.clientY);
+                if(dropTarget) dropTarget.classList.add('hover');
+            },
+
+            onUp(e) {
+                if(!this.activeDrag) return;
+                this.activeDrag.releasePointerCapture(e.pointerId);
+                this.activeDrag.classList.remove('dragging');
+                
+                const dropTarget = this.getDropTarget(e.clientX, e.clientY);
+                document.querySelectorAll('.dropzone').forEach(dz => dz.classList.remove('hover'));
+
+                if(dropTarget && !dropTarget.classList.contains('filled')) {
+                    // Execute Callback
+                    if(this.onDropCallback) {
+                        const success = this.onDropCallback(this.activeDrag, dropTarget);
+                        if(success) {
+                            // Snap to target
+                            this.activeDrag.style.position = 'static';
+                            this.activeDrag.style.width = '100%';
+                            this.activeDrag.style.height = '100%';
+                            dropTarget.appendChild(this.activeDrag);
+                            dropTarget.classList.add('filled');
+                            this.activeDrag = null;
+                            return;
                         }
                     }
                 }
-                // Spawn new crash occasionally
-                if (Math.random() < 0.018) spawnPodCrash();
+                
+                // Return to tray
+                this.activeDrag.style.position = 'static';
+                this.activeDrag.style.width = 'auto';
+                this.origParent.appendChild(this.activeDrag);
+                this.activeDrag = null;
+            },
+
+            getDropTarget(x, y) {
+                // Hide active element temporarily to find element underneath
+                this.activeDrag.style.display = 'none';
+                const el = document.elementFromPoint(x, y);
+                this.activeDrag.style.display = 'flex';
+                if(!el) return null;
+                return el.closest('.dropzone');
             }
+        };
+
+        // --- STAGES LOGIC ---
+        const Stages = {};
+
+        // 0. INTRO
+        Stages['INTRO'] = {}; // Handled by Game.init() buttons
+
+        // 1. CI PIPELINE
+        Stages['CI_PIPELINE'] = {
+            sequence: ['git', 'build', 'test', 'docker', 'registry', 'deploy'],
+            labels: ['Git Push', 'Build', 'Unit Test', 'Dockerize', 'Registry', 'Deploy Prod'],
+            filledCount: 0,
             
-            // Incident timeout
-            if (gameState === 'INCIDENT_RESPONSE') {
-                for (let i = incidents.length - 1; i >= 0; i--) {
-                    incidents[i].life--;
-                    if (incidents[i].life <= 0) {
-                        health = Math.max(0, health - 22);
-                        createExplosion(incidents[i].x + 100, incidents[i].y + 50, '#ff0066');
-                        incidents.splice(i, 1);
+            enter() {
+                this.filledCount = 0;
+                const track = document.getElementById('ci-track');
+                const tray = document.getElementById('ci-tray');
+                track.innerHTML = ''; tray.innerHTML = '';
+
+                // Create Track
+                this.sequence.forEach((id, index) => {
+                    const dz = Utils.createDropzone(index, id);
+                    dz.classList.add('pipe-zone');
+                    track.appendChild(dz);
+                    if(index < this.sequence.length - 1) {
+                        const arrow = document.createElement('div');
+                        arrow.className = 'pipe-arrow'; arrow.innerText = '➔';
+                        track.appendChild(arrow);
                     }
-                }
-            }
-            
-            // HUD sync
-            document.getElementById('score').textContent = String(Math.floor(score)).padStart(6, '0');
-            document.getElementById('timer').textContent = stageTimer;
-            document.getElementById('combo').textContent = combo + '×';
-            document.getElementById('health-fill').style.width = health + '%';
-            
-            if (health <= 0 && gameState !== 'SCORE_SCREEN') {
-                changeState('SCORE_SCREEN');
-            }
-        }
-
-        function drawBackground() {
-            ctx.fillStyle = '#0a0f1f';
-            ctx.fillRect(0, 0, WIDTH, HEIGHT);
-            
-            // Subtle grid
-            ctx.strokeStyle = 'rgba(0, 247, 255, 0.07)';
-            ctx.lineWidth = 1;
-            for (let x = 40; x < WIDTH; x += 40) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, HEIGHT);
-                ctx.stroke();
-            }
-            for (let y = 40; y < HEIGHT; y += 40) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(WIDTH, y);
-                ctx.stroke();
-            }
-            
-            // Dashboard header glow
-            ctx.fillStyle = 'rgba(0, 247, 255, 0.03)';
-            ctx.fillRect(0, 0, WIDTH, 110);
-        }
-
-        function draw() {
-            drawBackground();
-            
-            ctx.textAlign = 'left';
-            ctx.font = '22px VT323';
-            
-            if (gameState === 'CI_PIPELINE') {
-                ctx.fillStyle = '#00f7ff';
-                ctx.fillText('>>> CI/CD PIPELINE ASSEMBLY', 60, 80);
-                
-                // Pipeline flow line
-                ctx.strokeStyle = '#00ff9d';
-                ctx.lineWidth = 12;
-                ctx.beginPath();
-                ctx.moveTo(570, 310);
-                ctx.lineTo(1130, 310);
-                ctx.stroke();
-                
-                // Draw slots
-                for (let t of dropTargets) {
-                    ctx.strokeStyle = t.occupied ? '#00ff9d' : '#334455';
-                    ctx.lineWidth = 6;
-                    ctx.strokeRect(t.x, t.y, t.w, t.h);
-                    ctx.fillStyle = '#112233';
-                    ctx.fillRect(t.x + 4, t.y + 4, t.w - 8, t.h - 8);
-                    ctx.fillStyle = '#00ff9d';
-                    ctx.fillText((t.index + 1) + '', t.x + 26, t.y + 68);
-                }
-                
-            } else if (gameState === 'CLOUD_ARCHITECTURE') {
-                ctx.fillStyle = '#9d00ff';
-                ctx.fillText('CLOUD ARCHITECTURE BUILDER', 60, 80);
-                
-                // Draw connection lines when ready
-                ctx.strokeStyle = '#ff00cc';
-                ctx.lineWidth = 5;
-                ctx.setLineDash([8, 18]);
-                lines.forEach(line => {
-                    ctx.beginPath();
-                    ctx.moveTo(line.from.x, line.from.y);
-                    ctx.lineTo(line.to.x, line.to.y);
-                    ctx.stroke();
                 });
-                ctx.setLineDash([]);
-            } 
-            else if (gameState === 'KUBERNETES_CLUSTER') {
-                ctx.fillStyle = '#00ff9d';
-                ctx.fillText('KUBERNETES CLUSTER MANAGEMENT', 60, 80);
+
+                // Create Draggables
+                let items = this.sequence.map((id, i) => ({id, lbl: this.labels[i]}));
+                Utils.shuffle(items).forEach(item => {
+                    tray.appendChild(Utils.createDraggable(item.id, item.lbl));
+                });
+
+                DragManager.init(this.handleDrop.bind(this));
+            },
+            
+            handleDrop(dragEl, dropEl) {
+                const expected = dropEl.dataset.expected;
+                const actual = dragEl.dataset.id;
                 
-                // Draw pods
-                for (let pod of pods) {
-                    ctx.save();
-                    const pulse = pod.crashed ? Math.sin(Date.now()/80) * 6 : 0;
-                    ctx.translate(pod.x, pod.y);
-                    
-                    ctx.fillStyle = pod.crashed ? '#ff0066' : '#00ff9d';
-                    ctx.shadowBlur = 25;
-                    ctx.shadowColor = pod.crashed ? '#ff0066' : '#00ff9d';
-                    ctx.fillRect(-10, -10, 130, 92);
-                    
-                    ctx.fillStyle = '#000';
-                    ctx.fillRect(8, 18, 94, 54);
-                    ctx.fillStyle = '#fff';
-                    ctx.font = '17px VT323';
-                    ctx.fillText(pod.label, 18, 48);
-                    
-                    if (pod.crashed) {
-                        ctx.fillStyle = '#ff0';
-                        ctx.fillText(pod.issue || 'CRASH', 18, 78);
+                if(expected === actual) {
+                    const rect = dropEl.getBoundingClientRect();
+                    Particles.createExplosion(rect.left + rect.width/2, rect.top + rect.height/2, varColors.green);
+                    Game.addScore(100);
+                    this.filledCount++;
+                    if(this.filledCount === this.sequence.length) {
+                        setTimeout(() => Game.changeState('CLOUD_ARCHITECTURE'), 1000);
                     }
-                    ctx.restore();
+                    return true;
+                } else {
+                    Game.takeDamage(10, 'Pipeline Broken');
+                    return false;
                 }
-            } 
-            else if (gameState === 'INCIDENT_RESPONSE') {
-                ctx.fillStyle = '#ff0066';
-                ctx.fillText('INCIDENT RESPONSE OPS', 60, 80);
+            },
+            exit() { DragManager.clear(); }
+        };
+
+        // 2. CLOUD ARCHITECTURE
+        Stages['CLOUD_ARCHITECTURE'] = {
+            nodes: [
+                {id: 'internet', lbl: 'Internet', row: 1, col: 2, static: true},
+                {id: 'cloudfront', lbl: 'CDN', row: 2, col: 2},
+                {id: 'alb', lbl: 'Load Balancer', row: 3, col: 2},
+                {id: 'k8s', lbl: 'K8s Cluster', row: 4, col: 2},
+                {id: 'db', lbl: 'Database', row: 5, col: 1},
+                {id: 'cache', lbl: 'Redis Cache', row: 5, col: 3}
+            ],
+            filledCount: 0,
+
+            enter() {
+                this.filledCount = 0;
+                const track = document.getElementById('arch-track');
+                const tray = document.getElementById('arch-tray');
+                track.innerHTML = ''; tray.innerHTML = '';
                 
-                // Draw incidents
-                for (let inc of incidents) {
-                    ctx.save();
-                    ctx.translate(inc.x, inc.y);
-                    ctx.fillStyle = '#330011';
-                    ctx.fillRect(0, 0, inc.w, inc.h);
-                    ctx.strokeStyle = '#ff0066';
-                    ctx.lineWidth = 7;
-                    ctx.strokeRect(0, 0, inc.w, inc.h);
+                // Adjust Grid logic for tree
+                track.style.gridTemplateColumns = 'repeat(3, 1fr)';
+                track.style.gridTemplateRows = 'repeat(5, 1fr)';
+
+                let draggables = [];
+
+                this.nodes.forEach(n => {
+                    const container = document.createElement('div');
+                    container.style.gridRow = n.row;
+                    container.style.gridColumn = n.col;
+                    container.className = 'arch-zone';
+
+                    if(n.static) {
+                        const el = Utils.createDraggable('static', n.lbl, varColors.green);
+                        el.style.position = 'relative'; el.style.width='100%'; el.style.height='100%';
+                        el.style.cursor = 'default';
+                        container.appendChild(el);
+                    } else {
+                        const dz = Utils.createDropzone(`arch-${n.id}`, n.id);
+                        dz.style.width = '100%'; dz.style.height = '100%';
+                        container.appendChild(dz);
+                        draggables.push({id: n.id, lbl: n.lbl});
+                    }
+                    track.appendChild(container);
+                });
+
+                Utils.shuffle(draggables).forEach(item => {
+                    tray.appendChild(Utils.createDraggable(item.id, item.lbl));
+                });
+
+                DragManager.init(this.handleDrop.bind(this));
+            },
+
+            handleDrop(dragEl, dropEl) {
+                if(dropEl.dataset.expected === dragEl.dataset.id) {
+                    const rect = dropEl.getBoundingClientRect();
+                    Particles.createExplosion(rect.left + rect.width/2, rect.top + rect.height/2, varColors.blue);
+                    Game.addScore(150);
+                    this.filledCount++;
+                    if(this.filledCount === this.nodes.length - 1) { // Exclude static
+                        setTimeout(() => Game.changeState('KUBERNETES_CLUSTER'), 1000);
+                    }
+                    return true;
+                } else {
+                    Game.takeDamage(15, 'Architecture Flaw');
+                    return false;
+                }
+            },
+            exit() { DragManager.clear(); }
+        };
+
+        // 3. KUBERNETES CLUSTER
+        Stages['KUBERNETES_CLUSTER'] = {
+            timer: 30,
+            pods: [],
+            eventTimer: 0,
+            fixes: [
+                {id: 'restart', lbl: 'Restart Pod', err: 'CrashLoopBackOff'},
+                {id: 'scale', lbl: 'Scale Deploy', err: 'HighLoad'},
+                {id: 'redeploy', lbl: 'Redeploy', err: 'ImagePullError'},
+                {id: 'rollback', lbl: 'Roll Back', err: 'BadUpdate'}
+            ],
+
+            enter() {
+                this.timer = 30;
+                this.eventTimer = 2; // initial delay
+                const grid = document.getElementById('k8s-grid');
+                const tray = document.getElementById('k8s-tray');
+                grid.innerHTML = ''; tray.innerHTML = '';
+                this.pods = [];
+
+                for(let i=0; i<6; i++) {
+                    const pod = document.createElement('div');
+                    pod.className = 'pod';
+                    pod.innerHTML = `<div class="pod-title">Pod-${Utils.randomInt(1000,9999)}</div><div class="pod-status">Running</div>`;
                     
-                    ctx.fillStyle = '#fff';
-                    ctx.font = '28px VT323';
-                    ctx.fillText(inc.type, 22, 48);
-                    ctx.restore();
+                    const dz = Utils.createDropzone(`pod-${i}`, 'none');
+                    dz.style.position = 'absolute'; dz.style.width='100%'; dz.style.height='100%';
+                    dz.style.border = 'none'; dz.style.background = 'transparent';
+                    pod.appendChild(dz);
+                    
+                    grid.appendChild(pod);
+                    this.pods.push({el: pod, dz: dz, state: 'healthy', errType: null, timeToDie: 0});
                 }
-            }
-            
-            // Draw draggables
-            for (let d of draggables) {
-                if (d.placed && gameState !== 'KUBERNETES_CLUSTER') continue;
+
+                this.fixes.forEach(f => {
+                    tray.appendChild(Utils.createDraggable(f.id, f.lbl, varColors.blue));
+                });
+
+                DragManager.init(this.handleDrop.bind(this));
+            },
+
+            update(dt) {
+                this.timer -= dt;
+                UI.setTime(this.timer);
+                if(this.timer <= 0) {
+                    Game.changeState('INCIDENT_RESPONSE');
+                    return;
+                }
+
+                this.eventTimer -= dt;
+                if(this.eventTimer <= 0) {
+                    this.crashRandomPod();
+                    this.eventTimer = Utils.randomInt(2, 4) - (Game.difficulty * 0.2); // gets faster
+                }
+
+                // Check pod death timers
+                this.pods.forEach(p => {
+                    if(p.state === 'crash') {
+                        p.timeToDie -= dt;
+                        if(p.timeToDie <= 0) {
+                            Game.takeDamage(10, 'Pod Died');
+                            this.healPod(p); // reset after damage to prevent spam
+                        }
+                    }
+                });
+            },
+
+            crashRandomPod() {
+                const healthy = this.pods.filter(p => p.state === 'healthy');
+                if(healthy.length === 0) return;
+                const p = healthy[Utils.randomInt(0, healthy.length-1)];
+                const fix = this.fixes[Utils.randomInt(0, this.fixes.length-1)];
                 
-                ctx.save();
-                ctx.shadowBlur = 22;
-                ctx.shadowColor = d.color || '#00f7ff';
-                ctx.fillStyle = d.color || '#00f7ff';
-                ctx.fillRect(d.x, d.y, d.w, d.h);
+                p.state = 'crash';
+                p.errType = fix.id;
+                p.timeToDie = 6; // 6 seconds to fix
+                p.el.classList.add('crash');
+                p.el.querySelector('.pod-status').innerText = fix.err;
+                p.dz.dataset.expected = fix.id; // Tell dropzone what to expect
+            },
+
+            healPod(p) {
+                p.state = 'healthy';
+                p.errType = null;
+                p.el.classList.remove('crash');
+                p.el.querySelector('.pod-status').innerText = 'Running';
+                p.dz.dataset.expected = 'none';
+            },
+
+            handleDrop(dragEl, dropEl) {
+                const podIndex = parseInt(dropEl.id.split('-')[1]);
+                const p = this.pods[podIndex];
                 
-                ctx.fillStyle = '#111';
-                ctx.font = '21px VT323';
-                ctx.textAlign = 'center';
-                ctx.fillText(d.label, d.x + d.w/2, d.y + d.h/2 + 8);
-                ctx.restore();
-            }
-            
-            // Particles
-            for (let p of particles) p.draw();
-            
-            // Stage specific extra text
-            if (gameState === 'CI_PIPELINE') {
-                ctx.fillStyle = '#555';
-                ctx.font = '18px VT323';
-                ctx.fillText('DRAG TO SLOTS IN ORDER', 640, 520);
-            }
-        }
-
-        function gameLoop(timestamp) {
-            if (!lastTime) lastTime = timestamp;
-            const dt = timestamp - lastTime;
-            lastTime = timestamp;
-            
-            update(dt);
-            draw();
-            
-            requestAnimationFrame(gameLoop);
-        }
-
-        // ============== SCORE & LEADERBOARD ==============
-        function showScoreScreen() {
-            document.getElementById('score-overlay').classList.add('show');
-            document.getElementById('final-score').textContent = String(Math.floor(score)).padStart(6, '0');
-            
-            const saved = JSON.parse(localStorage.getItem('devopsRushLB') || '[]');
-            saved.sort((a,b) => b.score - a.score);
-            
-            let html = '';
-            for (let i = 0; i < Math.min(5, saved.length); i++) {
-                html += `<div class="score-row"><span>${saved[i].name}</span><span>${String(saved[i].score).padStart(6,'0')}</span></div>`;
-            }
-            document.getElementById('lb-list').innerHTML = html || '<div style="text-align:center;padding:30px;color:#555">NO SHIFTS YET</div>';
-        }
-
-        function saveScore() {
-            const nameEl = document.getElementById('player-name');
-            let name = (nameEl.value || 'OPS-' + Math.floor(Math.random()*999)).toUpperCase().slice(0,8);
-            
-            let lb = JSON.parse(localStorage.getItem('devopsRushLB') || '[]');
-            lb.push({name: name, score: Math.floor(score)});
-            lb.sort((a,b) => b.score - a.score);
-            lb = lb.slice(0, 8);
-            localStorage.setItem('devopsRushLB', JSON.stringify(lb));
-            
-            showScoreScreen();
-            nameEl.value = '';
-        }
-
-        function restartGame() {
-            score = 0;
-            health = 100;
-            combo = 1;
-            difficulty = 1;
-            document.getElementById('score-overlay').classList.remove('show');
-            document.getElementById('intro-overlay').classList.add('show');
-            changeState('INTRO');
-        }
-
-        function startGame() {
-            if (!audioCtx) initAudio();
-            document.getElementById('intro-overlay').classList.remove('show');
-            changeState('CI_PIPELINE');
-        }
-
-        // ============== BOOT ==============
-        function boot() {
-            attachInput();
-            requestAnimationFrame(gameLoop);
-            
-            // Demo particle
-            setInterval(() => {
-                if (gameState === 'INTRO') {
-                    createExplosion(300 + Math.random()*600, 220 + Math.random()*200, '#00f7ff', 12);
+                if(p.state === 'crash' && dropEl.dataset.expected === dragEl.dataset.id) {
+                    const rect = p.el.getBoundingClientRect();
+                    Particles.createExplosion(rect.left + rect.width/2, rect.top + rect.height/2, varColors.green);
+                    Game.addScore(50);
+                    this.healPod(p);
+                    return false; // Return false so tool goes back to tray (reusable)
+                } else {
+                    Game.takeDamage(5, 'Wrong Fix');
+                    return false;
                 }
-            }, 420);
-            
-            // Keyboard shortcut for testing
-            document.addEventListener('keydown', e => {
-                if (e.key === '/' && gameState === 'SCORE_SCREEN') {
-                    restartGame();
-                }
-            });
-            
-            // Touch support already covered by pointer events
-            console.log('%cDEVOPS RUSH v1.0 READY — SINGLE FILE EDITION', 'color:#00ff9d; font-family:monospace; font-size:13px');
-        }
+            },
+            exit() { DragManager.clear(); }
+        };
 
-        window.onload = boot;
+        // 4. INCIDENT RESPONSE
+        Stages['INCIDENT_RESPONSE'] = {
+            timer: 30,
+            eventTimer: 0,
+            alerts: [],
+            incidentMap: [
+                {id: 'autoscale', label: 'AutoScale', alert: 'CPU Spike > 95%'},
+                {id: 'restart', label: 'Restart Node', alert: 'Memory Leak OOM'},
+                {id: 'clean', label: 'Clean Logs', alert: 'Disk Full 100%'},
+                {id: 'waf', label: 'Enable WAF', alert: 'DDoS Attack'},
+                {id: 'cache', label: 'Enable Cache', alert: 'High DB Latency'},
+                {id: 'reconnect', label: 'Reconnect DB', alert: 'DB Connection Drop'}
+            ],
+
+            enter() {
+                this.timer = 30;
+                this.eventTimer = 1;
+                this.alerts = [];
+                document.getElementById('incident-terminal').innerHTML = '';
+                const tray = document.getElementById('incident-tray');
+                tray.innerHTML = '';
+
+                this.incidentMap.forEach(i => {
+                    tray.appendChild(Utils.createDraggable(i.id, i.label, varColors.red));
+                });
+
+                DragManager.init(this.handleDrop.bind(this));
+            },
+
+            update(dt) {
+                this.timer -= dt;
+                UI.setTime(this.timer);
+                if(this.timer <= 0) {
+                    Game.changeState('SCORE_SCREEN');
+                    return;
+                }
+
+                this.eventTimer -= dt;
+                if(this.eventTimer <= 0) {
+                    this.spawnAlert();
+                    this.eventTimer = Math.max(0.8, 2 - (Game.difficulty * 0.3));
+                    Game.difficulty += 0.1; // Increase global diff
+                }
+
+                // Check alert timeouts
+                for(let i = this.alerts.length -1; i>=0; i--) {
+                    let a = this.alerts[i];
+                    a.life -= dt;
+                    if(a.life <= 0) {
+                        Game.takeDamage(15, 'Unresolved Incident');
+                        a.el.remove();
+                        this.alerts.splice(i, 1);
+                    } else {
+                        // Visual indicator of time running out (fade opacity of target)
+                        a.dz.style.borderColor = `rgba(255, 0, 60, ${a.life/6})`;
+                    }
+                }
+            },
+
+            spawnAlert() {
+                const term = document.getElementById('incident-terminal');
+                const inc = this.incidentMap[Utils.randomInt(0, this.incidentMap.length-1)];
+                
+                const row = document.createElement('div');
+                row.className = 'alert-row';
+                
+                const txt = document.createElement('span');
+                txt.className = 'alert-text';
+                txt.innerText = `[WARN] ${inc.alert}`;
+                
+                const dz = Utils.createDropzone(`alert-${Date.now()}`, inc.id);
+                dz.className = 'alert-target';
+                dz.innerText = 'Drop Fix';
+                
+                row.appendChild(txt);
+                row.appendChild(dz);
+                term.appendChild(row);
+
+                // Auto scroll to bottom
+                term.scrollTop = term.scrollHeight;
+
+                this.alerts.push({ el: row, dz: dz, expected: inc.id, life: 6 });
+                
+                if(this.alerts.length > 5) { // Terminal overflow
+                    Game.takeDamage(20, 'Terminal Overflow');
+                    const old = this.alerts.shift();
+                    old.el.remove();
+                }
+            },
+
+            handleDrop(dragEl, dropEl) {
+                if(dropEl.classList.contains('alert-target')) {
+                    const alertObj = this.alerts.find(a => a.dz === dropEl);
+                    if(alertObj && alertObj.expected === dragEl.dataset.id) {
+                        const rect = dropEl.getBoundingClientRect();
+                        Particles.createExplosion(rect.left + rect.width/2, rect.top + rect.height/2, varColors.yellow);
+                        Game.addScore(100);
+                        
+                        alertObj.el.remove();
+                        this.alerts = this.alerts.filter(a => a !== alertObj);
+                        return false; // return to tray
+                    } else {
+                        Game.takeDamage(10, 'Wrong Command');
+                        return false;
+                    }
+                }
+                return false;
+            },
+            exit() { DragManager.clear(); }
+        };
+
+        // 5. SCORE SCREEN
+        Stages['SCORE_SCREEN'] = {
+            enter() {
+                document.getElementById('final-score').innerText = Game.score;
+                if(Game.health <= 0) {
+                    document.getElementById('end-title').innerText = "System Failure";
+                    document.getElementById('end-title').style.color = varColors.red;
+                    document.getElementById('end-subtitle').innerText = "Production is completely down.";
+                } else {
+                    document.getElementById('end-title').innerText = "Shift Survived";
+                    document.getElementById('end-title').style.color = varColors.green;
+                    document.getElementById('end-subtitle').innerText = "Excellent incident management.";
+                }
+                Game.saveScore();
+            }
+        };
+
+        // Initialize Game
+        window.onload = () => {
+            UI.loadLeaderboard();
+        };
+
     </script>
 </body>
 </html>
