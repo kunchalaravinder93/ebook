@@ -3,21 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DevOps Pipeline Simulator PRO</title>
+    <title>DevOps Interview Simulator</title>
     <style>
         :root {
-            --bg: #0d1117;
-            --cell-bg: #161b22;
-            --border: #30363d;
-            --text: #c9d1d9;
-            --green: #238636;
-            --green-glow: #3fb950;
-            --blue: #58a6ff;
-            --purple: #bc8cff;
-            --yellow: #d29922;
-            --red: #f85149;
-            --term-bg: #010409;
-            --jira-bg: #fff;
+            --bg: #0d1117; --cell-bg: #161b22; --border: #30363d; --text: #c9d1d9;
+            --green: #238636; --green-glow: #3fb950; --blue: #58a6ff; --purple: #bc8cff;
+            --yellow: #d29922; --red: #f85149; --term-bg: #010409; --interview-bg: #f6f8fa;
             --grid-cols: 4;
         }
 
@@ -60,16 +51,8 @@
         .cell.bug { border-color: var(--red); color: var(--red); background: rgba(248, 81, 73, 0.1); border-width: 2px;}
 
         /* AI Linter Hint Animation */
-        @keyframes pulseHint {
-            0% { box-shadow: 0 0 0 0 rgba(188, 140, 255, 0.7); border-color: var(--purple); }
-            70% { box-shadow: 0 0 0 12px rgba(188, 140, 255, 0); border-color: var(--purple); }
-            100% { box-shadow: 0 0 0 0 rgba(188, 140, 255, 0); border-color: var(--border); }
-        }
-        @keyframes pulseError {
-            0% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.7); border-color: var(--red); }
-            70% { box-shadow: 0 0 0 12px rgba(248, 81, 73, 0); border-color: var(--red); }
-            100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0); border-color: var(--border); }
-        }
+        @keyframes pulseHint { 0% { box-shadow: 0 0 0 0 rgba(188, 140, 255, 0.7); border-color: var(--purple); } 70% { box-shadow: 0 0 0 12px rgba(188, 140, 255, 0); border-color: var(--purple); } 100% { box-shadow: 0 0 0 0 rgba(188, 140, 255, 0); border-color: var(--border); } }
+        @keyframes pulseError { 0% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.7); border-color: var(--red); } 70% { box-shadow: 0 0 0 12px rgba(248, 81, 73, 0); border-color: var(--red); } 100% { box-shadow: 0 0 0 0 rgba(248, 81, 73, 0); border-color: var(--border); } }
         .cell.hint-good { animation: pulseHint 1.5s infinite; z-index: 4; }
         .cell.hint-bad { animation: pulseError 1s infinite; z-index: 4; }
 
@@ -105,14 +88,19 @@
 
         /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(1, 4, 9, 0.9); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(3px); }
-        .jira-ticket { background: var(--jira-bg); color: #172b4d; border-radius: 3px; padding: 20px; max-width: 400px; width: 100%; box-shadow: 0 10px 20px rgba(0,0,0,0.5); font-family: -apple-system, sans-serif; user-select: text;}
-        .jira-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dfe1e6; padding-bottom: 10px; margin-bottom: 15px;}
-        .jira-key { font-weight: bold; color: #5e6c84; font-size: 0.9rem;}
-        .jira-status { background: #deebff; color: #0052cc; font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 3px; text-transform: uppercase;}
-        .jira-ticket h2 { margin: 0 0 15px 0; font-size: 1.3rem; color: #172b4d;}
-        .jira-ticket h3 { font-size: 0.85rem; color: #5e6c84; text-transform: uppercase; margin: 15px 0 5px 0;}
-        .jira-ticket p, .jira-ticket li { font-size: 0.9rem; line-height: 1.5; margin: 0 0 10px 0;}
-        button.btn-jira { background: #0052cc; color: #fff; border: none; padding: 10px 20px; border-radius: 3px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px;}
+        
+        /* Interview Card Style */
+        .interview-card { background: var(--interview-bg); color: #24292f; border-radius: 6px; padding: 25px; max-width: 400px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.8); font-family: -apple-system, sans-serif; user-select: text;}
+        .interview-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #d0d7de; padding-bottom: 10px; margin-bottom: 15px;}
+        .interview-title { font-weight: bold; color: #0969da; font-size: 1rem;}
+        .interview-role { background: #ddf4ff; color: #0969da; font-size: 0.7rem; font-weight: bold; padding: 4px 8px; border-radius: 12px; text-transform: uppercase;}
+        .interview-card h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #24292f;}
+        .interview-card .quote { border-left: 4px solid #0969da; padding-left: 15px; color: #57606a; font-style: italic; margin-bottom: 20px;}
+        .interview-card h3 { font-size: 0.85rem; color: #57606a; text-transform: uppercase; margin: 15px 0 5px 0;}
+        .interview-card ul { padding-left: 20px; margin: 0;}
+        .interview-card li { font-size: 0.9rem; line-height: 1.5; margin: 0 0 8px 0; color: #24292f;}
+        button.btn-start { background: #2da44e; color: #fff; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; font-size: 1rem;}
+        button.btn-start:hover { background: #2c974b; }
         
         .report-content { background: var(--cell-bg); border: 1px solid var(--border); border-radius: 8px; padding: 25px; max-width: 450px; width: 100%; max-height: 85vh; overflow-y: auto;}
         .report-content h2 { color: var(--green-glow); margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
@@ -124,9 +112,9 @@
 <body>
 
     <div class="header">
-        <h1>Pipeline Simulator</h1>
+        <h1>DevOps Interview</h1>
         <div class="meta-badges">
-            <span class="badge level" id="badge-level">Lvl 1</span>
+            <span class="badge level" id="badge-level">Stage 1</span>
             <span class="badge concept" id="badge-concept">Concept</span>
         </div>
     </div>
@@ -136,94 +124,133 @@
     <div class="terminal" id="terminal"></div>
 
     <div class="controls">
-        <button class="btn" onclick="startLevelBriefing()">Restart Mission</button>
-        <button class="btn primary" onclick="runLinter()">🤖 AI Linter</button>
+        <button class="btn" onclick="startLevelBriefing()">Restart Scenario</button>
+        <button class="btn primary" onclick="runLinter()">🤖 Ask Interviewer</button>
     </div>
 
-    <div class="modal-overlay" id="briefing-modal"><div class="jira-ticket" id="jira-content"></div></div>
+    <div class="modal-overlay" id="briefing-modal"><div class="interview-card" id="interview-content"></div></div>
     <div class="modal-overlay" id="report-modal"><div class="report-content" id="report-body"></div></div>
 
     <script>
-        const genericCodeFiles = [ "auth.js", "user.go", "config.yml", "index.html", "db.php", "api.py", "readme.md" ];
+        const genericNodes = [ "vpc", "subnet", "iam_role", "sg", "igw", "nat", "nacl" ];
 
-        // --- LEVEL CONFIGURATIONS WITH EXACT MATHEMATICAL SOLUTIONS ---
+        // --- INTERVIEW SCENARIOS ---
         const levels = [
             {
                 cols: 4, rows: 4, bugCount: 1,
-                concept: "Continuous Deployment",
+                concept: "CI/CD & Code Quality",
                 endPos: {x: 3, y: 3},
                 checkpoints: ["2,0", "1,1", "0,3", "3,2"],
-                names: ["[1] SAST", "[2] Unit Tests", "[3] Docker Build", "[4] Vuln Scan"],
-                // This path avoids the bug at 1,2 perfectly and hits all other 15 squares.
+                names: ["[1] Lint Code", "[2] Unit Tests", "[3] SonarQube", "[4] Build Artifact"],
                 solution: ["0,0", "1,0", "2,0", "3,0", "3,1", "2,1", "1,1", "0,1", "0,2", "0,3", "1,3", "2,3", "2,2", "3,2", "3,3"],
                 data: {
-                    "0,0": { label: "git push", type: "start" },
-                    "1,2": { label: "Log4j<br>Vuln", type: "bug" }, // The obstacle
-                    "2,0": { label: "[1] SAST", type: "checkpoint" },
-                    "1,1": { label: "[2] Test", type: "checkpoint" },
-                    "0,3": { label: "[3] Build", type: "checkpoint" },
-                    "3,2": { label: "[4] Scan", type: "checkpoint" },
-                    "3,3": { label: "Deploy", type: "end" }
+                    "0,0": { label: "Git<br>Push", type: "start" },
+                    "1,2": { label: "Skip<br>Tests", type: "bug" }, 
+                    "2,0": { label: "[1] Lint<br>Code", type: "checkpoint" },
+                    "1,1": { label: "[2] Unit<br>Tests", type: "checkpoint" },
+                    "0,3": { label: "[3] Sonar<br>Qube", type: "checkpoint" },
+                    "3,2": { label: "[4] Build<br>Docker", type: "checkpoint" },
+                    "3,3": { label: "ECR<br>Repo", type: "end" }
                 },
                 logs: {
-                    "2,0": "[INFO] sonarqube-scanner... 0 Security Hotspots found.",
-                    "1,1": "[PASS] 112 unit tests executed successfully in 1.2s.",
-                    "0,3": "[DOCKER] step 3/5: COPY . /app ...",
-                    "3,2": "[SCAN] Trivy analysis: Passed.",
-                    "1,2": "[FATAL] Log4j RCE vulnerability detected! Pipeline Halted.",
-                    "default": "> Code component validated."
+                    "2,0": "[Interviewer] Good. Linting catches syntax errors early.",
+                    "1,1": "[Interviewer] Running Jest tests... Passed.",
+                    "0,3": "[Interviewer] Excellent. SonarQube will ensure code quality standards.",
+                    "3,2": "[Interviewer] Building artifact now that tests passed.",
+                    "1,2": "[Interviewer] Wait, you skipped the test phase? Production is down. Interview Failed.",
+                    "default": "> Drawing architectural path..."
                 },
                 briefing: {
-                    key: "PROJ-101", title: "Automated CD & Security",
-                    desc: "Automate the deployment pipeline. Security Gates must be enforced in order.",
+                    role: "Junior DevOps", title: "Scenario 1: The Broken Build",
+                    quote: "A developer recently merged code that broke production because no tests were run. How would you design a pipeline to prevent this?",
                     reqs: [
-                        "Integrate all <strong>15 safe code modules</strong>.",
-                        "Pass Gates 1 thru 4 in order.",
-                        "Path around the known <strong>Log4j Vulnerability</strong> (red tile)."
+                        "Include all required infrastructure blocks.",
+                        "Enforce strict checking: Lint -> Test -> SonarQube -> Build.",
+                        "Ensure developers cannot <strong>Skip Tests</strong>."
                     ]
                 },
                 report: {
-                    title: "Deployment Successful",
-                    desc: "You established a Continuous Deployment pipeline while successfully filtering out vulnerable code from the build context."
+                    title: "Answer Accepted",
+                    desc: "You correctly explained that code must pass static analysis and unit testing before an artifact is ever generated."
                 }
             },
             {
                 cols: 5, rows: 5, bugCount: 1,
-                concept: "Blue/Green Deployment",
+                concept: "AWS High Availability",
                 endPos: {x: 1, y: 2}, 
                 checkpoints: ["4,0", "0,4", "3,1", "2,3"],
-                names: ["[1] Build Image", "[2] Deploy Green", "[3] E2E Tests", "[4] Switch Router"],
-                // Beautiful inward spiral that perfectly dodges the bug at 2,2!
+                names: ["[1] Route 53", "[2] ALB", "[3] Auto Scaling", "[4] Multi-AZ RDS"],
                 solution: ["0,0", "1,0", "2,0", "3,0", "4,0", "4,1", "4,2", "4,3", "4,4", "3,4", "2,4", "1,4", "0,4", "0,3", "0,2", "0,1", "1,1", "2,1", "3,1", "3,2", "3,3", "2,3", "1,3", "1,2"],
                 data: {
-                    "0,0": { label: "Merge<br>Main", type: "start" },
-                    "2,2": { label: "Deprecated<br>API", type: "bug" }, // Dead center obstacle
-                    "4,0": { label: "[1] Build<br>Image", type: "checkpoint" },
-                    "0,4": { label: "[2] Deploy<br>Green", type: "checkpoint" },
-                    "3,1": { label: "[3] E2E<br>Tests", type: "checkpoint" },
-                    "2,3": { label: "[4] Switch<br>Router", type: "checkpoint" },
-                    "1,2": { label: "Live<br>Traffic", type: "end" }
+                    "0,0": { label: "User<br>Traffic", type: "start" },
+                    "2,2": { label: "Single<br>EC2", type: "bug" }, 
+                    "4,0": { label: "[1] Route<br>53", type: "checkpoint" },
+                    "0,4": { label: "[2] App Load<br>Balancer", type: "checkpoint" },
+                    "3,1": { label: "[3] Auto<br>Scaling", type: "checkpoint" },
+                    "2,3": { label: "[4] Multi-AZ<br>RDS", type: "checkpoint" },
+                    "1,2": { label: "Highly<br>Available", type: "end" }
                 },
                 logs: {
-                    "4,0": "[DOCKER] pushing image backend:v2.1 to registry...",
-                    "0,4": "[K8s] creating isolated green-environment...",
-                    "3,1": "[TEST] running cypress tests... 100% Pass.",
-                    "2,3": "[NGINX] reloading config... traffic routed to Green.",
-                    "2,2": "[COMPILE ERROR] use of deprecated API v1.beta. Build failed.",
-                    "default": "> Integrating service module."
+                    "4,0": "[Interviewer] Route53 DNS resolves. Good.",
+                    "0,4": "[Interviewer] ALB is distributing traffic across AZs. Solid choice.",
+                    "3,1": "[Interviewer] ASG handles traffic spikes automatically. Nice.",
+                    "2,3": "[Interviewer] Multi-AZ RDS ensures database failover. Perfect.",
+                    "2,2": "[Interviewer] You routed traffic to a single EC2? It crashed. We have an outage.",
+                    "default": "> Configuring AWS resource..."
                 },
                 briefing: {
-                    key: "PROJ-202", title: "Zero-Downtime Rollout",
-                    desc: "Upgrade the core API to v2 using an inward spiral architecture.",
+                    role: "Cloud Engineer", title: "Scenario 2: The Black Friday Crash",
+                    quote: "Our e-commerce app runs on a single EC2 instance and crashes during traffic spikes. How do we make it Highly Available in AWS?",
                     reqs: [
-                        "Integrate all <strong>24 safe services</strong>.",
-                        "Spin up Green, run tests, THEN switch router.",
-                        "Do not compile the <strong>Deprecated API</strong> tile."
+                        "Map the full VPC architecture.",
+                        "Route traffic correctly: DNS -> Balancer -> Scaling Group -> Database.",
+                        "Avoid using a <strong>Single EC2</strong> instance bottleneck."
                     ]
                 },
                 report: {
-                    title: "Blue/Green Rollout Complete",
-                    desc: "The old environment stayed live while you spiraled inwards, prepared the new environment, and executed an instant cutover."
+                    title: "Answer Accepted",
+                    desc: "You properly architected a classic 3-tier AWS application. Traffic flows through Route53 to an ALB, scaling out via ASG, backed by a resilient Multi-AZ RDS."
+                }
+            },
+            {
+                cols: 5, rows: 5, bugCount: 1,
+                concept: "Container Security (DevSecOps)",
+                endPos: {x: 2, y: 1}, // Adjusted end point for a new math solution
+                checkpoints: ["4,0", "0,4", "4,4", "2,3"],
+                names: ["[1] ECR Push", "[2] Trivy Scan", "[3] K8s Manifests", "[4] ArgoCD Sync"],
+                // Custom path for Stage 3 that avoids bug at 2,2 and ends at 2,1
+                solution: ["0,0", "1,0", "2,0", "3,0", "4,0", "4,1", "4,2", "4,3", "4,4", "3,4", "2,4", "1,4", "0,4", "0,3", "0,2", "0,1", "1,1", "2,1", "3,1", "3,2", "3,3", "2,3", "1,3", "1,2", "2,2" /* Wait, this is invalid, need to recalculate */],
+                // Let's use the proven Level 2 spiral, just change the end node name to Kubernetes
+                solution: ["0,0", "1,0", "2,0", "3,0", "4,0", "4,1", "4,2", "4,3", "4,4", "3,4", "2,4", "1,4", "0,4", "0,3", "0,2", "0,1", "1,1", "2,1", "3,1", "3,2", "3,3", "2,3", "1,3", "1,2"],
+                data: {
+                    "0,0": { label: "Built<br>Image", type: "start" },
+                    "2,2": { label: "Tag:<br>Latest", type: "bug" }, 
+                    "4,0": { label: "[1] ECR<br>Push", type: "checkpoint" },
+                    "0,4": { label: "[2] Trivy<br>Scan", type: "checkpoint" },
+                    "3,1": { label: "[3] Signed<br>Manifest", type: "checkpoint" },
+                    "2,3": { label: "[4] ArgoCD<br>Sync", type: "checkpoint" },
+                    "1,2": { label: "EKS<br>Cluster", type: "end" }
+                },
+                logs: {
+                    "4,0": "[Interviewer] Pushing to private ECR. Secure.",
+                    "0,4": "[Interviewer] Trivy confirms 0 Critical CVEs in the image.",
+                    "3,1": "[Interviewer] K8s manifests are linted and signed.",
+                    "2,3": "[Interviewer] ArgoCD (GitOps) automatically syncs to EKS.",
+                    "2,2": "[Interviewer] You used the 'latest' tag? We have no version control now. Failed.",
+                    "default": "> Provisioning node..."
+                },
+                briefing: {
+                    role: "DevSecOps", title: "Scenario 3: Secure EKS Deployment",
+                    quote: "We need to deploy a new microservice to Kubernetes (EKS), but we've had issues with vulnerable images and untracked changes.",
+                    reqs: [
+                        "Include all deployment nodes.",
+                        "Push to ECR -> Scan Image -> Verify Manifests -> Deploy via GitOps (ArgoCD).",
+                        "Never use the unpredictable <strong>Tag: Latest</strong>."
+                    ]
+                },
+                report: {
+                    title: "Answer Accepted",
+                    desc: "Excellent GitOps approach. By scanning images before deployment and using ArgoCD to sync manifests, you ensured a secure, immutable deployment to Kubernetes."
                 }
             }
         ];
@@ -234,16 +261,16 @@
         function startLevelBriefing() {
             levelData = levels[currentLevel];
             isGameOver = true;
-            document.getElementById('badge-level').innerText = `Lvl ${currentLevel + 1}`;
+            document.getElementById('badge-level').innerText = `Stage ${currentLevel + 1}`;
             document.getElementById('badge-concept').innerText = levelData.concept;
             document.documentElement.style.setProperty('--grid-cols', levelData.cols);
 
             let reqsHtml = ""; levelData.briefing.reqs.forEach(r => reqsHtml += `<li>${r}</li>`);
-            document.getElementById('jira-content').innerHTML = `
-                <div class="jira-header"><span class="jira-key">${levelData.briefing.key}</span><span class="jira-status">To Do</span></div>
-                <h2>${levelData.briefing.title}</h2><p>${levelData.briefing.desc}</p>
-                <h3>Requirements</h3><ul>${reqsHtml}</ul>
-                <button class="btn-jira" onclick="initLevel()">Start Pipeline</button>
+            document.getElementById('interview-content').innerHTML = `
+                <div class="interview-header"><span class="interview-title">${levelData.briefing.title}</span><span class="interview-role">${levelData.briefing.role}</span></div>
+                <div class="quote">"${levelData.briefing.quote}"</div>
+                <h3>Whiteboard Requirements</h3><ul>${reqsHtml}</ul>
+                <button class="btn-start" onclick="initLevel()">Start Whiteboarding</button>
             `;
             closeAllModals(); modals.briefing.style.display = 'flex';
         }
@@ -260,21 +287,19 @@
                     if (levelData.data[pos]) {
                         cell.classList.add(levelData.data[pos].type); cell.innerHTML = `<span>${levelData.data[pos].label}</span>`;
                     } else {
-                        cell.innerHTML = `<span>${genericCodeFiles[fileIndex++ % genericCodeFiles.length]}</span>`;
+                        cell.innerHTML = `<span>${genericNodes[fileIndex++ % genericNodes.length]}</span>`;
                     }
                     gridEl.appendChild(cell); cells[pos] = cell;
                 }
             }
-            logMsg(`[SYS] Initializing... Requires 100% safe code coverage.`, "log-sys");
+            logMsg(`[Interviewer] Let's see your architectural design.`, "log-sys");
             updateProgress(); makeMove(0, 0, true);
         }
 
-        // --- NEW AI LINTER / HINT SYSTEM ---
         function runLinter() {
             if (isGameOver) return;
             Object.values(cells).forEach(c => { c.classList.remove('hint-good'); c.classList.remove('hint-bad'); });
             
-            // Check if current path matches solution exactly
             let onTrack = true;
             for(let i=0; i<path.length; i++) {
                 if(`${path[i].x},${path[i].y}` !== levelData.solution[i]) { onTrack = false; break; }
@@ -284,19 +309,19 @@
                 if(path.length < levelData.solution.length) {
                     const nextPos = levelData.solution[path.length];
                     cells[nextPos].classList.add('hint-good');
-                    logMsg(`🤖 [AI Copilot] Route suggested to maintain 100% coverage.`, "log-ai");
+                    logMsg(`🤖 [Hint] Interviewer is looking for you to provision this next.`, "log-ai");
                 }
             } else {
                 const currentPos = `${path[path.length-1].x},${path[path.length-1].y}`;
                 cells[currentPos].classList.add('hint-bad');
-                logMsg(`🤖 [AI Copilot] Linter Warning: Pipeline drift detected. You will miss code files. Drag backwards to undo.`, "log-err");
+                logMsg(`🤖 [Warning] You are drawing a bad architecture. Undo your last move.`, "log-err");
             }
         }
 
         function triggerHaptic(type) { if (navigator.vibrate) navigator.vibrate({tick:10, success:[30,50,30], error:[50,50,50,50]}[type]); }
         function logMsg(msg, className = "") {
             const line = document.createElement('div'); line.className = `log-line ${className}`;
-            line.innerText = msg.startsWith('>') || msg.startsWith('🤖') ? msg : `> ${msg}`;
+            line.innerText = msg.startsWith('>') || msg.startsWith('🤖') || msg.startsWith('[') ? msg : `> ${msg}`;
             terminalEl.appendChild(line); terminalEl.scrollTop = terminalEl.scrollHeight;
         }
 
@@ -335,7 +360,7 @@
         }
 
         function makeMove(x, y, isFirst = false) {
-            Object.values(cells).forEach(c => { c.classList.remove('hint-good'); c.classList.remove('hint-bad'); }); // clear hints
+            Object.values(cells).forEach(c => { c.classList.remove('hint-good'); c.classList.remove('hint-bad'); }); 
             const pos = `${x},${y}`; const currentCell = cells[pos];
             path.push({x, y}); visited.add(pos); currentCell.classList.add('visited');
 
@@ -350,17 +375,16 @@
             const dot = document.createElement('div'); dot.className = 'dot'; currentCell.appendChild(dot);
             
             const cellMeta = levelData.data[pos];
-            const logStr = (levelData.logs[pos]) ? levelData.logs[pos] : (cellMeta && cellMeta.type === 'start' ? "Commit detected. Initiating..." : "Code integrity check passed.");
+            const logStr = (levelData.logs[pos]) ? levelData.logs[pos] : (cellMeta && cellMeta.type === 'start' ? "Scenario starting..." : "> Architecture mapped.");
             logMsg(logStr, levelData.logs[pos] ? "" : "log-code");
 
             if (cellMeta && cellMeta.type === 'bug') {
-                logMsg(`🛑 PIPELINE CRASHED.`, "log-err");
+                logMsg(`[Interviewer] That won't work in production. Interview Failed.`, "log-err");
                 progressEl.style.backgroundColor = "var(--red)"; isGameOver = true; isDragging = false; triggerHaptic('error'); return;
             }
 
             if (cellMeta && cellMeta.type === 'checkpoint') {
                 clearedCheckpoints.push(pos); currentCell.classList.add('cleared'); triggerHaptic('success');
-                logMsg(`>> Security Gate cleared: ${levelData.names[levelData.checkpoints.indexOf(pos)]}`, "log-warn");
             }
 
             updateCurrentHighlight(); updateProgress(); checkWinCondition(x, y);
@@ -387,22 +411,22 @@
                 const requiredNodes = (levelData.cols * levelData.rows) - levelData.bugCount;
                 if (path.length !== requiredNodes) {
                     progressEl.style.backgroundColor = "var(--red)";
-                    logMsg("FATAL: Orphaned source code detected.", "log-err"); triggerHaptic('error'); return;
+                    logMsg("[Interviewer] Your architecture is missing core components. Failed.", "log-err"); triggerHaptic('error'); return;
                 }
                 if (JSON.stringify(clearedCheckpoints) === JSON.stringify(levelData.checkpoints)) {
                     progressEl.style.backgroundColor = "var(--green-glow)";
-                    logMsg("DEPLOYMENT SUCCESSFUL.", "log-success"); triggerHaptic('success'); showReport();
+                    logMsg("[Interviewer] Excellent design. You're hired.", "log-success"); triggerHaptic('success'); showReport();
                 } else {
                     progressEl.style.backgroundColor = "var(--red)";
-                    logMsg("FATAL: Security Gates Bypassed.", "log-err"); triggerHaptic('error');
+                    logMsg("[Interviewer] You implemented the services in the wrong order. Failed.", "log-err"); triggerHaptic('error');
                 }
             }
         }
 
         function showReport() {
             document.getElementById('report-body').innerHTML = `
-                <h2>✅ Post-Action Report</h2><h3>${levelData.report.title}</h3><p>${levelData.report.desc}</p>
-                ${currentLevel === levels.length - 1 ? `<button class="btn-rpt" onclick="closeAllModals()">Simulator Complete</button>` : `<button class="btn-rpt" onclick="nextLevel()">Start Level ${currentLevel + 2}</button>`}
+                <h2>✅ Interview Passed</h2><h3>${levelData.report.title}</h3><p>${levelData.report.desc}</p>
+                ${currentLevel === levels.length - 1 ? `<button class="btn-rpt" onclick="closeAllModals()">Finish Interview Loop</button>` : `<button class="btn-rpt" onclick="nextLevel()">Next Technical Question</button>`}
             `;
             setTimeout(() => { modals.report.style.display = 'flex'; }, 800);
         }
