@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DevOps Campaign - Stage 1: The Pipeline</title>
+    <title>AWS Packet Defense</title>
     <style>
         :root {
             --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #c9d1d9;
             --good: #238636; --bug: #d29922; --vuln: #f85149;
-            --prod: #2ea043; --trash: #8b949e;
+            --path: #21262d; --grid: rgba(255,255,255,0.05);
+            --waf: #bc8cff; --asg: #58a6ff; --cache: #d29922;
         }
 
         body {
@@ -22,418 +23,475 @@
         /* Top HUD */
         .hud {
             display: flex; justify-content: space-between; align-items: center;
-            width: 100%; max-width: 600px; padding: 15px 20px; box-sizing: border-box;
+            width: 100%; max-width: 500px; padding: 10px 15px; box-sizing: border-box;
             background: var(--panel); border-bottom: 1px solid var(--border);
         }
-        .stats { display: flex; gap: 20px; font-weight: bold; }
-        .stat-box { display: flex; flex-direction: column; align-items: center; }
-        .stat-label { font-size: 0.7rem; color: #8b949e; text-transform: uppercase; }
-        .stat-value { font-size: 1.2rem; }
-        .health-val { color: var(--good); }
-        .budget-val { color: var(--blue); }
+        
+        .cpu-container { width: 150px; }
+        .cpu-label { font-size: 0.7rem; font-weight: bold; margin-bottom: 3px; color: #8b949e;}
+        .cpu-bar-bg { width: 100%; height: 12px; background: var(--bg); border-radius: 6px; overflow: hidden; border: 1px solid var(--border);}
+        .cpu-bar-fill { height: 100%; width: 0%; background: var(--good); transition: width 0.2s, background-color 0.2s;}
 
-        /* Automation Shop */
-        .shop {
-            display: flex; gap: 10px; padding: 10px; width: 100%; max-width: 600px;
-            justify-content: center; background: #010409; border-bottom: 1px solid var(--border);
-        }
-        .btn-buy {
-            background: var(--panel); border: 1px solid var(--border); color: var(--text);
-            padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold;
-            font-size: 0.8rem; transition: 0.2s; display: flex; flex-direction: column; align-items: center;
-        }
-        .btn-buy:hover:not(:disabled) { background: #21262d; border-color: var(--text); }
-        .btn-buy:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-buy.active { background: rgba(35, 134, 54, 0.2); border-color: var(--good); color: var(--good); }
+        .stats { display: flex; gap: 15px; font-weight: bold; }
+        .stat-box { display: flex; flex-direction: column; align-items: flex-end; }
+        .stat-label { font-size: 0.65rem; color: #8b949e; text-transform: uppercase; }
+        .stat-value { font-size: 1.1rem; }
+        .budget-val { color: var(--good); }
+        .time-val { color: var(--asg); }
 
-        /* Game Area */
+        /* Game Map */
         .game-area {
-            position: relative; flex: 1; width: 100%; max-width: 600px;
-            overflow: hidden; background: radial-gradient(circle at center, #161b22 0%, #0d1117 100%);
+            position: relative; width: 100%; max-width: 500px; height: 400px;
+            background: #010409; border-bottom: 1px solid var(--border);
+            overflow: hidden;
         }
 
-        /* The Conveyor Belt */
-        .belt-container {
-            position: absolute; top: 30%; left: 0; width: 100%; height: 60px;
-            background: #21262d; border-top: 2px solid var(--border); border-bottom: 2px solid var(--border);
-            display: flex; align-items: center;
+        .grid-bg {
+            position: absolute; width: 100%; height: 100%;
+            background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+            background-size: 50px 50px; pointer-events: none;
         }
-        .belt-stripes {
-            width: 200%; height: 100%;
-            background: repeating-linear-gradient( -45deg, transparent, transparent 20px, rgba(255,255,255,0.05) 20px, rgba(255,255,255,0.05) 40px );
-            animation: moveBelt 2s linear infinite;
-        }
-        @keyframes moveBelt { 0% { transform: translateX(0); } 100% { transform: translateX(-50px); } }
 
-        /* Drop Zones */
-        .drop-zones {
-            position: absolute; bottom: 20px; left: 0; width: 100%;
-            display: flex; justify-content: space-around; padding: 0 20px; box-sizing: border-box;
-        }
-        .zone {
-            width: 120px; height: 100px; border-radius: 12px; border: 3px dashed;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 1.1rem; transition: 0.2s;
-        }
-        .zone#trash { border-color: var(--trash); color: var(--trash); background: rgba(139, 148, 158, 0.1); }
-        .zone#prod { border-color: var(--prod); color: var(--prod); background: rgba(46, 160, 67, 0.1); }
-        .zone.drag-over { background: rgba(255,255,255,0.1); transform: scale(1.05); }
+        /* The Path */
+        .path-segment { position: absolute; background: var(--path); border: 1px dashed #30363d; box-sizing: border-box;}
 
-        /* Commits (The items you drag) */
-        .commit {
-            position: absolute; width: 50px; height: 50px; border-radius: 8px;
+        /* Database Endpoint */
+        .database {
+            position: absolute; width: 60px; height: 60px; border-radius: 8px;
+            background: var(--panel); border: 2px solid var(--asg);
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 0.8rem; color: #fff; cursor: grab;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5); z-index: 10;
+            font-size: 0.7rem; font-weight: bold; color: var(--asg); text-align: center;
+            box-shadow: 0 0 15px rgba(88, 166, 255, 0.3); z-index: 5;
         }
-        .commit:active { cursor: grabbing; transform: scale(1.1); }
-        .commit.good { background: var(--good); border: 2px solid #3fb950; }
-        .commit.bug { background: var(--bug); border: 2px solid #e3b341; }
-        .commit.vuln { background: var(--vuln); border: 2px solid #ff7b72; }
 
-        /* Popups */
-        .floating-text {
-            position: absolute; font-weight: bold; font-size: 1.2rem;
-            pointer-events: none; animation: floatUp 1s ease-out forwards; z-index: 20;
+        /* Entities */
+        .packet {
+            position: absolute; width: 12px; height: 12px; border-radius: 50%;
+            transform: translate(-50%, -50%); z-index: 10;
         }
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-30px); } }
+        .packet.user { background: var(--good); box-shadow: 0 0 8px var(--good); }
+        .packet.ddos { background: var(--vuln); box-shadow: 0 0 8px var(--vuln); }
 
+        /* Towers */
+        .tower {
+            position: absolute; width: 40px; height: 40px; border-radius: 6px;
+            transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center;
+            font-size: 0.6rem; font-weight: bold; color: #fff; cursor: pointer; z-index: 15;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5); border: 2px solid;
+        }
+        .tower.waf { background: rgba(188, 140, 255, 0.2); border-color: var(--waf); color: var(--waf);}
+        .tower.asg { background: rgba(88, 166, 255, 0.2); border-color: var(--asg); color: var(--asg);}
+        .tower.cache { background: rgba(210, 153, 34, 0.2); border-color: var(--cache); color: var(--cache);}
+
+        .laser {
+            position: absolute; transform-origin: 0 0; z-index: 12;
+            pointer-events: none; opacity: 0.8;
+        }
+
+        /* Tower Shop */
+        .shop {
+            display: flex; gap: 10px; padding: 15px 10px; width: 100%; max-width: 500px;
+            justify-content: center; background: var(--panel); flex: 1; align-items: flex-start;
+        }
+        .shop-item {
+            background: var(--bg); border: 2px solid var(--border); color: var(--text);
+            padding: 8px; border-radius: 8px; cursor: pointer; font-weight: bold;
+            font-size: 0.7rem; transition: 0.2s; display: flex; flex-direction: column; align-items: center;
+            width: 90px; text-align: center;
+        }
+        .shop-item:hover { background: #21262d; }
+        .shop-item.selected { border-color: #fff; background: #30363d; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(255,255,255,0.1);}
+        .shop-item.disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        .shop-item.waf span.title { color: var(--waf); }
+        .shop-item.asg span.title { color: var(--asg); }
+        .shop-item.cache span.title { color: var(--cache); }
+        .shop-desc { font-size: 0.55rem; color: #8b949e; margin-top: 4px; font-weight: normal;}
+
+        /* Modals */
         .modal {
             position: absolute; top:0; left:0; width:100%; height:100%;
-            background: rgba(0,0,0,0.8); display: flex; flex-direction: column;
+            background: rgba(1,4,9,0.9); display: flex; flex-direction: column;
             align-items: center; justify-content: center; z-index: 100; padding: 20px; box-sizing: border-box; text-align: center;
         }
-        .modal h2 { color: var(--prod); margin-bottom: 10px; font-size: 2rem;}
-        .modal p { font-size: 1.1rem; line-height: 1.5; max-width: 400px; margin-bottom: 20px;}
-        .btn-start { background: var(--good); color: #fff; border: none; padding: 15px 30px; font-size: 1.2rem; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .modal h2 { margin-bottom: 5px; font-size: 1.8rem;}
+        .modal h3 { color: #8b949e; font-size: 1rem; margin-top: 0; margin-bottom: 20px;}
+        .modal p { font-size: 0.95rem; line-height: 1.5; max-width: 400px; margin-bottom: 15px; color: var(--text);}
+        .modal ul { text-align: left; font-size: 0.85rem; color: #8b949e; margin-bottom: 25px;}
+        .modal li { margin-bottom: 8px;}
+        .btn-start { background: var(--good); color: #fff; border: none; padding: 12px 25px; font-size: 1.1rem; border-radius: 6px; font-weight: bold; cursor: pointer; }
         .btn-start:hover { background: #2ea043; }
+        
+        /* Floating Text */
+        .floating-text { position: absolute; font-weight: bold; font-size: 0.8rem; pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 20; }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-20px); } }
     </style>
 </head>
 <body>
 
     <div class="hud">
-        <div>
-            <div class="stat-label">Artifact Progress</div>
-            <div class="stat-value" id="progress-val">0 / 15</div>
+        <div class="cpu-container">
+            <div class="cpu-label">RDS Database CPU</div>
+            <div class="cpu-bar-bg"><div class="cpu-bar-fill" id="cpu-fill"></div></div>
         </div>
         <div class="stats">
             <div class="stat-box">
-                <span class="stat-label">Budget</span>
-                <span class="stat-value budget-val" id="budget-val">$0</span>
+                <span class="stat-label">Time Left</span>
+                <span class="stat-value time-val" id="time-val">60s</span>
             </div>
             <div class="stat-box">
-                <span class="stat-label">System Health</span>
-                <span class="stat-value health-val" id="health-val">100%</span>
+                <span class="stat-label">AWS Budget</span>
+                <span class="stat-value budget-val" id="budget-val">$300</span>
             </div>
         </div>
     </div>
 
-    <div class="shop">
-        <button class="btn-buy" id="btn-linter" onclick="buyAutomation('linter')">
-            <span>Buy Linter Bot</span>
-            <span style="color:var(--bug)">$50</span>
-        </button>
-        <button class="btn-buy" id="btn-trivy" onclick="buyAutomation('trivy')">
-            <span>Buy Trivy Scanner</span>
-            <span style="color:var(--vuln)">$100</span>
-        </button>
+    <div class="game-area" id="game-area">
+        <div class="grid-bg"></div>
+        <div class="database" id="database">Core<br>RDS</div>
     </div>
 
-    <div class="game-area" id="game-area">
-        <div class="belt-container"><div class="belt-stripes"></div></div>
-        
-        <div class="drop-zones">
-            <div class="zone" id="trash">🗑️ Trash</div>
-            <div class="zone" id="prod">🚀 Deploy</div>
+    <div class="shop">
+        <div class="shop-item asg" id="shop-asg" onclick="selectTower('asg')">
+            <span class="title">EC2 ASG</span>
+            <span>$150</span>
+            <span class="shop-desc">Processes Users (Green). Medium Range.</span>
+        </div>
+        <div class="shop-item waf" id="shop-waf" onclick="selectTower('waf')">
+            <span class="title">AWS WAF</span>
+            <span>$200</span>
+            <span class="shop-desc">Blocks DDoS (Red). Long Range.</span>
+        </div>
+        <div class="shop-item cache" id="shop-cache" onclick="selectTower('cache')">
+            <span class="title">ElastiCache</span>
+            <span>$300</span>
+            <span class="shop-desc">Instant Read Cache. Very Short Range.</span>
         </div>
     </div>
 
     <div class="modal" id="start-modal">
-        <h2>Stage 1: The Factory</h2>
-        <p>Developers are pushing code. Drag <strong>Good Code</strong> to Deploy. Drag <strong>Bugs & Vulns</strong> to the Trash.</p>
-        <p>If you miss bad code, Production crashes. Build your budget and buy <strong>Automation Bots</strong> to survive as the belt speeds up!</p>
-        <button class="btn-start" onclick="startGame()">Start Sprint</button>
+        <h2 style="color: var(--blue)">Stage 3: Launch Day</h2>
+        <h3>The Black Friday Traffic Spike</h3>
+        <p>Your app is live. Traffic is flowing from the Internet Gateway to your Database. You must manage the load.</p>
+        <ul>
+            <li><strong style="color: var(--good)">Green Packets (Users):</strong> Must be processed by an EC2 ASG. If they hit the DB raw, CPU increases slightly. Processing earns $.</li>
+            <li><strong style="color: var(--vuln)">Red Packets (DDoS):</strong> Pure malicious traffic. Must be shot down by a WAF. If they hit the DB, CPU spikes massively.</li>
+            <li><strong style="color: var(--cache)">ElastiCache:</strong> Place right next to the DB to absorb massive amounts of user traffic instantly.</li>
+        </ul>
+        <p><strong>Click a service below, then click the grid to deploy it. Keep DB CPU below 100% for 60 seconds!</strong></p>
+        <button class="btn-start" onclick="startGame()">Open The Floodgates</button>
     </div>
 
     <script>
-        // Game State
+        // --- Configuration & State ---
+        const gameArea = document.getElementById('game-area');
+        const cpuFill = document.getElementById('cpu-fill');
+        const timeVal = document.getElementById('time-val');
+        const budgetVal = document.getElementById('budget-val');
+        
         let state = {
-            health: 100, progress: 0, required: 15, budget: 0,
-            speed: 1.5, spawnRate: 2000, 
-            hasLinter: false, hasTrivy: false, isPlaying: false
+            cpu: 0, budget: 350, timeLeft: 60, isPlaying: false,
+            spawnRate: 1500, waveMultiplier: 1
         };
 
-        const types = [
-            { id: 'good', label: '{ }', class: 'good' },
-            { id: 'bug', label: 'Bug', class: 'bug' },
-            { id: 'vuln', label: 'Vuln', class: 'vuln' }
+        // The Path (Waypoints)
+        const pathPoints = [
+            {x: 25, y: -20},  // Start (Offscreen top left)
+            {x: 25, y: 75},   // Down
+            {x: 425, y: 75},  // Right
+            {x: 425, y: 225}, // Down
+            {x: 125, y: 225}, // Left
+            {x: 125, y: 325}, // Down
+            {x: 400, y: 325}  // To Database
         ];
 
-        let commits = [];
-        let animationId;
-        let lastSpawnTime = 0;
-        let draggedCommit = null;
-
-        const gameArea = document.getElementById('game-area');
-        const ui = {
-            health: document.getElementById('health-val'),
-            progress: document.getElementById('progress-val'),
-            budget: document.getElementById('budget-val'),
-            btnLinter: document.getElementById('btn-linter'),
-            btnTrivy: document.getElementById('btn-trivy'),
-            trash: document.getElementById('trash'),
-            prod: document.getElementById('prod')
+        // Tower Stats
+        const towersConfig = {
+            asg: { cost: 150, range: 80, fireRate: 300, damage: 35, target: 'user', color: 'var(--asg)' },
+            waf: { cost: 200, range: 120, fireRate: 500, damage: 50, target: 'ddos', color: 'var(--waf)' },
+            cache: { cost: 300, range: 45, fireRate: 100, damage: 100, target: 'user', color: 'var(--cache)' }
         };
 
-        // --- Core Loop ---
-        function startGame() {
-            document.getElementById('start-modal').style.display = 'none';
-            state.isPlaying = true;
-            lastSpawnTime = performance.now();
-            gameLoop(lastSpawnTime);
-        }
+        let packets = [];
+        let towers = [];
+        let lasers = [];
+        let lastTime = 0;
+        let spawnTimer = 0;
+        let secondTimer = 0;
+        let selectedTowerType = null;
+        let animationId;
 
-        function gameLoop(timestamp) {
-            if (!state.isPlaying) return;
-
-            // Spawn new commits
-            if (timestamp - lastSpawnTime > state.spawnRate) {
-                spawnCommit();
-                lastSpawnTime = timestamp;
-                // Slowly increase difficulty
-                state.speed += 0.02;
-                state.spawnRate = Math.max(800, state.spawnRate - 50);
+        // --- Initialization ---
+        function initMap() {
+            // Draw Path Segments visually
+            for (let i = 0; i < pathPoints.length - 1; i++) {
+                const p1 = pathPoints[i]; const p2 = pathPoints[i+1];
+                const seg = document.createElement('div');
+                seg.className = 'path-segment';
+                
+                const width = Math.abs(p2.x - p1.x) + 30;
+                const height = Math.abs(p2.y - p1.y) + 30;
+                const left = Math.min(p1.x, p2.x) - 15;
+                const top = Math.min(p1.y, p2.y) - 15;
+                
+                seg.style.width = `${width}px`; seg.style.height = `${height}px`;
+                seg.style.left = `${left}px`; seg.style.top = `${top}px`;
+                gameArea.appendChild(seg);
             }
 
-            // Move and process commits
-            for (let i = commits.length - 1; i >= 0; i--) {
-                let c = commits[i];
-                if (!c.isDragging) {
-                    c.x += state.speed;
-                    c.el.style.transform = `translate(${c.x}px, ${c.y}px)`;
+            // Position DB at the end
+            const db = document.getElementById('database');
+            const endPoint = pathPoints[pathPoints.length - 1];
+            db.style.left = `${endPoint.x - 30}px`;
+            db.style.top = `${endPoint.y - 30}px`;
+        }
 
-                    // Automated Processing Checks
-                    if (c.x > 100) { // Give it a slight delay so player sees it spawn
-                        if (c.type === 'bug' && state.hasLinter && !c.autoProcessed) {
-                            processAuto(c, ui.trash, 'Linter Caught Bug! +$10');
-                            commits.splice(i, 1); continue;
-                        }
-                        if (c.type === 'vuln' && state.hasTrivy && !c.autoProcessed) {
-                            processAuto(c, ui.trash, 'Trivy Blocked Vuln! +$20');
-                            commits.splice(i, 1); continue;
-                        }
-                    }
+        function startGame() {
+            document.getElementById('start-modal').style.display = 'none';
+            initMap();
+            state.isPlaying = true;
+            lastTime = performance.now();
+            updateUI();
+            gameLoop(lastTime);
+        }
 
-                    // Missed Commit (Off screen)
-                    if (c.x > gameArea.clientWidth + 50) {
-                        handleMissed(c);
-                        c.el.remove();
-                        commits.splice(i, 1);
-                    }
+        // --- Core Game Loop ---
+        function gameLoop(timestamp) {
+            if (!state.isPlaying) return;
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+
+            // Timers
+            spawnTimer += deltaTime;
+            secondTimer += deltaTime;
+
+            // 1 Second Tick (Decay CPU, Update Time)
+            if (secondTimer >= 1000) {
+                secondTimer = 0;
+                state.timeLeft--;
+                state.cpu = Math.max(0, state.cpu - 4); // CPU cools down
+                
+                // Difficulty Scaling
+                if (state.timeLeft % 10 === 0) {
+                    state.spawnRate = Math.max(300, state.spawnRate - 200);
+                    state.waveMultiplier += 0.2;
+                }
+                
+                updateUI();
+                if (state.timeLeft <= 0) return endGame(true);
+            }
+
+            // Spawn Packets
+            if (spawnTimer >= state.spawnRate) {
+                spawnTimer = 0;
+                spawnPacket();
+            }
+
+            // Move Packets
+            for (let i = packets.length - 1; i >= 0; i--) {
+                let p = packets[i];
+                if (movePacket(p, deltaTime)) {
+                    // Reached Database
+                    hitDatabase(p);
+                    p.el.remove();
+                    packets.splice(i, 1);
                 }
             }
 
-            checkShop();
+            // Tower Logic
+            towers.forEach(t => {
+                t.cooldown -= deltaTime;
+                if (t.cooldown <= 0) {
+                    let target = findTarget(t);
+                    if (target) {
+                        fireTower(t, target);
+                        t.cooldown = tConfig(t.type).fireRate;
+                    }
+                }
+            });
+
+            // Cleanup Lasers
+            for (let i = lasers.length - 1; i >= 0; i--) {
+                lasers[i].life -= deltaTime;
+                if (lasers[i].life <= 0) {
+                    lasers[i].el.remove();
+                    lasers.splice(i, 1);
+                } else {
+                    lasers[i].el.style.opacity = lasers[i].life / 150;
+                }
+            }
+
             animationId = requestAnimationFrame(gameLoop);
         }
 
-        function spawnCommit() {
-            // Weights: 50% Good, 30% Bug, 20% Vuln
-            const rand = Math.random();
-            const typeData = rand < 0.5 ? types[0] : (rand < 0.8 ? types[1] : types[2]);
+        // --- Mechanics ---
+        function spawnPacket() {
+            const isDDoS = Math.random() < 0.35; // 35% chance of malicious traffic
+            const type = isDDoS ? 'ddos' : 'user';
             
             const el = document.createElement('div');
-            el.className = `commit ${typeData.class}`;
-            el.innerText = typeData.label;
+            el.className = `packet ${type}`;
+            gameArea.appendChild(el);
 
-            // Positioning on the belt
-            const beltY = gameArea.clientHeight * 0.3 + 5; 
-            const commitObj = { el, type: typeData.id, x: -60, y: beltY, isDragging: false, autoProcessed: false };
+            const hpBase = type === 'ddos' ? 100 : 50;
+
+            packets.push({
+                el: el, type: type, hp: hpBase * state.waveMultiplier,
+                pathIdx: 0, x: pathPoints[0].x, y: pathPoints[0].y,
+                speed: (type === 'ddos' ? 80 : 50) / 1000 // pixels per ms
+            });
+        }
+
+        function movePacket(p, dt) {
+            const target = pathPoints[p.pathIdx + 1];
+            if (!target) return true; // Reached end
+
+            const dx = target.x - p.x;
+            const dy = target.y - p.y;
+            const dist = Math.hypot(dx, dy);
+            const moveAmt = p.speed * dt;
+
+            if (moveAmt >= dist) {
+                p.x = target.x; p.y = target.y;
+                p.pathIdx++;
+                if (p.pathIdx >= pathPoints.length - 1) return true;
+            } else {
+                p.x += (dx / dist) * moveAmt;
+                p.y += (dy / dist) * moveAmt;
+            }
             
-            el.style.transform = `translate(${commitObj.x}px, ${commitObj.y}px)`;
+            p.el.style.left = `${p.x}px`;
+            p.el.style.top = `${p.y}px`;
+            return false;
+        }
+
+        function hitDatabase(p) {
+            // DB CPU Penalty
+            const penalty = p.type === 'ddos' ? 25 : 8; 
+            state.cpu += penalty;
             
-            // Pointer Events for Dragging
-            el.addEventListener('pointerdown', (e) => startDrag(e, commitObj));
+            triggerHaptic('error');
+            showFloatingText(`CPU +${penalty}%`, "var(--vuln)", p.x, p.y - 20);
+            updateUI();
+
+            if (state.cpu >= 100) endGame(false);
+        }
+
+        function findTarget(tower) {
+            const conf = tConfig(tower.type);
+            let bestTarget = null; let minD = conf.range;
+            
+            for (let p of packets) {
+                if (p.type !== conf.target) continue;
+                const d = Math.hypot(p.x - tower.x, p.y - tower.y);
+                if (d < minD) { minD = d; bestTarget = p; }
+            }
+            return bestTarget;
+        }
+
+        function fireTower(tower, packet) {
+            const conf = tConfig(tower.type);
+            packet.hp -= conf.damage;
+            
+            // Draw Laser
+            drawLaser(tower.x, tower.y, packet.x, packet.y, conf.color);
+
+            if (packet.hp <= 0) {
+                // Packet Processed/Destroyed
+                if (packet.type === 'user') {
+                    const reward = 10;
+                    state.budget += reward;
+                    showFloatingText(`+$${reward}`, "var(--good)", packet.x, packet.y);
+                } else {
+                    showFloatingText("Blocked!", "var(--waf)", packet.x, packet.y);
+                }
+                
+                packet.el.remove();
+                packets.splice(packets.indexOf(packet), 1);
+                updateUI();
+            }
+        }
+
+        function drawLaser(x1, y1, x2, y2, color) {
+            const dist = Math.hypot(x2 - x1, y2 - y1);
+            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+            
+            const el = document.createElement('div');
+            el.className = 'laser';
+            el.style.width = `${dist}px`;
+            el.style.height = '3px';
+            el.style.background = color;
+            el.style.boxShadow = `0 0 8px ${color}`;
+            el.style.left = `${x1}px`; el.style.top = `${y1}px`;
+            el.style.transform = `rotate(${angle}deg)`;
             
             gameArea.appendChild(el);
-            commits.push(commitObj);
+            lasers.push({ el: el, life: 150 }); // laser lasts 150ms
         }
 
-        // --- Drag and Drop Physics ---
-        function startDrag(e, commitObj) {
-            if (!state.isPlaying) return;
-            draggedCommit = commitObj;
-            draggedCommit.isDragging = true;
-            draggedCommit.el.style.zIndex = 100;
-            draggedCommit.el.setPointerCapture(e.pointerId);
+        // --- Building & UI ---
+        function tConfig(type) { return towersConfig[type]; }
 
-            draggedCommit.el.addEventListener('pointermove', moveDrag);
-            draggedCommit.el.addEventListener('pointerup', endDrag);
+        function selectTower(type) {
+            if (state.budget < tConfig(type).cost) return;
+            selectedTowerType = type;
+            document.querySelectorAll('.shop-item').forEach(el => el.classList.remove('selected'));
+            document.getElementById(`shop-${type}`).classList.add('selected');
         }
 
-        function moveDrag(e) {
-            if (!draggedCommit) return;
+        // Place Tower on click
+        gameArea.addEventListener('pointerdown', (e) => {
+            if (!state.isPlaying || !selectedTowerType) return;
+            const conf = tConfig(selectedTowerType);
+            if (state.budget < conf.cost) return;
+
             const rect = gameArea.getBoundingClientRect();
-            // Center the commit on the pointer
-            draggedCommit.x = e.clientX - rect.left - 25; 
-            draggedCommit.y = e.clientY - rect.top - 25;
-            draggedCommit.el.style.transform = `translate(${draggedCommit.x}px, ${draggedCommit.y}px)`;
+            // Snap to 50px grid
+            const x = Math.round((e.clientX - rect.left) / 50) * 50;
+            const y = Math.round((e.clientY - rect.top) / 50) * 50;
+
+            // Boundaries check
+            if (x < 25 || x > rect.width - 25 || y < 25 || y > rect.height - 25) return;
+
+            state.budget -= conf.cost;
             
-            // Highlight drop zones
-            checkHover(e.clientX, e.clientY);
-        }
-
-        function endDrag(e) {
-            if (!draggedCommit) return;
-            draggedCommit.el.removeEventListener('pointermove', moveDrag);
-            draggedCommit.el.removeEventListener('pointerup', endDrag);
-            draggedCommit.isDragging = false;
-            draggedCommit.el.style.zIndex = 10;
-            ui.trash.classList.remove('drag-over');
-            ui.prod.classList.remove('drag-over');
-
-            const droppedZone = getDroppedZone(e.clientX, e.clientY);
-            
-            if (droppedZone === 'prod') handleDropProd(draggedCommit);
-            else if (droppedZone === 'trash') handleDropTrash(draggedCommit);
-            else {
-                // Snap back to belt height if dropped nowhere
-                draggedCommit.y = gameArea.clientHeight * 0.3 + 5;
-                draggedCommit.el.style.transform = `translate(${draggedCommit.x}px, ${draggedCommit.y}px)`;
-                draggedCommit = null;
-                return; 
-            }
-
-            // Clean up array
-            const idx = commits.indexOf(draggedCommit);
-            if (idx > -1) commits.splice(idx, 1);
-            draggedCommit.el.remove();
-            draggedCommit = null;
-        }
-
-        // --- Collision & Logic ---
-        function checkHover(x, y) {
-            ui.trash.classList.toggle('drag-over', isOver(x, y, ui.trash));
-            ui.prod.classList.toggle('drag-over', isOver(x, y, ui.prod));
-        }
-
-        function getDroppedZone(x, y) {
-            if (isOver(x, y, ui.prod)) return 'prod';
-            if (isOver(x, y, ui.trash)) return 'trash';
-            return null;
-        }
-
-        function isOver(x, y, element) {
-            const rect = element.getBoundingClientRect();
-            return (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom);
-        }
-
-        function handleDropProd(commit) {
-            if (commit.type === 'good') {
-                updateProgress(1); updateBudget(10); showText("+10", "#3fb950", commit.x, commit.y);
-            } else {
-                // Deployed a bug!
-                const dmg = commit.type === 'bug' ? 20 : 40;
-                updateHealth(-dmg); 
-                showText(`OUTAGE! -${dmg} HP`, "#ff7b72", commit.x, commit.y - 20);
-                triggerHaptic('error');
-            }
-        }
-
-        function handleDropTrash(commit) {
-            if (commit.type === 'good') {
-                updateHealth(-10); showText("Wasted Code! -10 HP", "#8b949e", commit.x, commit.y - 20);
-            } else {
-                const reward = commit.type === 'bug' ? 10 : 20;
-                updateBudget(reward); showText(`+$${reward}`, "#58a6ff", commit.x, commit.y);
-            }
-        }
-
-        function handleMissed(commit) {
-            // Unprocessed items fall off the belt
-            if (commit.type === 'good') {
-                // Code stalled in pipeline
-                updateHealth(-5); showText("Missed Deadline", "#d29922", commit.x - 50, commit.y);
-            } else {
-                // Bugs that slip through untouched automatically go to Prod in a manual pipeline
-                handleDropProd(commit); 
-            }
-        }
-
-        function processAuto(commit, targetZone, msg) {
-            commit.autoProcessed = true;
-            // Visual fly-to animation
-            const rectArea = gameArea.getBoundingClientRect();
-            const targetRect = targetZone.getBoundingClientRect();
-            const tx = targetRect.left - rectArea.left + 35;
-            const ty = targetRect.top - rectArea.top + 25;
-            
-            commit.el.style.transition = "all 0.4s ease";
-            commit.el.style.transform = `translate(${tx}px, ${ty}px)`;
-            commit.el.style.opacity = "0";
-            
-            showText(msg, "#58a6ff", commit.x, commit.y);
-            
-            setTimeout(() => {
-                if(commit.type === 'bug') updateBudget(5); // Auto bots earn slightly less
-                if(commit.type === 'vuln') updateBudget(10);
-                commit.el.remove();
-            }, 400);
-        }
-
-        // --- State Management ---
-        function updateHealth(amt) {
-            state.health = Math.max(0, Math.min(100, state.health + amt));
-            ui.health.innerText = `${state.health}%`;
-            if (state.health < 30) ui.health.style.color = 'var(--vuln)';
-            else if (state.health < 60) ui.health.style.color = 'var(--bug)';
-            else ui.health.style.color = 'var(--good)';
-
-            if (state.health <= 0) endGame("Fired! Production crashed too many times.");
-        }
-
-        function updateProgress(amt) {
-            state.progress += amt;
-            ui.progress.innerText = `${state.progress} / ${state.required}`;
-            if (state.progress >= state.required) endGame("Artifact Built! Ready for Infrastructure.", true);
-        }
-
-        function updateBudget(amt) {
-            state.budget += amt;
-            ui.budget.innerText = `$${state.budget}`;
-            checkShop();
-        }
-
-        function checkShop() {
-            ui.btnLinter.disabled = state.hasLinter || state.budget < 50;
-            ui.btnTrivy.disabled = state.hasTrivy || state.budget < 100;
-        }
-
-        function buyAutomation(type) {
-            if (type === 'linter' && state.budget >= 50 && !state.hasLinter) {
-                updateBudget(-50); state.hasLinter = true;
-                ui.btnLinter.classList.add('active'); ui.btnLinter.innerText = "Linter Active";
-                logSystem("Linter initialized. Bugs will be auto-rejected.");
-            }
-            if (type === 'trivy' && state.budget >= 100 && !state.hasTrivy) {
-                updateBudget(-100); state.hasTrivy = true;
-                ui.btnTrivy.classList.add('active'); ui.btnTrivy.innerText = "Trivy Active";
-                logSystem("Trivy Scanner active. Securing pipeline.");
-            }
-        }
-
-        // --- Utils ---
-        function showText(msg, color, x, y) {
             const el = document.createElement('div');
-            el.className = 'floating-text';
-            el.innerText = msg; el.style.color = color;
+            el.className = `tower ${selectedTowerType}`;
+            el.innerText = selectedTowerType.toUpperCase();
             el.style.left = `${x}px`; el.style.top = `${y}px`;
             gameArea.appendChild(el);
-            setTimeout(() => el.remove(), 1000);
+
+            towers.push({ el: el, type: selectedTowerType, x: x, y: y, cooldown: 0 });
+            
+            // Deselect
+            selectedTowerType = null;
+            document.querySelectorAll('.shop-item').forEach(el => el.classList.remove('selected'));
+            updateUI();
+        });
+
+        function updateUI() {
+            timeVal.innerText = `${state.timeLeft}s`;
+            budgetVal.innerText = `$${state.budget}`;
+            
+            cpuFill.style.width = `${Math.min(100, state.cpu)}%`;
+            if (state.cpu > 80) cpuFill.style.backgroundColor = 'var(--vuln)';
+            else if (state.cpu > 50) cpuFill.style.backgroundColor = 'var(--bug)';
+            else cpuFill.style.backgroundColor = 'var(--good)';
+
+            // Update Shop buttons
+            ['asg', 'waf', 'cache'].forEach(t => {
+                const el = document.getElementById(`shop-${t}`);
+                if (state.budget < tConfig(t).cost) el.classList.add('disabled');
+                else el.classList.remove('disabled');
+            });
         }
 
-        function logSystem(msg) {
-            showText(msg, "#58a6ff", gameArea.clientWidth / 2 - 100, 20);
+        function showFloatingText(msg, color, x, y) {
+            const el = document.createElement('div');
+            el.className = 'floating-text'; el.innerText = msg; el.style.color = color;
+            el.style.left = `${x}px`; el.style.top = `${y}px`;
+            gameArea.appendChild(el);
+            setTimeout(() => el.remove(), 800);
         }
 
         function triggerHaptic(type) {
@@ -442,16 +500,25 @@
             }
         }
 
-        function endGame(msg, won = false) {
+        function endGame(won) {
             state.isPlaying = false;
             cancelAnimationFrame(animationId);
             const modal = document.getElementById('start-modal');
-            modal.innerHTML = `
-                <h2 style="color: ${won ? 'var(--prod)' : 'var(--vuln)'}">${won ? 'Sprint Complete!' : 'Sprint Failed'}</h2>
-                <p>${msg}</p>
-                ${won ? '<button class="btn-start" onclick="alert(\'Ready for Stage 2: Cloud Plumber!\')">Proceed to Stage 2</button>' 
-                      : '<button class="btn-start" style="background:var(--trash)" onclick="location.reload()">Try Again</button>'}
-            `;
+            
+            if (won) {
+                modal.innerHTML = `
+                    <h2 style="color: var(--good)">Incident Resolved</h2>
+                    <p>You successfully scaled your infrastructure and blocked the DDoS attack. Production stayed online!</p>
+                    <button class="btn-start" onclick="alert('DevOps Campaign Completed!')">Finish Campaign</button>
+                `;
+            } else {
+                modal.innerHTML = `
+                    <h2 style="color: var(--vuln)">Production Down</h2>
+                    <p>Your Database CPU hit 100%. The application crashed under load.</p>
+                    <p><strong>Tip:</strong> Use WAFs early in the path to kill DDoS bots, and ElastiCache right next to the DB to absorb user traffic!</p>
+                    <button class="btn-start" style="background:var(--vuln)" onclick="location.reload()">Retry Incident</button>
+                `;
+            }
             modal.style.display = 'flex';
         }
     </script>
