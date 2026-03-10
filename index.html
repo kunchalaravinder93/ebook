@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>DevOps Rush V3</title>
+<title>DevOps Rush V4</title>
 
 <style>
 
 body{
 margin:0;
-font-family:Segoe UI,Arial;
+font-family:Segoe UI;
 background:#0f172a;
 color:white;
 overflow:hidden;
@@ -65,6 +65,24 @@ border-radius:50%;
 pointer-events:none;
 }
 
+.node{
+position:absolute;
+width:80px;
+height:40px;
+background:#1e293b;
+border-radius:6px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:12px;
+}
+
+.line{
+position:absolute;
+height:2px;
+background:#64748b;
+}
+
 .center{
 text-align:center;
 padding-top:120px;
@@ -99,8 +117,9 @@ cursor:pointer;
 
 const State={
 INTRO:"INTRO",
-CI:"CI",
-ARCH:"ARCH",
+CI:"CI_PIPELINE",
+ARCH:"ARCHITECTURE",
+K8S:"KUBERNETES",
 INCIDENT:"INCIDENT",
 END:"END"
 }
@@ -111,6 +130,7 @@ let combo=0
 let health=100
 let timer=40
 let difficulty=1
+let drag=null
 
 const game=document.getElementById("game")
 
@@ -119,8 +139,6 @@ const scoreEl=document.getElementById("score")
 const healthEl=document.getElementById("health")
 const timeEl=document.getElementById("time")
 const comboEl=document.getElementById("combo")
-
-let drag=null
 
 function hud(){
 stageEl.innerText=state
@@ -164,6 +182,12 @@ return
 }
 
 if(state===State.ARCH){
+state=State.K8S
+k8sGame()
+return
+}
+
+if(state===State.K8S){
 state=State.INCIDENT
 incidentGame()
 return
@@ -184,8 +208,8 @@ let div=document.createElement("div")
 div.className="center"
 
 div.innerHTML=`
-<h1>🚀 DevOps Rush V3</h1>
-<p>Advanced Cloud Deployment Simulator</p>
+<h1>🚀 DevOps Rush V4</h1>
+<p>Cloud Chaos Simulator</p>
 <button onclick="startGame()">Start</button>
 `
 
@@ -196,9 +220,10 @@ game.appendChild(div)
 function startGame(){
 
 score=0
-combo=0
 health=100
+combo=0
 difficulty=1
+
 state=State.CI
 
 ciGame()
@@ -223,6 +248,7 @@ z.style.left=(i*14+5)+"%"
 z.style.top="40%"
 z.style.width="12%"
 z.style.height="100px"
+
 game.appendChild(z)
 
 })
@@ -237,6 +263,7 @@ el.innerText=p
 el.style.left=(Math.random()*600)+"px"
 el.style.top=(100+Math.random()*300)+"px"
 enableDrag(el)
+
 game.appendChild(el)
 
 })
@@ -249,37 +276,62 @@ clearGame()
 hud()
 startTimer()
 
-let arch=["Internet","CloudFront","LoadBalancer","K8sCluster","Database","Cache"]
+createNode("Internet",50,40)
+createNode("CloudFront",200,100)
+createNode("LoadBalancer",350,160)
+createNode("K8sCluster",500,220)
+createNode("Database",650,280)
 
-arch.forEach((a,i)=>{
+drawLine(90,60,210,110)
+drawLine(240,120,360,170)
+drawLine(390,180,510,230)
+drawLine(540,240,660,290)
 
-let z=document.createElement("div")
-z.className="zone"
-z.innerText=a
-z.dataset.name=a
-z.style.left="40%"
-z.style.top=(80+i*80)+"px"
-z.style.width="220px"
-z.style.height="60px"
+}
 
-game.appendChild(z)
+function createNode(name,x,y){
 
-})
+let n=document.createElement("div")
+n.className="node"
+n.innerText=name
+n.style.left=x+"px"
+n.style.top=y+"px"
 
-arch.sort(()=>Math.random()-0.5)
+game.appendChild(n)
 
-arch.forEach(a=>{
+}
 
-let el=document.createElement("div")
-el.className="item good"
-el.innerText=a
-el.style.left=(Math.random()*300)+"px"
-el.style.top=(100+Math.random()*300)+"px"
-enableDrag(el)
+function drawLine(x1,y1,x2,y2){
 
-game.appendChild(el)
+let l=document.createElement("div")
+l.className="line"
 
-})
+l.style.left=x1+"px"
+l.style.top=y1+"px"
+l.style.width=Math.hypot(x2-x1,y2-y1)+"px"
+l.style.transform="rotate("+Math.atan2(y2-y1,x2-x1)+"rad)"
+
+game.appendChild(l)
+
+}
+
+function k8sGame(){
+
+clearGame()
+hud()
+startTimer()
+
+for(let i=0;i<6;i++){
+
+let pod=document.createElement("div")
+pod.className="item good"
+pod.innerText="Pod"
+pod.style.left=(100+i*120)+"px"
+pod.style.top="200px"
+
+game.appendChild(pod)
+
+}
 
 }
 
@@ -291,13 +343,13 @@ startTimer()
 
 spawnIncident()
 
-setInterval(spawnIncident,2500/difficulty)
+setInterval(spawnIncident,2000/difficulty)
 
 }
 
 function spawnIncident(){
 
-if(state!==State.INCIDENT)return
+if(state!==State.INCIDENT) return
 
 let data=[
 ["CPU Spike","Scale"],
@@ -314,6 +366,7 @@ let alert=document.createElement("div")
 alert.className="item bad"
 alert.innerText=i[0]
 alert.dataset.fix=i[1]
+
 alert.style.left=(Math.random()*window.innerWidth)+"px"
 alert.style.top=(100+Math.random()*200)+"px"
 
@@ -322,10 +375,12 @@ game.appendChild(alert)
 let fix=document.createElement("div")
 fix.className="item good"
 fix.innerText=i[1]
+
 fix.style.left=(Math.random()*window.innerWidth)+"px"
 fix.style.top=(300+Math.random()*200)+"px"
 
 enableDrag(fix)
+
 game.appendChild(fix)
 
 }
@@ -346,6 +401,7 @@ drag.style.top=e.clientY-20+"px"
 window.addEventListener("pointerup",()=>{
 
 if(!drag)return
+
 checkDrop(drag)
 drag=null
 
@@ -353,73 +409,7 @@ drag=null
 
 }
 
-function particle(x,y){
-
-for(let i=0;i<8;i++){
-
-let p=document.createElement("div")
-p.className="particle"
-p.style.left=x+"px"
-p.style.top=y+"px"
-
-game.appendChild(p)
-
-let vx=(Math.random()-0.5)*6
-let vy=(Math.random()-0.5)*6
-
-let life=30
-
-function animate(){
-
-vx*=0.95
-vy*=0.95
-
-p.style.left=(parseFloat(p.style.left)+vx)+"px"
-p.style.top=(parseFloat(p.style.top)+vy)+"px"
-
-life--
-
-if(life>0) requestAnimationFrame(animate)
-else p.remove()
-
-}
-
-animate()
-
-}
-
-}
-
 function checkDrop(el){
-
-let zones=document.querySelectorAll(".zone")
-
-zones.forEach(z=>{
-
-let r=z.getBoundingClientRect()
-let e=el.getBoundingClientRect()
-
-if(e.left<r.right && e.right>r.left && e.top<r.bottom && e.bottom>r.top){
-
-if(el.innerText===z.dataset.name){
-
-combo++
-score+=10*combo
-particle(e.left,e.top)
-el.remove()
-
-}else{
-
-combo=0
-health-=10
-
-}
-
-hud()
-
-}
-
-})
 
 let alerts=document.querySelectorAll(".bad")
 
@@ -434,7 +424,6 @@ if(el.innerText===a.dataset.fix){
 
 score+=20
 combo++
-particle(e.left,e.top)
 
 a.remove()
 el.remove()
@@ -454,31 +443,24 @@ hud()
 
 }
 
-function saveScore(){
-
-let best=localStorage.getItem("devopsScore")
-
-if(!best || score>best){
-localStorage.setItem("devopsScore",score)
-}
-
-}
-
 function endGame(){
 
-saveScore()
-
-let best=localStorage.getItem("devopsScore")
-
 clearGame()
+
+let best=localStorage.getItem("devopsV4")
+
+if(!best || score>best){
+localStorage.setItem("devopsV4",score)
+best=score
+}
 
 let div=document.createElement("div")
 div.className="center"
 
 div.innerHTML=`
-<h1>🏆 Deployment Successful</h1>
+<h1>🏆 Cloud Deployment Complete</h1>
 <h2>Score: ${score}</h2>
-<h3>Best: ${best}</h3>
+<h3>Best Score: ${best}</h3>
 <button onclick="startGame()">Play Again</button>
 `
 
