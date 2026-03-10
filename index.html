@@ -3,523 +3,509 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AWS Packet Defense</title>
+    <title>DevOps Campaign: The Master Simulator</title>
     <style>
+        /* --- GLOBAL THEME & RESET --- */
         :root {
             --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #c9d1d9;
-            --good: #238636; --bug: #d29922; --vuln: #f85149;
-            --path: #21262d; --grid: rgba(255,255,255,0.05);
+            --good: #238636; --bug: #d29922; --vuln: #f85149; --blue: #58a6ff; 
             --waf: #bc8cff; --asg: #58a6ff; --cache: #d29922;
         }
-
         body {
             background-color: var(--bg); color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             margin: 0; padding: 0; display: flex; flex-direction: column;
-            align-items: center; height: 100vh; overflow: hidden;
+            align-items: center; justify-content: center; height: 100vh; overflow: hidden;
             touch-action: none; user-select: none; -webkit-user-select: none;
         }
-
-        /* Top HUD */
-        .hud {
-            display: flex; justify-content: space-between; align-items: center;
-            width: 100%; max-width: 500px; padding: 10px 15px; box-sizing: border-box;
-            background: var(--panel); border-bottom: 1px solid var(--border);
-        }
+        h1, h2, h3, p { margin: 0; }
         
-        .cpu-container { width: 150px; }
-        .cpu-label { font-size: 0.7rem; font-weight: bold; margin-bottom: 3px; color: #8b949e;}
-        .cpu-bar-bg { width: 100%; height: 12px; background: var(--bg); border-radius: 6px; overflow: hidden; border: 1px solid var(--border);}
-        .cpu-bar-fill { height: 100%; width: 0%; background: var(--good); transition: width 0.2s, background-color 0.2s;}
+        /* View Controller */
+        .view { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; }
+        .view.active { display: flex; }
 
-        .stats { display: flex; gap: 15px; font-weight: bold; }
-        .stat-box { display: flex; flex-direction: column; align-items: flex-end; }
-        .stat-label { font-size: 0.65rem; color: #8b949e; text-transform: uppercase; }
-        .stat-value { font-size: 1.1rem; }
-        .budget-val { color: var(--good); }
-        .time-val { color: var(--asg); }
-
-        /* Game Map */
-        .game-area {
-            position: relative; width: 100%; max-width: 500px; height: 400px;
-            background: #010409; border-bottom: 1px solid var(--border);
-            overflow: hidden;
-        }
-
-        .grid-bg {
-            position: absolute; width: 100%; height: 100%;
-            background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-            background-size: 50px 50px; pointer-events: none;
-        }
-
-        /* The Path */
-        .path-segment { position: absolute; background: var(--path); border: 1px dashed #30363d; box-sizing: border-box;}
-
-        /* Database Endpoint */
-        .database {
-            position: absolute; width: 60px; height: 60px; border-radius: 8px;
-            background: var(--panel); border: 2px solid var(--asg);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.7rem; font-weight: bold; color: var(--asg); text-align: center;
-            box-shadow: 0 0 15px rgba(88, 166, 255, 0.3); z-index: 5;
-        }
-
-        /* Entities */
-        .packet {
-            position: absolute; width: 12px; height: 12px; border-radius: 50%;
-            transform: translate(-50%, -50%); z-index: 10;
-        }
-        .packet.user { background: var(--good); box-shadow: 0 0 8px var(--good); }
-        .packet.ddos { background: var(--vuln); box-shadow: 0 0 8px var(--vuln); }
-
-        /* Towers */
-        .tower {
-            position: absolute; width: 40px; height: 40px; border-radius: 6px;
-            transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center;
-            font-size: 0.6rem; font-weight: bold; color: #fff; cursor: pointer; z-index: 15;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.5); border: 2px solid;
-        }
-        .tower.waf { background: rgba(188, 140, 255, 0.2); border-color: var(--waf); color: var(--waf);}
-        .tower.asg { background: rgba(88, 166, 255, 0.2); border-color: var(--asg); color: var(--asg);}
-        .tower.cache { background: rgba(210, 153, 34, 0.2); border-color: var(--cache); color: var(--cache);}
-
-        .laser {
-            position: absolute; transform-origin: 0 0; z-index: 12;
-            pointer-events: none; opacity: 0.8;
-        }
-
-        /* Tower Shop */
-        .shop {
-            display: flex; gap: 10px; padding: 15px 10px; width: 100%; max-width: 500px;
-            justify-content: center; background: var(--panel); flex: 1; align-items: flex-start;
-        }
-        .shop-item {
-            background: var(--bg); border: 2px solid var(--border); color: var(--text);
-            padding: 8px; border-radius: 8px; cursor: pointer; font-weight: bold;
-            font-size: 0.7rem; transition: 0.2s; display: flex; flex-direction: column; align-items: center;
-            width: 90px; text-align: center;
-        }
-        .shop-item:hover { background: #21262d; }
-        .shop-item.selected { border-color: #fff; background: #30363d; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(255,255,255,0.1);}
-        .shop-item.disabled { opacity: 0.4; cursor: not-allowed; }
+        /* Shared UI Elements */
+        .btn { background: var(--blue); color: #fff; border: none; padding: 12px 24px; font-size: 1rem; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;}
+        .btn:hover { background: #388bfd; }
+        .hud { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 500px; padding: 15px; box-sizing: border-box; background: var(--panel); border-bottom: 1px solid var(--border); }
+        .stat-box { display: flex; flex-direction: column; align-items: center; }
+        .stat-label { font-size: 0.65rem; color: #8b949e; text-transform: uppercase; font-weight: bold;}
+        .stat-value { font-size: 1.1rem; font-weight: bold; }
         
-        .shop-item.waf span.title { color: var(--waf); }
-        .shop-item.asg span.title { color: var(--asg); }
-        .shop-item.cache span.title { color: var(--cache); }
-        .shop-desc { font-size: 0.55rem; color: #8b949e; margin-top: 4px; font-weight: normal;}
-
         /* Modals */
-        .modal {
-            position: absolute; top:0; left:0; width:100%; height:100%;
-            background: rgba(1,4,9,0.9); display: flex; flex-direction: column;
-            align-items: center; justify-content: center; z-index: 100; padding: 20px; box-sizing: border-box; text-align: center;
-        }
-        .modal h2 { margin-bottom: 5px; font-size: 1.8rem;}
-        .modal h3 { color: #8b949e; font-size: 1rem; margin-top: 0; margin-bottom: 20px;}
-        .modal p { font-size: 0.95rem; line-height: 1.5; max-width: 400px; margin-bottom: 15px; color: var(--text);}
-        .modal ul { text-align: left; font-size: 0.85rem; color: #8b949e; margin-bottom: 25px;}
-        .modal li { margin-bottom: 8px;}
-        .btn-start { background: var(--good); color: #fff; border: none; padding: 12px 25px; font-size: 1.1rem; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .btn-start:hover { background: #2ea043; }
+        .modal { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(1,4,9,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; padding: 20px; box-sizing: border-box; text-align: center; }
+        .modal-card { background: var(--panel); border: 1px solid var(--border); padding: 30px; border-radius: 12px; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);}
+        .modal-card h2 { color: var(--blue); margin-bottom: 15px; font-size: 1.8rem;}
+        .modal-card p { font-size: 0.95rem; line-height: 1.5; margin-bottom: 25px; color: #8b949e;}
         
         /* Floating Text */
-        .floating-text { position: absolute; font-weight: bold; font-size: 0.8rem; pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 20; }
+        .float-txt { position: absolute; font-weight: bold; font-size: 0.9rem; pointer-events: none; animation: floatUp 0.8s ease-out forwards; z-index: 200; }
         @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-20px); } }
+
+        /* --- MAIN MENU --- */
+        #menu-view { justify-content: center; text-align: center; }
+        #menu-view h1 { font-size: 2.5rem; margin-bottom: 10px; color: #fff;}
+        #menu-view p { color: #8b949e; margin-bottom: 30px; max-width: 300px; line-height: 1.4;}
+
+        /* --- STAGE 1: CI/CD FACTORY --- */
+        #s1-area { position: relative; width: 100%; max-width: 500px; flex: 1; background: #010409; overflow: hidden; }
+        .s1-belt { position: absolute; top: 30%; width: 100%; height: 60px; background: #21262d; border-top: 2px solid var(--border); border-bottom: 2px solid var(--border); }
+        .s1-stripes { width: 200%; height: 100%; background: repeating-linear-gradient(-45deg, transparent, transparent 20px, rgba(255,255,255,0.05) 20px, rgba(255,255,255,0.05) 40px); animation: s1move 2s linear infinite; }
+        @keyframes s1move { 100% { transform: translateX(-50px); } }
+        .s1-zones { position: absolute; bottom: 30px; width: 100%; display: flex; justify-content: space-around; }
+        .s1-zone { width: 110px; height: 90px; border-radius: 8px; border: 3px dashed; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        #s1-trash { border-color: #8b949e; color: #8b949e; background: rgba(139,148,158,0.1); }
+        #s1-prod { border-color: var(--good); color: var(--good); background: rgba(35,134,54,0.1); }
+        .s1-commit { position: absolute; width: 45px; height: 45px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.7rem; color: #fff; cursor: grab; box-shadow: 0 4px 8px rgba(0,0,0,0.5); z-index: 10;}
+        .s1-commit:active { cursor: grabbing; transform: scale(1.1); }
+
+        /* --- STAGE 2: ARCHITECTURE WHITEBOARD --- */
+        #s2-area { position: relative; width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; flex: 1; background: #010409; display: flex; flex-direction: column; align-items: center;}
+        .s2-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; position: relative; background: var(--panel); padding: 10px; border-radius: 8px; border: 1px solid var(--border);}
+        .s2-cell { width: 60px; height: 60px; background: var(--bg); border: 1px dashed #484f58; border-radius: 4px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.5rem; color: #484f58; position: relative; box-sizing: border-box;}
+        .s2-cell.chk { border: 2px solid var(--yellow); color: var(--text); font-weight: bold; }
+        .s2-cell.end { border: 2px solid var(--waf); color: var(--text); font-weight: bold; }
+        .s2-cell.visited { border: 2px solid var(--blue); color: var(--blue); }
+        .s2-dot { position: absolute; width: 10px; height: 10px; background: var(--blue); border-radius: 50%; z-index: 2;}
+        .s2-line { position: absolute; background: var(--blue); z-index: 1;}
+        .s2-line-right { top: calc(50% - 3px); left: 50%; width: calc(100% + 10px); height: 6px; }
+        .s2-line-left { top: calc(50% - 3px); right: 50%; width: calc(100% + 10px); height: 6px; }
+        .s2-line-down { left: calc(50% - 3px); top: 50%; height: calc(100% + 10px); width: 6px; }
+        .s2-line-up { left: calc(50% - 3px); bottom: 50%; height: calc(100% + 10px); width: 6px; }
+        .s2-term { width: 100%; max-width: 320px; height: 80px; background: var(--bg); border: 1px solid var(--border); margin-top: 15px; padding: 8px; font-family: monospace; font-size: 0.65rem; color: #8b949e; overflow-y: auto;}
+
+        /* --- STAGE 3: PACKET DEFENSE --- */
+        #s3-area { position: relative; width: 100%; max-width: 500px; flex: 1; background: #010409; overflow: hidden; border-bottom: 1px solid var(--border);}
+        .s3-bg { position: absolute; width: 100%; height: 100%; background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 50px 50px; pointer-events: none;}
+        .s3-path { position: absolute; background: #21262d; border: 1px dashed #30363d; box-sizing: border-box;}
+        .s3-db { position: absolute; width: 50px; height: 50px; border-radius: 8px; background: var(--panel); border: 2px solid var(--asg); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: bold; color: var(--asg); box-shadow: 0 0 15px rgba(88,166,255,0.3); z-index: 5;}
+        .s3-packet { position: absolute; width: 12px; height: 12px; border-radius: 50%; transform: translate(-50%, -50%); z-index: 10; }
+        .s3-tower { position: absolute; width: 36px; height: 36px; border-radius: 6px; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: bold; color: #fff; z-index: 15; box-shadow: 0 4px 8px rgba(0,0,0,0.5); border: 2px solid; }
+        .s3-laser { position: absolute; transform-origin: 0 0; z-index: 12; pointer-events: none; opacity: 0.8; height: 2px;}
+        .s3-shop { display: flex; gap: 10px; padding: 10px; width: 100%; max-width: 500px; justify-content: center; background: var(--panel); height: 80px;}
+        .s3-item { background: var(--bg); border: 2px solid var(--border); padding: 5px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; width: 80px; }
+        .s3-item.selected { border-color: #fff; background: #30363d; }
+        .s3-title { font-weight: bold; font-size: 0.65rem; margin-bottom: 2px;}
+        .s3-cost { font-size: 0.6rem; color: var(--good);}
     </style>
 </head>
 <body>
 
-    <div class="hud">
-        <div class="cpu-container">
-            <div class="cpu-label">RDS Database CPU</div>
-            <div class="cpu-bar-bg"><div class="cpu-bar-fill" id="cpu-fill"></div></div>
+    <div id="menu-view" class="view active">
+        <h1>DevOps<br>Campaign</h1>
+        <p>From manual builds to Black Friday scale. Prove you have what it takes to be a Cloud Engineer.</p>
+        <button class="btn" onclick="startStage1()">Start Campaign</button>
+    </div>
+
+    <div id="stage1-view" class="view">
+        <div class="hud">
+            <div class="stat-box"><span class="stat-label">Artifact</span><span class="stat-value" id="s1-prog">0/10</span></div>
+            <div class="stat-box"><span class="stat-label">Health</span><span class="stat-value" id="s1-hp" style="color:var(--good)">100%</span></div>
         </div>
-        <div class="stats">
-            <div class="stat-box">
-                <span class="stat-label">Time Left</span>
-                <span class="stat-value time-val" id="time-val">60s</span>
+        <div id="s1-area">
+            <div class="s1-belt"><div class="s1-stripes"></div></div>
+            <div class="s1-zones">
+                <div class="s1-zone" id="s1-trash">🗑️ TRASH</div>
+                <div class="s1-zone" id="s1-prod">🚀 DEPLOY</div>
             </div>
-            <div class="stat-box">
-                <span class="stat-label">AWS Budget</span>
-                <span class="stat-value budget-val" id="budget-val">$300</span>
+        </div>
+        <div class="modal" id="s1-modal" style="display:none">
+            <div class="modal-card">
+                <h2>Stage 1: The Build</h2>
+                <p>Drag <strong>Green Code</strong> to Deploy. Throw <strong>Red Bugs</strong> in the Trash. Miss a bug and production takes a hit!</p>
+                <button class="btn" onclick="s1_run()">Start Sorting</button>
             </div>
         </div>
     </div>
 
-    <div class="game-area" id="game-area">
-        <div class="grid-bg"></div>
-        <div class="database" id="database">Core<br>RDS</div>
-    </div>
-
-    <div class="shop">
-        <div class="shop-item asg" id="shop-asg" onclick="selectTower('asg')">
-            <span class="title">EC2 ASG</span>
-            <span>$150</span>
-            <span class="shop-desc">Processes Users (Green). Medium Range.</span>
+    <div id="stage2-view" class="view">
+        <div class="hud">
+            <div class="stat-box"><span class="stat-label">Goal</span><span class="stat-value">High Avail.</span></div>
+            <div class="stat-box"><span class="stat-label">Cost</span><span class="stat-value" id="s2-cost" style="color:var(--good)">$0/$300</span></div>
         </div>
-        <div class="shop-item waf" id="shop-waf" onclick="selectTower('waf')">
-            <span class="title">AWS WAF</span>
-            <span>$200</span>
-            <span class="shop-desc">Blocks DDoS (Red). Long Range.</span>
+        <div id="s2-area">
+            <div class="s2-grid" id="s2-grid"></div>
+            <div class="s2-term" id="s2-term">> Awaiting architecture...</div>
+            <button class="btn" style="margin-top: 15px; width: 100%; max-width: 320px;" onclick="s2_submit()">Deploy Config</button>
         </div>
-        <div class="shop-item cache" id="shop-cache" onclick="selectTower('cache')">
-            <span class="title">ElastiCache</span>
-            <span>$300</span>
-            <span class="shop-desc">Instant Read Cache. Very Short Range.</span>
+        <div class="modal" id="s2-modal" style="display:none">
+            <div class="modal-card">
+                <h2>Stage 2: Infrastructure</h2>
+                <p>You have a clean artifact. Now build the AWS network. Draw the shortest path through <strong>WAF -> ALB -> ASG -> RDS</strong>. Avoid blank tiles to save budget!</p>
+                <button class="btn" onclick="s2_run()">Start Drawing</button>
+            </div>
         </div>
     </div>
 
-    <div class="modal" id="start-modal">
-        <h2 style="color: var(--blue)">Stage 3: Launch Day</h2>
-        <h3>The Black Friday Traffic Spike</h3>
-        <p>Your app is live. Traffic is flowing from the Internet Gateway to your Database. You must manage the load.</p>
-        <ul>
-            <li><strong style="color: var(--good)">Green Packets (Users):</strong> Must be processed by an EC2 ASG. If they hit the DB raw, CPU increases slightly. Processing earns $.</li>
-            <li><strong style="color: var(--vuln)">Red Packets (DDoS):</strong> Pure malicious traffic. Must be shot down by a WAF. If they hit the DB, CPU spikes massively.</li>
-            <li><strong style="color: var(--cache)">ElastiCache:</strong> Place right next to the DB to absorb massive amounts of user traffic instantly.</li>
-        </ul>
-        <p><strong>Click a service below, then click the grid to deploy it. Keep DB CPU below 100% for 60 seconds!</strong></p>
-        <button class="btn-start" onclick="startGame()">Open The Floodgates</button>
+    <div id="stage3-view" class="view">
+        <div class="hud">
+            <div class="stat-box"><span class="stat-label">Time Left</span><span class="stat-value" id="s3-time" style="color:var(--blue)">45s</span></div>
+            <div class="stat-box"><span class="stat-label">DB CPU</span><span class="stat-value" id="s3-cpu" style="color:var(--good)">0%</span></div>
+            <div class="stat-box"><span class="stat-label">Budget</span><span class="stat-value" id="s3-budget" style="color:var(--good)">$200</span></div>
+        </div>
+        <div id="s3-area">
+            <div class="s3-bg"></div>
+            </div>
+        <div class="s3-shop">
+            <div class="s3-item" id="shop-asg" onclick="s3_select('asg')"><span class="s3-title" style="color:var(--asg)">ASG</span><span class="s3-cost">$100</span></div>
+            <div class="s3-item" id="shop-waf" onclick="s3_select('waf')"><span class="s3-title" style="color:var(--waf)">WAF</span><span class="s3-cost">$150</span></div>
+        </div>
+        <div class="modal" id="s3-modal" style="display:none">
+            <div class="modal-card">
+                <h2>Stage 3: Launch Day</h2>
+                <p>Traffic is spiking! Select services below and tap the grid to place them. <strong>ASG</strong> processes Green Users. <strong>WAF</strong> kills Red DDoS bots. Don't let DB CPU hit 100%!</p>
+                <button class="btn" onclick="s3_run()">Open Floodgates</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="victory-view" class="view">
+        <div class="modal-card" style="text-align: center;">
+            <h2 style="color: var(--good); font-size: 2.5rem; margin-bottom: 5px;">Hired!</h2>
+            <p style="margin-bottom: 10px;">You sorted the code, architected the cloud, and survived the Black Friday DDoS attack.</p>
+            <p style="font-size: 0.8rem; font-style: italic;">You are officially a Senior Cloud Engineer.</p>
+            <button class="btn" onclick="location.reload()" style="margin-top: 15px;">Play Again</button>
+        </div>
     </div>
 
     <script>
-        // --- Configuration & State ---
-        const gameArea = document.getElementById('game-area');
-        const cpuFill = document.getElementById('cpu-fill');
-        const timeVal = document.getElementById('time-val');
-        const budgetVal = document.getElementById('budget-val');
-        
-        let state = {
-            cpu: 0, budget: 350, timeLeft: 60, isPlaying: false,
-            spawnRate: 1500, waveMultiplier: 1
-        };
+        // --- MASTER STATE MACHINE ---
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+        function triggerHaptic() { if(navigator.vibrate) navigator.vibrate(15); }
+        function floatTxt(msg, color, x, y, parent) {
+            const el = document.createElement('div'); el.className = 'float-txt';
+            el.innerText = msg; el.style.color = color; el.style.left = `${x}px`; el.style.top = `${y}px`;
+            parent.appendChild(el); setTimeout(() => el.remove(), 800);
+        }
 
-        // The Path (Waypoints)
-        const pathPoints = [
-            {x: 25, y: -20},  // Start (Offscreen top left)
-            {x: 25, y: 75},   // Down
-            {x: 425, y: 75},  // Right
-            {x: 425, y: 225}, // Down
-            {x: 125, y: 225}, // Left
-            {x: 125, y: 325}, // Down
-            {x: 400, y: 325}  // To Database
+        // --- STAGE 1 LOGIC (CI/CD) ---
+        let s1 = { anim: null, playing: false, hp: 100, prog: 0, speed: 1.5, commits: [], dragged: null };
+        function startStage1() { switchView('stage1-view'); document.getElementById('s1-modal').style.display = 'flex'; }
+        
+        function s1_run() {
+            document.getElementById('s1-modal').style.display = 'none';
+            s1.playing = true; s1_loop(); setInterval(s1_spawn, 1500);
+        }
+
+        function s1_spawn() {
+            if(!s1.playing) return;
+            const isBug = Math.random() < 0.35;
+            const el = document.createElement('div');
+            el.className = `s1-commit`; el.innerText = isBug ? "BUG" : "CODE";
+            el.style.background = isBug ? 'var(--bug)' : 'var(--good)';
+            el.style.border = `2px solid ${isBug ? '#e3b341' : '#3fb950'}`;
+            
+            let obj = { el, isBug, x: -50, y: document.getElementById('s1-area').clientHeight * 0.3 + 5, dragging: false };
+            el.style.transform = `translate(${obj.x}px, ${obj.y}px)`;
+            el.addEventListener('pointerdown', (e) => s1_dragStart(e, obj));
+            document.getElementById('s1-area').appendChild(el);
+            s1.commits.push(obj);
+        }
+
+        function s1_loop() {
+            if(!s1.playing) return;
+            s1.speed += 0.001;
+            for(let i = s1.commits.length - 1; i >= 0; i--) {
+                let c = s1.commits[i];
+                if(!c.dragging) {
+                    c.x += s1.speed;
+                    c.el.style.transform = `translate(${c.x}px, ${c.y}px)`;
+                    if(c.x > 550) { s1_eval(c, null); } // Missed
+                }
+            }
+            s1.anim = requestAnimationFrame(s1_loop);
+        }
+
+        function s1_dragStart(e, obj) {
+            if(!s1.playing) return;
+            s1.dragged = obj; obj.dragging = true; obj.el.style.zIndex = 100;
+            obj.el.setPointerCapture(e.pointerId);
+            obj.el.addEventListener('pointermove', s1_dragMove);
+            obj.el.addEventListener('pointerup', s1_dragEnd);
+        }
+        function s1_dragMove(e) {
+            if(!s1.dragged) return;
+            const rect = document.getElementById('s1-area').getBoundingClientRect();
+            s1.dragged.x = e.clientX - rect.left - 20; s1.dragged.y = e.clientY - rect.top - 20;
+            s1.dragged.el.style.transform = `translate(${s1.dragged.x}px, ${s1.dragged.y}px)`;
+        }
+        function s1_dragEnd(e) {
+            if(!s1.dragged) return;
+            let c = s1.dragged; c.dragging = false; c.el.style.zIndex = 10;
+            c.el.removeEventListener('pointermove', s1_dragMove); c.el.removeEventListener('pointerup', s1_dragEnd);
+            s1.dragged = null;
+            
+            const prodR = document.getElementById('s1-prod').getBoundingClientRect();
+            const trashR = document.getElementById('s1-trash').getBoundingClientRect();
+            
+            if(e.clientX > prodR.left && e.clientX < prodR.right && e.clientY > prodR.top && e.clientY < prodR.bottom) s1_eval(c, 'prod');
+            else if(e.clientX > trashR.left && e.clientX < trashR.right && e.clientY > trashR.top && e.clientY < trashR.bottom) s1_eval(c, 'trash');
+            else { c.y = document.getElementById('s1-area').clientHeight * 0.3 + 5; } // Snap back
+        }
+
+        function s1_eval(c, zone) {
+            let msg = "", col = "";
+            if(zone === 'prod') {
+                if(!c.isBug) { s1.prog++; msg = "+1"; col = "var(--good)"; triggerHaptic(); } 
+                else { s1.hp -= 20; msg = "OUTAGE!"; col = "var(--vuln)"; if(navigator.vibrate) navigator.vibrate([50,50,50]); }
+            } else if(zone === 'trash') {
+                if(c.isBug) { msg = "Fixed"; col = "var(--blue)"; triggerHaptic(); }
+                else { s1.hp -= 10; msg = "Wasted"; col = "var(--bug)"; }
+            } else { // Missed
+                if(c.isBug) { s1.hp -= 20; msg = "Missed Bug!"; col = "var(--vuln)"; if(navigator.vibrate) navigator.vibrate([50,50,50]); }
+            }
+            
+            floatTxt(msg, col, c.x, c.y, document.getElementById('s1-area'));
+            document.getElementById('s1-prog').innerText = `${s1.prog}/10`;
+            document.getElementById('s1-hp').innerText = `${s1.hp}%`;
+            document.getElementById('s1-hp').style.color = s1.hp < 50 ? 'var(--vuln)' : 'var(--good)';
+            
+            c.el.remove(); s1.commits.splice(s1.commits.indexOf(c), 1);
+
+            if(s1.hp <= 0) { alert("Fired! Refresh to try again."); location.reload(); }
+            if(s1.prog >= 10) { s1.playing = false; cancelAnimationFrame(s1.anim); setTimeout(startStage2, 1000); }
+        }
+
+        // --- STAGE 2 LOGIC (WHITEBOARD) ---
+        let s2 = { path: [], cost: 0, budget: 300, cells: {}, isDragging: false };
+        const s2_layout = [
+            {id: "0,0", type:"start", lbl:"In"}, {id: "1,0", type:"chk", lbl:"WAF"}, {id: "2,0", type:"", lbl:""}, {id: "3,0", type:"", lbl:""},
+            {id: "0,1", type:"", lbl:""}, {id: "1,1", type:"", lbl:""}, {id: "2,1", type:"chk", lbl:"ALB"}, {id: "3,1", type:"", lbl:""},
+            {id: "0,2", type:"", lbl:""}, {id: "1,2", type:"chk", lbl:"ASG"}, {id: "2,2", type:"", lbl:""}, {id: "3,2", type:"", lbl:""},
+            {id: "0,3", type:"", lbl:""}, {id: "1,3", type:"", lbl:""}, {id: "2,3", type:"", lbl:""}, {id: "3,3", type:"end", lbl:"RDS"}
         ];
 
-        // Tower Stats
-        const towersConfig = {
-            asg: { cost: 150, range: 80, fireRate: 300, damage: 35, target: 'user', color: 'var(--asg)' },
-            waf: { cost: 200, range: 120, fireRate: 500, damage: 50, target: 'ddos', color: 'var(--waf)' },
-            cache: { cost: 300, range: 45, fireRate: 100, damage: 100, target: 'user', color: 'var(--cache)' }
-        };
-
-        let packets = [];
-        let towers = [];
-        let lasers = [];
-        let lastTime = 0;
-        let spawnTimer = 0;
-        let secondTimer = 0;
-        let selectedTowerType = null;
-        let animationId;
-
-        // --- Initialization ---
-        function initMap() {
-            // Draw Path Segments visually
-            for (let i = 0; i < pathPoints.length - 1; i++) {
-                const p1 = pathPoints[i]; const p2 = pathPoints[i+1];
-                const seg = document.createElement('div');
-                seg.className = 'path-segment';
-                
-                const width = Math.abs(p2.x - p1.x) + 30;
-                const height = Math.abs(p2.y - p1.y) + 30;
-                const left = Math.min(p1.x, p2.x) - 15;
-                const top = Math.min(p1.y, p2.y) - 15;
-                
-                seg.style.width = `${width}px`; seg.style.height = `${height}px`;
-                seg.style.left = `${left}px`; seg.style.top = `${top}px`;
-                gameArea.appendChild(seg);
-            }
-
-            // Position DB at the end
-            const db = document.getElementById('database');
-            const endPoint = pathPoints[pathPoints.length - 1];
-            db.style.left = `${endPoint.x - 30}px`;
-            db.style.top = `${endPoint.y - 30}px`;
+        function startStage2() { 
+            switchView('stage2-view'); 
+            document.getElementById('s2-modal').style.display = 'flex'; 
+            
+            const grid = document.getElementById('s2-grid'); grid.innerHTML = '';
+            s2_layout.forEach(c => {
+                const el = document.createElement('div'); el.className = `s2-cell ${c.type}`; el.id = `c-${c.id}`;
+                if(c.lbl) el.innerHTML = `<span>${c.lbl}</span>`;
+                grid.appendChild(el); s2.cells[c.id] = el;
+            });
+            s2_log("Artifact received. Wire the VPC.");
         }
 
-        function startGame() {
-            document.getElementById('start-modal').style.display = 'none';
-            initMap();
-            state.isPlaying = true;
-            lastTime = performance.now();
-            updateUI();
-            gameLoop(lastTime);
+        function s2_run() {
+            document.getElementById('s2-modal').style.display = 'none';
+            const grid = document.getElementById('s2-grid');
+            
+            // Pointer events for drawing
+            grid.addEventListener('pointerdown', e => { s2.isDragging = true; s2_process(e); });
+            window.addEventListener('pointermove', e => { if(s2.isDragging) { e.preventDefault(); s2_process(e); } }, {passive: false});
+            window.addEventListener('pointerup', () => s2.isDragging = false);
+            s2_move(0,0, true);
         }
 
-        // --- Core Game Loop ---
-        function gameLoop(timestamp) {
-            if (!state.isPlaying) return;
-            const deltaTime = timestamp - lastTime;
-            lastTime = timestamp;
+        function s2_process(e) {
+            const rect = document.getElementById('s2-grid').getBoundingClientRect();
+            if(e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
+            const x = Math.floor((e.clientX - rect.left) / (rect.width / 4));
+            const y = Math.floor((e.clientY - rect.top) / (rect.height / 4));
+            if(x >= 0 && x < 4 && y >= 0 && y < 4) s2_tryMove(x,y);
+        }
 
-            // Timers
-            spawnTimer += deltaTime;
-            secondTimer += deltaTime;
+        function s2_tryMove(x, y) {
+            if(s2.path.length === 0) return;
+            const curr = s2.path[s2.path.length-1];
+            if(curr.x === x && curr.y === y) return;
+            if(s2.path.length > 1) { const prev = s2.path[s2.path.length-2]; if(prev.x === x && prev.y === y) { s2_undo(); return; } }
+            if((Math.abs(x - curr.x) === 1 && y === curr.y) || (x === curr.x && Math.abs(y - curr.y) === 1)) {
+                if(!s2.path.find(p => p.x === x && p.y === y)) s2_move(x, y);
+            }
+        }
 
-            // 1 Second Tick (Decay CPU, Update Time)
-            if (secondTimer >= 1000) {
-                secondTimer = 0;
-                state.timeLeft--;
-                state.cpu = Math.max(0, state.cpu - 4); // CPU cools down
+        function s2_move(x, y, isFirst=false) {
+            const id = `${x},${y}`; const el = s2.cells[id];
+            s2.path.push({x,y}); el.classList.add('visited');
+            
+            if(!isFirst) {
+                const prev = s2.path[s2.path.length-2]; const prevEl = s2.cells[`${prev.x},${prev.y}`];
+                const line = document.createElement('div'); line.className = 's2-line';
+                if(x > prev.x) line.classList.add('s2-line-right'); else if(x < prev.x) line.classList.add('s2-line-left');
+                else if(y > prev.y) line.classList.add('s2-line-down'); else if(y < prev.y) line.classList.add('s2-line-up');
+                prevEl.appendChild(line);
                 
-                // Difficulty Scaling
-                if (state.timeLeft % 10 === 0) {
-                    state.spawnRate = Math.max(300, state.spawnRate - 200);
-                    state.waveMultiplier += 0.2;
-                }
+                const type = s2_layout.find(l => l.id === id).type;
+                if(!type) { s2.cost += 50; s2_log("> Routing +$50"); }
+                else { s2_log(`> Connected ${s2_layout.find(l=>l.id===id).lbl}`); }
+                triggerHaptic();
+            }
+            
+            const dot = document.createElement('div'); dot.className = 's2-dot'; el.appendChild(dot);
+            document.getElementById('s2-cost').innerText = `$${s2.cost}/$${s2.budget}`;
+            document.getElementById('s2-cost').style.color = s2.cost > s2.budget ? 'var(--vuln)' : 'var(--good)';
+        }
+
+        function s2_undo() {
+            const last = s2.path.pop(); const id = `${last.x},${last.y}`; const el = s2.cells[id];
+            el.classList.remove('visited'); el.querySelector('.s2-dot').remove();
+            
+            const type = s2_layout.find(l => l.id === id).type;
+            if(!type) s2.cost -= 50;
+            
+            const prev = s2.path[s2.path.length-1]; const prevEl = s2.cells[`${prev.x},${prev.y}`];
+            const lines = prevEl.querySelectorAll('.s2-line'); if(lines.length>0) lines[lines.length-1].remove();
+            document.getElementById('s2-cost').innerText = `$${s2.cost}/$${s2.budget}`;
+            document.getElementById('s2-cost').style.color = s2.cost > s2.budget ? 'var(--vuln)' : 'var(--good)';
+            triggerHaptic();
+        }
+
+        function s2_log(msg) {
+            const term = document.getElementById('s2-term');
+            term.innerHTML += `<div>${msg}</div>`; term.scrollTop = term.scrollHeight;
+        }
+
+        function s2_submit() {
+            const last = s2.path[s2.path.length-1];
+            if(last.x !== 3 || last.y !== 3) { alert("Must connect to RDS Database!"); return; }
+            if(s2.cost > s2.budget) { alert("Over budget! Find a shorter route."); return; }
+            
+            const chks = s2_layout.filter(l=>l.type==='chk').map(l=>l.id);
+            const pathIds = s2.path.map(p=>`${p.x},${p.y}`);
+            for(let c of chks) { if(!pathIds.includes(c)) { alert("Missed a required security gate!"); return; } }
+            
+            // Win Stage 2
+            s2_log("ARCHITECTURE APPROVED.");
+            setTimeout(startStage3, 1000);
+        }
+
+        // --- STAGE 3 LOGIC (TOWER DEFENSE) ---
+        let s3 = { anim: null, playing: false, time: 45, cpu: 0, budget: 200, packets: [], towers: [], selected: null, lastTime: 0, spawnT: 0, secT: 0 };
+        const s3_path = [ {x: 25, y: -20}, {x: 25, y: 50}, {x: 425, y: 50}, {x: 425, y: 150}, {x: 75, y: 150}, {x: 75, y: 250}, {x: 400, y: 250} ];
+
+        function startStage3() {
+            switchView('stage3-view'); document.getElementById('s3-modal').style.display = 'flex';
+            const area = document.getElementById('s3-area');
+            
+            // Draw path lines
+            for(let i=0; i<s3_path.length-1; i++) {
+                const p1 = s3_path[i], p2 = s3_path[i+1];
+                const seg = document.createElement('div'); seg.className = 's3-path';
+                seg.style.width = `${Math.abs(p2.x-p1.x)+30}px`; seg.style.height = `${Math.abs(p2.y-p1.y)+30}px`;
+                seg.style.left = `${Math.min(p1.x,p2.x)-15}px`; seg.style.top = `${Math.min(p1.y,p2.y)-15}px`;
+                area.appendChild(seg);
+            }
+            
+            // Draw DB
+            const db = document.createElement('div'); db.className = 's3-db'; db.innerText = "RDS";
+            db.style.left = `${s3_path[s3_path.length-1].x - 25}px`; db.style.top = `${s3_path[s3_path.length-1].y - 25}px`;
+            area.appendChild(db);
+        }
+
+        function s3_run() {
+            document.getElementById('s3-modal').style.display = 'none';
+            s3.playing = true; s3.lastTime = performance.now();
+            s3_loop(s3.lastTime);
+            
+            document.getElementById('s3-area').addEventListener('pointerdown', e => {
+                if(!s3.selected || s3.budget < (s3.selected==='asg'?100:150)) return;
+                const rect = document.getElementById('s3-area').getBoundingClientRect();
+                const x = e.clientX - rect.left, y = e.clientY - rect.top;
                 
-                updateUI();
-                if (state.timeLeft <= 0) return endGame(true);
+                s3.budget -= s3.selected==='asg'?100:150;
+                const el = document.createElement('div'); el.className = 's3-tower';
+                el.innerText = s3.selected.toUpperCase();
+                el.style.background = s3.selected==='asg' ? 'rgba(88,166,255,0.2)' : 'rgba(188,140,255,0.2)';
+                el.style.borderColor = s3.selected==='asg' ? 'var(--asg)' : 'var(--waf)';
+                el.style.left = `${x}px`; el.style.top = `${y}px`;
+                document.getElementById('s3-area').appendChild(el);
+                
+                s3.towers.push({el, type: s3.selected, x, y, cd: 0});
+                s3.selected = null; document.querySelectorAll('.s3-item').forEach(i => i.classList.remove('selected'));
+                s3_updateUI();
+            });
+        }
+
+        function s3_select(type) {
+            s3.selected = type;
+            document.querySelectorAll('.s3-item').forEach(i => i.classList.remove('selected'));
+            document.getElementById(`shop-${type}`).classList.add('selected');
+        }
+
+        function s3_loop(time) {
+            if(!s3.playing) return;
+            const dt = time - s3.lastTime; s3.lastTime = time;
+            s3.spawnT += dt; s3.secT += dt;
+
+            // 1 Sec Tick
+            if(s3.secT >= 1000) {
+                s3.secT = 0; s3.time--; s3.cpu = Math.max(0, s3.cpu - 5);
+                s3_updateUI();
+                if(s3.time <= 0) { s3.playing = false; cancelAnimationFrame(s3.anim); switchView('victory-view'); return; }
             }
 
-            // Spawn Packets
-            if (spawnTimer >= state.spawnRate) {
-                spawnTimer = 0;
-                spawnPacket();
+            // Spawn
+            if(s3.spawnT > (s3.time < 20 ? 600 : 1200)) {
+                s3.spawnT = 0;
+                const isDdos = Math.random() < (s3.time < 20 ? 0.6 : 0.3);
+                const el = document.createElement('div'); el.className = 's3-packet';
+                el.style.background = isDdos ? 'var(--vuln)' : 'var(--good)';
+                el.style.boxShadow = `0 0 8px ${isDdos ? 'var(--vuln)' : 'var(--good)'}`;
+                document.getElementById('s3-area').appendChild(el);
+                s3.packets.push({el, isDdos, x: s3_path[0].x, y: s3_path[0].y, idx: 0, hp: isDdos?2:1});
             }
 
             // Move Packets
-            for (let i = packets.length - 1; i >= 0; i--) {
-                let p = packets[i];
-                if (movePacket(p, deltaTime)) {
-                    // Reached Database
-                    hitDatabase(p);
-                    p.el.remove();
-                    packets.splice(i, 1);
+            for(let i = s3.packets.length-1; i>=0; i--) {
+                let p = s3.packets[i];
+                const target = s3_path[p.idx+1];
+                if(!target) {
+                    // Hit DB
+                    s3.cpu += p.isDdos ? 30 : 10;
+                    triggerHaptic(); floatTxt(p.isDdos?"+30% CPU":"+10%", p.isDdos?"var(--vuln)":"var(--bug)", p.x, p.y-20, document.getElementById('s3-area'));
+                    p.el.remove(); s3.packets.splice(i, 1);
+                    if(s3.cpu >= 100) { alert("Database Crashed! Refresh to restart."); location.reload(); }
+                    s3_updateUI(); continue;
                 }
+                
+                const speed = (p.isDdos ? 0.1 : 0.06) * dt;
+                const dx = target.x - p.x, dy = target.y - p.y;
+                const dist = Math.hypot(dx, dy);
+                if(speed >= dist) { p.x = target.x; p.y = target.y; p.idx++; }
+                else { p.x += (dx/dist)*speed; p.y += (dy/dist)*speed; }
+                p.el.style.left = `${p.x}px`; p.el.style.top = `${p.y}px`;
             }
 
-            // Tower Logic
-            towers.forEach(t => {
-                t.cooldown -= deltaTime;
-                if (t.cooldown <= 0) {
-                    let target = findTarget(t);
-                    if (target) {
-                        fireTower(t, target);
-                        t.cooldown = tConfig(t.type).fireRate;
+            // Towers Fire
+            s3.towers.forEach(t => {
+                t.cd -= dt;
+                if(t.cd <= 0) {
+                    let target = s3.packets.find(p => p.isDdos === (t.type==='waf') && Math.hypot(p.x-t.x, p.y-t.y) < (t.type==='waf'?120:80));
+                    if(target) {
+                        t.cd = t.type==='waf'?400:250;
+                        target.hp--;
+                        
+                        // Draw Laser
+                        const lEl = document.createElement('div'); lEl.className = 's3-laser';
+                        lEl.style.width = `${Math.hypot(target.x-t.x, target.y-t.y)}px`;
+                        lEl.style.background = t.type==='waf'?'var(--waf)':'var(--asg)';
+                        lEl.style.left = `${t.x}px`; lEl.style.top = `${t.y}px`;
+                        lEl.style.transform = `rotate(${Math.atan2(target.y-t.y, target.x-t.x)*180/Math.PI}deg)`;
+                        document.getElementById('s3-area').appendChild(lEl);
+                        setTimeout(()=>lEl.remove(), 100);
+
+                        if(target.hp <= 0) {
+                            if(!target.isDdos) { s3.budget+=15; floatTxt("+$15", "var(--good)", target.x, target.y, document.getElementById('s3-area')); s3_updateUI(); }
+                            target.el.remove(); s3.packets.splice(s3.packets.indexOf(target), 1);
+                        }
                     }
                 }
             });
 
-            // Cleanup Lasers
-            for (let i = lasers.length - 1; i >= 0; i--) {
-                lasers[i].life -= deltaTime;
-                if (lasers[i].life <= 0) {
-                    lasers[i].el.remove();
-                    lasers.splice(i, 1);
-                } else {
-                    lasers[i].el.style.opacity = lasers[i].life / 150;
-                }
-            }
-
-            animationId = requestAnimationFrame(gameLoop);
+            s3.anim = requestAnimationFrame(s3_loop);
         }
 
-        // --- Mechanics ---
-        function spawnPacket() {
-            const isDDoS = Math.random() < 0.35; // 35% chance of malicious traffic
-            const type = isDDoS ? 'ddos' : 'user';
-            
-            const el = document.createElement('div');
-            el.className = `packet ${type}`;
-            gameArea.appendChild(el);
-
-            const hpBase = type === 'ddos' ? 100 : 50;
-
-            packets.push({
-                el: el, type: type, hp: hpBase * state.waveMultiplier,
-                pathIdx: 0, x: pathPoints[0].x, y: pathPoints[0].y,
-                speed: (type === 'ddos' ? 80 : 50) / 1000 // pixels per ms
-            });
-        }
-
-        function movePacket(p, dt) {
-            const target = pathPoints[p.pathIdx + 1];
-            if (!target) return true; // Reached end
-
-            const dx = target.x - p.x;
-            const dy = target.y - p.y;
-            const dist = Math.hypot(dx, dy);
-            const moveAmt = p.speed * dt;
-
-            if (moveAmt >= dist) {
-                p.x = target.x; p.y = target.y;
-                p.pathIdx++;
-                if (p.pathIdx >= pathPoints.length - 1) return true;
-            } else {
-                p.x += (dx / dist) * moveAmt;
-                p.y += (dy / dist) * moveAmt;
-            }
-            
-            p.el.style.left = `${p.x}px`;
-            p.el.style.top = `${p.y}px`;
-            return false;
-        }
-
-        function hitDatabase(p) {
-            // DB CPU Penalty
-            const penalty = p.type === 'ddos' ? 25 : 8; 
-            state.cpu += penalty;
-            
-            triggerHaptic('error');
-            showFloatingText(`CPU +${penalty}%`, "var(--vuln)", p.x, p.y - 20);
-            updateUI();
-
-            if (state.cpu >= 100) endGame(false);
-        }
-
-        function findTarget(tower) {
-            const conf = tConfig(tower.type);
-            let bestTarget = null; let minD = conf.range;
-            
-            for (let p of packets) {
-                if (p.type !== conf.target) continue;
-                const d = Math.hypot(p.x - tower.x, p.y - tower.y);
-                if (d < minD) { minD = d; bestTarget = p; }
-            }
-            return bestTarget;
-        }
-
-        function fireTower(tower, packet) {
-            const conf = tConfig(tower.type);
-            packet.hp -= conf.damage;
-            
-            // Draw Laser
-            drawLaser(tower.x, tower.y, packet.x, packet.y, conf.color);
-
-            if (packet.hp <= 0) {
-                // Packet Processed/Destroyed
-                if (packet.type === 'user') {
-                    const reward = 10;
-                    state.budget += reward;
-                    showFloatingText(`+$${reward}`, "var(--good)", packet.x, packet.y);
-                } else {
-                    showFloatingText("Blocked!", "var(--waf)", packet.x, packet.y);
-                }
-                
-                packet.el.remove();
-                packets.splice(packets.indexOf(packet), 1);
-                updateUI();
-            }
-        }
-
-        function drawLaser(x1, y1, x2, y2, color) {
-            const dist = Math.hypot(x2 - x1, y2 - y1);
-            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-            
-            const el = document.createElement('div');
-            el.className = 'laser';
-            el.style.width = `${dist}px`;
-            el.style.height = '3px';
-            el.style.background = color;
-            el.style.boxShadow = `0 0 8px ${color}`;
-            el.style.left = `${x1}px`; el.style.top = `${y1}px`;
-            el.style.transform = `rotate(${angle}deg)`;
-            
-            gameArea.appendChild(el);
-            lasers.push({ el: el, life: 150 }); // laser lasts 150ms
-        }
-
-        // --- Building & UI ---
-        function tConfig(type) { return towersConfig[type]; }
-
-        function selectTower(type) {
-            if (state.budget < tConfig(type).cost) return;
-            selectedTowerType = type;
-            document.querySelectorAll('.shop-item').forEach(el => el.classList.remove('selected'));
-            document.getElementById(`shop-${type}`).classList.add('selected');
-        }
-
-        // Place Tower on click
-        gameArea.addEventListener('pointerdown', (e) => {
-            if (!state.isPlaying || !selectedTowerType) return;
-            const conf = tConfig(selectedTowerType);
-            if (state.budget < conf.cost) return;
-
-            const rect = gameArea.getBoundingClientRect();
-            // Snap to 50px grid
-            const x = Math.round((e.clientX - rect.left) / 50) * 50;
-            const y = Math.round((e.clientY - rect.top) / 50) * 50;
-
-            // Boundaries check
-            if (x < 25 || x > rect.width - 25 || y < 25 || y > rect.height - 25) return;
-
-            state.budget -= conf.cost;
-            
-            const el = document.createElement('div');
-            el.className = `tower ${selectedTowerType}`;
-            el.innerText = selectedTowerType.toUpperCase();
-            el.style.left = `${x}px`; el.style.top = `${y}px`;
-            gameArea.appendChild(el);
-
-            towers.push({ el: el, type: selectedTowerType, x: x, y: y, cooldown: 0 });
-            
-            // Deselect
-            selectedTowerType = null;
-            document.querySelectorAll('.shop-item').forEach(el => el.classList.remove('selected'));
-            updateUI();
-        });
-
-        function updateUI() {
-            timeVal.innerText = `${state.timeLeft}s`;
-            budgetVal.innerText = `$${state.budget}`;
-            
-            cpuFill.style.width = `${Math.min(100, state.cpu)}%`;
-            if (state.cpu > 80) cpuFill.style.backgroundColor = 'var(--vuln)';
-            else if (state.cpu > 50) cpuFill.style.backgroundColor = 'var(--bug)';
-            else cpuFill.style.backgroundColor = 'var(--good)';
-
-            // Update Shop buttons
-            ['asg', 'waf', 'cache'].forEach(t => {
-                const el = document.getElementById(`shop-${t}`);
-                if (state.budget < tConfig(t).cost) el.classList.add('disabled');
-                else el.classList.remove('disabled');
-            });
-        }
-
-        function showFloatingText(msg, color, x, y) {
-            const el = document.createElement('div');
-            el.className = 'floating-text'; el.innerText = msg; el.style.color = color;
-            el.style.left = `${x}px`; el.style.top = `${y}px`;
-            gameArea.appendChild(el);
-            setTimeout(() => el.remove(), 800);
-        }
-
-        function triggerHaptic(type) {
-            if (navigator.vibrate) {
-                if (type === 'error') navigator.vibrate([50, 50, 50]);
-            }
-        }
-
-        function endGame(won) {
-            state.isPlaying = false;
-            cancelAnimationFrame(animationId);
-            const modal = document.getElementById('start-modal');
-            
-            if (won) {
-                modal.innerHTML = `
-                    <h2 style="color: var(--good)">Incident Resolved</h2>
-                    <p>You successfully scaled your infrastructure and blocked the DDoS attack. Production stayed online!</p>
-                    <button class="btn-start" onclick="alert('DevOps Campaign Completed!')">Finish Campaign</button>
-                `;
-            } else {
-                modal.innerHTML = `
-                    <h2 style="color: var(--vuln)">Production Down</h2>
-                    <p>Your Database CPU hit 100%. The application crashed under load.</p>
-                    <p><strong>Tip:</strong> Use WAFs early in the path to kill DDoS bots, and ElastiCache right next to the DB to absorb user traffic!</p>
-                    <button class="btn-start" style="background:var(--vuln)" onclick="location.reload()">Retry Incident</button>
-                `;
-            }
-            modal.style.display = 'flex';
+        function s3_updateUI() {
+            document.getElementById('s3-time').innerText = `${s3.time}s`;
+            document.getElementById('s3-budget').innerText = `$${s3.budget}`;
+            document.getElementById('s3-cpu').innerText = `${s3.cpu}%`;
+            document.getElementById('s3-cpu').style.color = s3.cpu > 80 ? 'var(--vuln)' : (s3.cpu > 50 ? 'var(--bug)' : 'var(--good)');
         }
     </script>
 </body>
