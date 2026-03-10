@@ -915,8 +915,9 @@ function updateParticles() {
     if (p.glow) { ctx.shadowColor = p.color; ctx.shadowBlur = 12; }
     ctx.fillStyle = p.color;
     ctx.beginPath();
-    if (p.type === 'ring') { ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.strokeStyle = p.color; ctx.lineWidth = 1.5; ctx.stroke(); }
-    else { const r = Math.max(0, p.size * p.life); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.fill(); }
+    if (p.life <= 0) { ctx.restore(); continue; }
+    if (p.type === 'ring') { const r = Math.max(0.01, p.size); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.strokeStyle = p.color; ctx.lineWidth = 1.5; ctx.stroke(); }
+    else { const r = Math.max(0.01, p.size * p.life); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.fill(); }
     ctx.restore();
   }
 }
